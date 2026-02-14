@@ -1,0 +1,161 @@
+.all-patients-content {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.patients-header {
+  margin-bottom: 2rem;
+}
+
+.patients-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #234E52;
+  margin-bottom: 0.5rem;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.patients-subtitle {
+  font-size: 0.95rem;
+  color: #718096;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.filters-section {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #A0AEC0;
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #2D3748;
+  background: white;
+  transition: all 0.3s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #38B2AC;
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
+}
+
+.search-input::placeholder {
+  color: #A0AEC0;
+}
+
+.filter-select {
+  padding: 0.875rem 1rem;
+  border: 2px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #2D3748;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  min-width: 180px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #38B2AC;
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.1);
+}
+
+.filter-select:hover {
+  border-color: #38B2AC;
+}
+
+.patients-list-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  min-height: 400px;
+}
+
+.list-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #234E52;
+  margin-bottom: 2rem;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #F7FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #CBD5E0;
+}
+
+.empty-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.empty-text {
+  font-size: 0.95rem;
+  color: #718096;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .patients-title,
+  .list-title {
+    font-size: 1.5rem;
+  }
+
+  .filters-section {
+    flex-direction: column;
+  }
+
+  .search-box,
+  .filter-select {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .patients-list-section {
+    padding: 1.5rem;
+  }
+}

@@ -1,0 +1,159 @@
+{
+  "disease": "Pneumonia",
+  "overview": {
+    "definition": "Pneumonia is a lung infection that makes breathing difficult. Your lungs get filled with fluid or pus, making it hard to breathe.",
+    "severity": "Can range from mild to life-threatening",
+    "contagious": "Some types spread between people, others don't"
+  },
+  "types": {
+    "bacterial": {
+      "description": "Most common type, needs antibiotics",
+      "common_bacteria": "Streptococcus pneumoniae (most common)",
+      "treatment": "Antibiotics for 5-14 days"
+    },
+    "viral": {
+      "description": "Like a bad flu, caused by viruses",
+      "common_viruses": "Flu virus, COVID-19, RSV",
+      "treatment": "Rest, fluids, symptom relief (antibiotics don't work for viruses)"
+    },
+    "fungal": {
+      "description": "Less common, affects people with weak immune systems",
+      "treatment": "Antifungal medications"
+    },
+    "aspiration": {
+      "description": "Caused by breathing in food, liquid, or vomit",
+      "risk": "Common in elderly or people with swallowing problems"
+    }
+  },
+  "symptoms": {
+    "common": [
+      "Cough with mucus (yellow, green, or bloody)",
+      "High fever with chills and sweating",
+      "Hard time breathing or catching breath",
+      "Sharp chest pain when breathing or coughing",
+      "Feeling very tired or weak",
+      "Nausea and vomiting",
+      "Confusion (especially in older adults)"
+    ],
+    "timeline": "Symptoms start suddenly over a few days",
+    "severity_signs": [
+      "Can't breathe properly",
+      "Lips or fingernails turning blue",
+      "Chest pain is very bad",
+      "Very high fever that won't go down",
+      "Coughing up a lot of blood",
+      "Confusion or can't stay awake"
+    ]
+  },
+  "risk_factors": {
+    "high_risk_groups": [
+      "Babies and young children (under 2)",
+      "Elderly people (over 65)",
+      "Smokers and people with lung disease",
+      "People with weak immune systems",
+      "People with chronic diseases (diabetes, heart disease)",
+      "Recently had flu or cold"
+    ]
+  },
+  "diagnosis": {
+    "tests": [
+      "Chest X-ray - Shows white cloudy areas in lungs",
+      "Blood tests - Check for infection",
+      "Sputum test - Checks mucus for bacteria",
+      "Pulse oximetry - Checks oxygen levels",
+      "CT scan if X-ray unclear",
+      "Pleural fluid culture (if fluid around lungs)"
+    ],
+    "xray_findings": [
+      "White cloudy area (consolidation) - looks like fog in lungs",
+      "Can be in any part of lungs",
+      "Sometimes scattered white patches",
+      "Sometimes fluid at bottom of lungs"
+    ]
+  },
+  "treatment": {
+    "mild_cases": {
+      "location": "Can be treated at home",
+      "medications": [
+        "Antibiotics (for bacterial pneumonia)",
+        "Fever reducers (acetaminophen, ibuprofen)",
+        "Cough medicine (ask doctor first)"
+      ],
+      "home_care": [
+        "Rest and sleep a lot",
+        "Drink lots of water and fluids",
+        "Use humidifier for easier breathing",
+        "Avoid smoking"
+      ],
+      "duration": "Most people feel better in 1-3 weeks"
+    },
+    "severe_cases": {
+      "location": "Hospital treatment needed",
+      "reasons": [
+        "Very hard to breathe",
+        "Low oxygen levels",
+        "Very high or very low blood pressure",
+        "Confusion",
+        "Over 65 years old with complications"
+      ],
+      "hospital_treatment": [
+        "IV antibiotics",
+        "Oxygen therapy",
+        "Breathing treatments",
+        "IV fluids"
+      ]
+    },
+    "recovery": [
+      "Week 1: Start feeling a bit better",
+      "Week 2-3: Much better, but still tired",
+      "Week 4-6: Back to normal for most people",
+      "Cough may last 4-6 weeks even after getting better"
+    ]
+  },
+  "complications": {
+    "possible": [
+      "Bacteria in bloodstream (sepsis)",
+      "Fluid around lungs (pleural effusion)",
+      "Lung abscess (pus-filled cavity)",
+      "Breathing failure (needs ventilator)"
+    ],
+    "warning_signs": [
+      "Getting worse instead of better",
+      "Can't keep down food or medicine",
+      "Very confused",
+      "Blue lips or fingernails"
+    ]
+  },
+  "prevention": {
+    "vaccines": [
+      "Pneumococcal vaccine (prevents most common type)",
+      "Flu vaccine (flu can lead to pneumonia)",
+      "COVID-19 vaccine"
+    ],
+    "lifestyle": [
+      "Wash hands frequently",
+      "Don't smoke",
+      "Stay away from sick people",
+      "Get enough sleep",
+      "Eat healthy foods",
+      "Manage chronic diseases"
+    ]
+  },
+  "when_to_call_doctor": [
+    "Cough gets worse or produces bloody mucus",
+    "Fever over 102°F (39°C)",
+    "Hard to breathe",
+    "Chest pain when breathing",
+    "Confusion or change in mental awareness",
+    "Not getting better after 3-5 days of antibiotics"
+  ],
+  "prognosis": {
+    "general": "Most healthy people recover fully with treatment",
+    "recovery_time": "1-3 weeks for most people",
+    "factors": [
+      "Faster recovery if young and healthy",
+      "Slower recovery if elderly or have other health problems",
+      "Type of pneumonia affects recovery time"
+    ]
+  }
+}

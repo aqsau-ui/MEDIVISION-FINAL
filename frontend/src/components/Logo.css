@@ -1,0 +1,36 @@
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-svg {
+  width: 40px;
+  height: 40px;
+}
+
+.logo-container.small .logo-svg {
+  width: 32px;
+  height: 32px;
+}
+
+.logo-container.large .logo-svg {
+  width: 56px;
+  height: 56px;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #38B2AC;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.logo-container.small .logo-text {
+  font-size: 1.2rem;
+}
+
+.logo-container.large .logo-text {
+  font-size: 2rem;
+}

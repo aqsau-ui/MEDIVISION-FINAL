@@ -1,0 +1,107 @@
+{
+  "disease": "Tuberculosis (TB)",
+  "overview": {
+    "definition": "TB is a lung infection caused by bacteria called Mycobacterium tuberculosis. Think of it as germs attacking your lungs.",
+    "severity": "TB is serious but completely curable with proper treatment",
+    "contagious": "Yes - spreads through air when someone with TB coughs or sneezes"
+  },
+  "symptoms": {
+    "common": [
+      "Bad cough lasting more than 3 weeks",
+      "Coughing up blood (even small amounts)",
+      "Night sweats (waking up very sweaty)",
+      "Losing weight without trying",
+      "Feeling tired all the time",
+      "Fever that comes and goes",
+      "Chest pain when breathing or coughing",
+      "Loss of appetite"
+    ],
+    "timeline": "Symptoms develop slowly over weeks or months",
+    "when_to_see_doctor": [
+      "Cough for more than 3 weeks",
+      "Coughing up blood",
+      "Unexplained weight loss",
+      "Night sweats for more than 2 weeks",
+      "Contact with someone who has TB"
+    ]
+  },
+  "transmission": {
+    "how_it_spreads": "TB spreads through the air when someone coughs or sneezes. It's like catching a cold, but more serious.",
+    "risk_factors": [
+      "Close contact with TB patients",
+      "Weak immune system",
+      "Living in crowded conditions",
+      "Healthcare workers",
+      "People living in high TB areas"
+    ],
+    "latent_vs_active": {
+      "latent": "You have TB bacteria but feel fine and can't spread it",
+      "active": "You feel sick and can spread TB to others"
+    }
+  },
+  "diagnosis": {
+    "tests": [
+      "Chest X-ray - Shows spots or holes in lungs",
+      "Sputum test - Checks mucus for TB bacteria",
+      "TB skin test (Mantoux test)",
+      "Blood tests (IGRA)",
+      "CT scan if X-ray unclear"
+    ],
+    "xray_findings": [
+      "White spots in upper parts of lungs",
+      "Cavities (holes) in lungs",
+      "Swollen lymph nodes",
+      "Fluid around lungs (pleural effusion)"
+    ]
+  },
+  "treatment": {
+    "overview": "TB can be 100% cured with medicine",
+    "duration": "6 months of daily medication",
+    "medications": [
+      "Isoniazid",
+      "Rifampin",
+      "Ethambutol",
+      "Pyrazinamide"
+    ],
+    "important_notes": [
+      "Take ALL medicines every day",
+      "Never skip doses",
+      "Don't stop early even if you feel better",
+      "After 2 weeks of treatment, you're much less contagious",
+      "Stopping early makes bacteria resistant to medicine"
+    ],
+    "side_effects": [
+      "Upset stomach",
+      "Orange-colored urine (normal with rifampin)",
+      "Mild liver problems (doctor will monitor)",
+      "Skin rash"
+    ]
+  },
+  "prevention": {
+    "tips": [
+      "Cover mouth when coughing",
+      "Wear mask if you have active TB",
+      "Keep windows open for fresh air",
+      "Get tested if exposed to TB",
+      "BCG vaccine (in some countries)"
+    ]
+  },
+  "complications": {
+    "untreated": [
+      "TB can spread to other parts of body",
+      "Brain (TB meningitis)",
+      "Kidneys",
+      "Spine",
+      "Can be fatal if not treated"
+    ]
+  },
+  "prognosis": {
+    "with_treatment": "95-98% cure rate with complete treatment",
+    "recovery_timeline": [
+      "Week 1-2: Start feeling a bit better",
+      "Week 2-4: Much less contagious",
+      "Month 2-3: Feel much better",
+      "Month 6: Fully cured (if completed all medicine)"
+    ]
+  }
+}
