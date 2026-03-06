@@ -331,6 +331,10 @@
   background: #4FD1C5;
 }
 
+.legend-color.normal {
+  background: #68D391;
+}
+
 .legend-label {
   flex: 1;
   color: #E2E8F0;
@@ -400,7 +404,7 @@
 }
 
 .filter-input::placeholder {
-  color: #718096;
+  color: #EBE4D6;
 }
 
 .filter-select option {

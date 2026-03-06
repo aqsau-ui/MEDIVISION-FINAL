@@ -11,7 +11,7 @@
 
 .patient-profile-page {
   min-height: 100vh;
-  background: #EBE4D6;
+  background: #FFFFFF;
 }
 
 /* Top Navigation - Reuse from Dashboard */
@@ -788,5 +788,59 @@
   }
   to {
     opacity: 0;
+  }
+}
+
+/* Spinner animation for analyzing state */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Analyze button styles */
+.analyze-btn:hover:not(:disabled) {
+  background-color: #2C7A7B !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.4);
+}
+
+/* Analysis results animation */
+.analysis-results-section {
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Help Modal Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

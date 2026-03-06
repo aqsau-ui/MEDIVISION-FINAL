@@ -48,9 +48,9 @@ async def register(request: PatientRegisterRequest, conn=Depends(get_db)):
         # Insert into pending_users
         cursor.execute(
             """INSERT INTO pending_users 
-               (full_name, email, password, gender, city, otp, otp_expires_at, otp_created_at, created_at)
+               (full_name, email, password, country, city, otp, otp_expires_at, otp_created_at, created_at)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())""",
-            (request.full_name, request.email, hashed_password, request.gender,
+            (request.full_name, request.email, hashed_password, request.country,
              request.city, otp_data["otp"], otp_data["expires_at"], otp_data["created_at"])
         )
         conn.commit()
@@ -193,20 +193,20 @@ async def verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
             cursor.execute(
                 """INSERT INTO users 
                    (full_name, email, cnic_number, password, phone, date_of_birth, 
-                    gender, city, is_verified, created_at)
+                    country, city, is_verified, created_at)
                    VALUES (%s, %s, %s, %s, '', %s, %s, %s, TRUE, NOW())""",
                 (pending_user["full_name"], pending_user["email"], cnic,
-                 pending_user["password"], safe_dob, pending_user["gender"],
+                 pending_user["password"], safe_dob, pending_user["country"],
                  pending_user["city"])
             )
         else:
             cursor.execute(
                 """INSERT INTO users 
                    (full_name, email, password, phone, date_of_birth, 
-                    gender, city, is_verified, created_at)
+                    country, city, is_verified, created_at)
                    VALUES (%s, %s, %s, '', %s, %s, %s, TRUE, NOW())""",
                 (pending_user["full_name"], pending_user["email"],
-                 pending_user["password"], safe_dob, pending_user["gender"],
+                 pending_user["password"], safe_dob, pending_user["country"],
                  pending_user["city"])
             )
         

@@ -202,7 +202,7 @@
 }
 
 .form-input::placeholder {
-  color: var(--grey);
+  color: #EBE4D6;
   opacity: 0.7;
 }
 

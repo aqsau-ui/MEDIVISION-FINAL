@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
+import MedicalReport from '../components/MedicalReport';
 import './DoctorDashboard.css';
 
 function DoctorDashboard() {
@@ -22,6 +23,9 @@ function DoctorDashboard() {
     workplace: '',
     city: ''
   });
+  const [patientReports, setPatientReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     const doctorData = localStorage.getItem('doctorData');
@@ -54,6 +58,47 @@ function DoctorDashboard() {
     }
   }, [navigate]);
 
+  // Fetch patient reports sent to this doctor
+  useEffect(() => {
+    const fetchPatientReports = async () => {
+      if (!doctor) return;
+
+      try {
+        console.log('Fetching reports for doctor ID:', doctor.id);
+        const response = await fetch(`http://localhost:5000/api/reports/doctor/${doctor.id}`);
+        const data = await response.json();
+        
+        console.log('Reports response:', data);
+        
+        if (data.success) {
+          console.log(`Received ${data.count} reports:`, data.reports);
+          setPatientReports(data.reports);
+          
+          // Transform reports to match existing patients structure
+          const transformedPatients = data.reports.map(report => ({
+            id: report.reportId,
+            name: report.patient.name,
+            date: report.sentAt,
+            status: report.status,
+            disease: report.analysis.prediction,
+            reportData: report
+          }));
+          
+          console.log('Transformed patients:', transformedPatients);
+          setPatients(transformedPatients);
+          setFilteredPatients(transformedPatients);
+        } else {
+          console.log('No reports found or request failed');
+        }
+      } catch (error) {
+        console.error('Error fetching patient reports:', error);
+        console.error('Error details:', error.message, error.stack);
+      }
+    };
+
+    fetchPatientReports();
+  }, [doctor]);
+
   // Auto-apply filters when any filter value changes
   useEffect(() => {
     let filtered = [...patients];
@@ -67,16 +112,25 @@ function DoctorDashboard() {
 
     // Status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(p => 
-        p.status?.toLowerCase().replace(' ', '-') === statusFilter
-      );
+      filtered = filtered.filter(p => {
+        const patientStatus = p.status?.toLowerCase().replace(/\s+/g, '-');
+        return patientStatus === statusFilter;
+      });
     }
 
     // Disease filter
     if (diseaseFilter !== 'all') {
-      filtered = filtered.filter(p => 
-        p.disease?.toLowerCase() === diseaseFilter
-      );
+      filtered = filtered.filter(p => {
+        const disease = p.disease?.toLowerCase();
+        if (diseaseFilter === 'tb') {
+          return disease === 'tuberculosis';
+        } else if (diseaseFilter === 'pneumonia') {
+          return disease === 'pneumonia';
+        } else if (diseaseFilter === 'normal') {
+          return disease === 'normal';
+        }
+        return disease === diseaseFilter;
+      });
     }
 
     setFilteredPatients(filtered);
@@ -134,11 +188,13 @@ function DoctorDashboard() {
   }
 
   // Calculate disease analytics from real patient data
-  const tbCount = patients.filter(p => p.disease?.toLowerCase() === 'tb').length;
+  const tbCount = patients.filter(p => p.disease?.toLowerCase() === 'tuberculosis').length;
   const pneumoniaCount = patients.filter(p => p.disease?.toLowerCase() === 'pneumonia').length;
-  const totalDiseases = tbCount + pneumoniaCount;
+  const normalCount = patients.filter(p => p.disease?.toLowerCase() === 'normal').length;
+  const totalDiseases = tbCount + pneumoniaCount + normalCount;
   const tbPercentage = totalDiseases > 0 ? (tbCount / totalDiseases * 100).toFixed(1) : 0;
   const pneumoniaPercentage = totalDiseases > 0 ? (pneumoniaCount / totalDiseases * 100).toFixed(1) : 0;
+  const normalPercentage = totalDiseases > 0 ? (normalCount / totalDiseases * 100).toFixed(1) : 0;
 
   const medicalDegreeOptions = ['MBBS', 'BDS', 'FCPS', 'MD', 'MS', 'DO', 'FRCS'];
   const specializationOptions = ['Pulmonologist', 'Cardiologist', 'Dermatologist', 'Gynecologist', 'General Physician', 'Neurologist', 'Pediatrician', 'Orthopedic', 'Psychiatrist'];
@@ -276,6 +332,17 @@ function DoctorDashboard() {
                     strokeDashoffset={`-${tbPercentage * 5.03}`}
                     transform="rotate(-90 100 100)"
                   />
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r="80"
+                    fill="none"
+                    stroke="#68D391"
+                    strokeWidth="40"
+                    strokeDasharray={`${normalPercentage * 5.03} ${500 - normalPercentage * 5.03}`}
+                    strokeDashoffset={`-${(tbPercentage + pneumoniaPercentage) * 5.03}`}
+                    transform="rotate(-90 100 100)"
+                  />
                 </svg>
                 <div className="chart-center">
                   <div className="total-cases">{totalDiseases}</div>
@@ -292,6 +359,11 @@ function DoctorDashboard() {
                   <span className="legend-color pneumonia"></span>
                   <span className="legend-label">Pneumonia</span>
                   <span className="legend-value">{pneumoniaCount} ({pneumoniaPercentage}%)</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-color normal"></span>
+                  <span className="legend-label">Normal</span>
+                  <span className="legend-value">{normalCount} ({normalPercentage}%)</span>
                 </div>
               </div>
             </div>
@@ -334,6 +406,7 @@ function DoctorDashboard() {
                 className="filter-select"
               >
                 <option value="all">All Diseases</option>
+                <option value="normal">Normal</option>
                 <option value="tb">Tuberculosis (TB)</option>
                 <option value="pneumonia">Pneumonia</option>
               </select>
@@ -349,6 +422,7 @@ function DoctorDashboard() {
                   <tr>
                     <th>Patient Name</th>
                     <th>Date</th>
+                    <th>Prediction</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -358,7 +432,29 @@ function DoctorDashboard() {
                       <td>{patient.name}</td>
                       <td>{new Date(patient.date).toLocaleDateString()}</td>
                       <td>
-                        <button className="view-case-btn">View Case</button>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: patient.disease === 'Normal' ? '#d1fae5' : 
+                                         patient.disease === 'Pneumonia' ? '#fed7aa' : '#fecaca',
+                          color: patient.disease === 'Normal' ? '#065f46' : 
+                                patient.disease === 'Pneumonia' ? '#92400e' : '#991b1b'
+                        }}>
+                          {patient.disease}
+                        </span>
+                      </td>
+                      <td>
+                        <button 
+                          className="view-case-btn"
+                          onClick={() => {
+                            setSelectedReport(patient.reportData);
+                            setShowReportModal(true);
+                          }}
+                        >
+                          View Case
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -492,6 +588,66 @@ function DoctorDashboard() {
                 Save Changes
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Viewing Modal */}
+      {showReportModal && selectedReport && (
+        <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '1100px', maxHeight: '95vh', overflow: 'auto', padding: '20px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowReportModal(false)}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '40px',
+                  height: '40px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <MedicalReport
+              reportData={{
+                date: selectedReport.sentAt,
+                patient: {
+                  name: selectedReport.patient?.name || 'Unknown',
+                  email: selectedReport.patient?.email || '',
+                  age: selectedReport.patient?.age || 0,
+                  gender: selectedReport.patient?.gender || 'Not specified',
+                  smokingStatus: selectedReport.patient?.smokingStatus || 'Unknown',
+                  hasCough: selectedReport.patient?.hasCough || 'No',
+                  coughDuration: selectedReport.patient?.coughDuration || 'N/A',
+                  coughType: selectedReport.patient?.coughType || 'N/A'
+                },
+                medicalInfo: {
+                  symptoms: selectedReport.medicalInfo?.symptoms || 'None reported',
+                  medicalHistory: selectedReport.medicalInfo?.medicalHistory || 'None'
+                },
+                analysis: {
+                  prediction: selectedReport.analysis?.prediction || 'Unknown',
+                  confidence: selectedReport.analysis?.confidence || 0,
+                  severity: selectedReport.analysis?.severity || 'Unknown',
+                  heatmapExplanation: selectedReport.analysis?.heatmapExplanation || ''
+                },
+                images: {
+                  original: selectedReport.images?.original || '',
+                  heatmap: selectedReport.images?.heatmap || ''
+                }
+              }}
+              reportId={selectedReport.reportId}
+            />
           </div>
         </div>
       )}

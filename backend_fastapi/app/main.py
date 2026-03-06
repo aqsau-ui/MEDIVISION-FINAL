@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 import logging
 
 from .config import mysql_db, mongodb, settings
-from .routers import auth, doctor_auth, patient_profile, xray_chat
+from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports
 from .services.rag_service import rag_service
 
 # Configure logging
@@ -69,6 +69,8 @@ app.include_router(doctor_auth.router)
 app.include_router(patient_profile.router)
 app.include_router(xray_chat.xray_router)
 app.include_router(xray_chat.chat_router)
+app.include_router(doctors.router)
+app.include_router(reports.router)
 
 # Health check endpoint
 @app.get("/api/health")

@@ -10,7 +10,7 @@ class PatientRegisterRequest(BaseModel):
     full_name: str = Field(..., alias="fullName", min_length=2)
     email: EmailStr
     password: str = Field(..., min_length=8)
-    gender: str
+    country: str
     city: str
     
     @validator('password')
@@ -19,11 +19,11 @@ class PatientRegisterRequest(BaseModel):
             raise ValueError('Password must be at least 8 characters and include uppercase, lowercase, number and special character')
         return v
     
-    @validator('gender')
-    def validate_gender(cls, v):
-        if v.lower() not in ['male', 'female', 'other']:
-            raise ValueError('Gender must be male, female, or other')
-        return v.lower()
+    @validator('country')
+    def validate_country(cls, v):
+        if not v or len(v.strip()) < 2:
+            raise ValueError('Please provide a valid country')
+        return v.strip()
     
     class Config:
         populate_by_name = True

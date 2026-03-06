@@ -10,9 +10,15 @@ const RegisterPage = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    gender: '',
+    country: '',
     city: ''
   });
+  const [countries, setCountries] = useState([]);
+  const [filteredCountries, setFilteredCountries] = useState([]);
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [countryError, setCountryError] = useState('');
+  const countryInputRef = useRef(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -43,6 +49,40 @@ const RegisterPage = () => {
     }
   }, [resendCooldown]);
 
+  // Fetch countries from API on component mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      setLoadingCountries(true);
+      try {
+        const response = await fetch('https://restcountries.com/v3.1/all?fields=name');
+        if (!response.ok) throw new Error('Failed to fetch countries');
+        const data = await response.json();
+        const countryNames = data
+          .map(country => country.name.common)
+          .sort((a, b) => a.localeCompare(b));
+        setCountries(countryNames);
+        setCountryError('');
+      } catch (error) {
+        console.error('Error fetching countries:', error);
+        setCountryError('Failed to load countries. Please refresh the page.');
+      } finally {
+        setLoadingCountries(false);
+      }
+    };
+    fetchCountries();
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (countryInputRef.current && !countryInputRef.current.contains(event.target)) {
+        setShowCountryDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -56,6 +96,37 @@ const RegisterPage = () => {
         ...errors,
         [name]: ''
       });
+    }
+  };
+
+  // Handle country input with autocomplete
+  const handleCountryInput = (e) => {
+    const value = e.target.value;
+    setFormData({ ...formData, country: value });
+    
+    if (errors.country) {
+      setErrors({ ...errors, country: '' });
+    }
+    
+    if (value.trim()) {
+      const filtered = countries.filter(country => 
+        country.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredCountries(filtered);
+      setShowCountryDropdown(true);
+    } else {
+      setFilteredCountries([]);
+      setShowCountryDropdown(false);
+    }
+  };
+
+  // Handle country selection from dropdown
+  const handleCountrySelect = (country) => {
+    setFormData({ ...formData, country });
+    setShowCountryDropdown(false);
+    setFilteredCountries([]);
+    if (errors.country) {
+      setErrors({ ...errors, country: '' });
     }
   };
 
@@ -99,7 +170,7 @@ const RegisterPage = () => {
     }
     
     
-    if (!formData.gender) newErrors.gender = 'Please select your gender.';
+    if (!formData.country) newErrors.country = 'Please select your country.';
     if (!formData.city) newErrors.city = 'Please fill out this field.';
     if (!formData.password) newErrors.password = 'Please fill out this field.';
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Please fill out this field.';
@@ -127,7 +198,7 @@ const RegisterPage = () => {
             fullName: formData.fullName,
             email: formData.email,
             password: formData.password,
-            gender: formData.gender,
+            country: formData.country,
             city: formData.city
           })
         });
@@ -326,25 +397,51 @@ const RegisterPage = () => {
 
             
 
-            <div className="form-group">
-              <label htmlFor="gender" className="form-label">
-                Gender *
+            <div className="form-group" ref={countryInputRef}>
+              <label htmlFor="country" className="form-label">
+                Country *
               </label>
-              <div className="input-wrapper">
-                <select
-                  id="gender"
-                  name="gender"
-                  className={`form-input ${errors.gender ? 'error' : ''}`}
-                  value={formData.gender}
-                  onChange={handleChange}
-                >
-                  <option value="">Select gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+              <div className="input-wrapper" style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  id="country"
+                  name="country"
+                  className={`form-input ${errors.country ? 'error' : ''}`}
+                  placeholder={loadingCountries ? "Loading countries..." : "Type to search country"}
+                  value={formData.country}
+                  onChange={handleCountryInput}
+                  onFocus={() => {
+                    if (formData.country.trim() && filteredCountries.length > 0) {
+                      setShowCountryDropdown(true);
+                    }
+                  }}
+                  autoComplete="off"
+                  disabled={loadingCountries}
+                />
+                {showCountryDropdown && filteredCountries.length > 0 && (
+                  <div className="country-dropdown">
+                    {filteredCountries.map((country, index) => (
+                      <div
+                        key={index}
+                        className="country-option"
+                        onClick={() => handleCountrySelect(country)}
+                        onMouseDown={(e) => e.preventDefault()}
+                      >
+                        {country}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showCountryDropdown && formData.country.trim() && filteredCountries.length === 0 && (
+                  <div className="country-dropdown">
+                    <div className="country-option" style={{ color: '#999', cursor: 'default' }}>
+                      No country found
+                    </div>
+                  </div>
+                )}
               </div>
-              {errors.gender && <span className="error-message">{errors.gender}</span>}
+              {errors.country && <span className="error-message">{errors.country}</span>}
+              {countryError && <span className="error-message">{countryError}</span>}
             </div>
 
             <div className="form-group">

@@ -26,13 +26,13 @@ class MongoDB:
     
     async def close(self):
         """Close MongoDB connection"""
-        if self.client:
+        if self.client is not None:
             self.client.close()
             logger.info("MongoDB connection closed")
     
     def get_collection(self, name: str):
         """Get a collection from MongoDB"""
-        if not self.db:
+        if self.db is None:
             raise Exception("MongoDB not connected")
         return self.db[name]
 

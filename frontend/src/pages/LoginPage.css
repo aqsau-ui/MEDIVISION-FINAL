@@ -206,7 +206,7 @@
 }
 
 .form-input::placeholder {
-  color: var(--grey);
+  color: #EBE4D6;
 }
 
 .form-input:focus {

@@ -27,14 +27,18 @@ aiofiles==23.2.1
 # AI/ML
 openai==1.10.0
 groq>=0.29.0
+tensorflow>=2.15.0
+keras>=3.0.0
 
 # Web Scraping (for PMDC verification)
 selenium==4.17.2
 beautifulsoup4==4.12.3
+undetected-chromedriver>=3.5.5
 
-# Image Processing (for future CNN)
+# Image Processing (for CNN model)
 Pillow==10.2.0
 numpy==1.26.3
+opencv-python>=4.9.0
 
 # Validation
 email-validator==2.1.0.post1

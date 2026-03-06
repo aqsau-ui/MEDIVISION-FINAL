@@ -236,15 +236,26 @@ const LoginPage = () => {
     if (Object.keys(newErrors).length === 0) {
       setLoading(true);
       try {
+        console.log('Attempting login for:', email);
         const response = await fetch('http://localhost:5000/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
 
+        console.log('Response status:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('HTTP error response:', errorData);
+          throw new Error(errorData.detail || errorData.message || `Server error: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('Login response data:', data);
 
         if (data.success) {
+          console.log('Login successful, user data:', data.user);
           // Store user data in localStorage
           localStorage.setItem('patientData', JSON.stringify(data.user));
           // Navigate to patient dashboard
@@ -254,12 +265,16 @@ const LoginPage = () => {
           setUnverifiedEmail(data.email || email);
           setShowOTPVerification(true);
         } else {
-          setServerError(data.message || 'Login failed. Please try again.');
+          setServerError(data.detail || data.message || 'Login failed. Please try again.');
+          console.error('Login failed with message:', data.detail || data.message);
         }
       } catch (err) {
-        setServerError('Cannot connect to server. Please make sure the backend is running.');
         console.error('Login error:', err);
+        console.error('Error message:', err.message);
+        console.error('Error stack:', err.stack);
+        setServerError('Cannot connect to server. Please make sure the backend is running.');
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
       }
     }

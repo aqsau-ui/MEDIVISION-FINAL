@@ -301,8 +301,9 @@
   font-size: 1rem;
   text-decoration: none;
   transition: color 0.3s ease;
-  margin-top: 0;
+  margin: 2rem auto 0;
   text-align: center;
+  width: fit-content;
 }
 
 .help-link:hover {
