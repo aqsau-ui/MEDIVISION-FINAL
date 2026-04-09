@@ -41,9 +41,14 @@ class Settings(BaseSettings):
     # Groq AI
     GROQ_API_KEY: Optional[str] = "gsk_your_key_here"
     
+    # Model Selection
+    USE_PYTORCH_MODEL: bool = False  # Set to True to use new PyTorch model, False for old Keras model
+    
     class Config:
         # Use absolute path to .env file
         env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
         case_sensitive = True
 
 settings = Settings()
+
+

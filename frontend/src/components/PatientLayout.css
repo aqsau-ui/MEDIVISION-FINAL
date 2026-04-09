@@ -142,6 +142,36 @@
   color: white;
 }
 
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #E53E3E;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-shadow: 0 2px 6px rgba(229, 62, 62, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+}
+
 .notification-dropdown-nav {
   position: absolute;
   top: 60px;
@@ -233,6 +263,34 @@
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+/* Prescription Notification Dot */
+.prescription-notification-dot {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 10px;
+  height: 10px;
+  background: #ff4444;
+  border-radius: 50%;
+  border: 2px solid var(--very-dark-teal);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.nav-item {
+  position: relative;
 }
 
 /* Main Content Area */

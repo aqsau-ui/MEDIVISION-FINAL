@@ -337,17 +337,18 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
         }}>RADIOLOGICAL IMAGES</h2>
         
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '25px'
+          display: 'flex',
+          justifyContent: 'center'
         }}>
-          {/* Left Card - Original X-ray */}
+          {/* Original X-ray - Centered */}
           <div style={{
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
             borderRadius: '6px',
             padding: '15px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            maxWidth: '500px',
+            width: '100%'
           }}>
             <div style={{
               fontSize: '12px',
@@ -381,58 +382,6 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
               />
             </div>
           </div>
-          
-          {/* Right Card - AI Heatmap */}
-          {reportData.images?.heatmap && (
-            <div style={{
-              backgroundColor: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              padding: '15px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-            }}>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: '600',
-                color: '#4a5568',
-                marginBottom: '12px',
-                textAlign: 'center',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
-              }}>Figure 2: AI Heatmap Visualization</div>
-              <div style={{
-                position: 'relative',
-                width: '100%',
-                paddingBottom: '100%',
-                backgroundColor: '#f7fafc',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                border: '2px solid #f56565'
-              }}>
-                <img 
-                  src={reportData.images.heatmap} 
-                  alt="AI Heatmap Analysis" 
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
-                  }}
-                />
-              </div>
-              <p style={{
-                fontSize: '10px',
-                color: '#718096',
-                marginTop: '10px',
-                textAlign: 'center',
-                fontStyle: 'italic',
-                lineHeight: '1.5',
-                margin: '10px 0 0 0'
-              }}>Highlighted regions indicate AI-detected abnormalities</p>
-            </div>
-          )}
         </div>
       </div>
 
@@ -442,7 +391,7 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
         border: '2px solid #fbbf24',
         borderRadius: '6px',
         padding: '18px',
-        marginBottom: '0'
+        marginBottom: '30px'
       }}>
         <h3 style={{
           fontSize: '13px',
@@ -462,6 +411,180 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
           This report is generated using artificial intelligence and is intended for <strong>clinical decision support only</strong>. It does not replace diagnosis or treatment by a licensed medical professional. All AI findings must be correlated with clinical examination, patient history, laboratory investigations, and professional radiological interpretation. The final diagnosis and treatment decisions should be made exclusively by qualified healthcare providers. This AI system has not been validated as a standalone diagnostic device and should be used as an adjunct tool only.
         </p>
       </div>
+
+      {/* SECTION 6 - DOCTOR VERIFIED REPORT (if prescription exists) */}
+      {reportData.prescription && (
+        <div style={{
+          marginTop: '40px',
+          borderTop: '3px solid #2c5f6f',
+          paddingTop: '30px'
+        }}>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: '700',
+            color: '#2c5f6f',
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>DOCTOR VERIFIED CLINICAL REPORT</h2>
+
+          {/* Verified Badge */}
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            border: '2px solid #38B2AC',
+            borderRadius: '8px',
+            padding: '15px',
+            marginBottom: '25px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '18px',
+              fontWeight: '700',
+              color: '#166534',
+              marginBottom: '5px'
+            }}>✓ VERIFIED BY LICENSED PHYSICIAN</div>
+            <div style={{
+              fontSize: '12px',
+              color: '#15803d',
+              fontWeight: '500'
+            }}>
+              This report has been reviewed and verified by a certified medical professional
+            </div>
+          </div>
+
+          {/* Doctor's Assessment */}
+          <div style={{
+            backgroundColor: '#f7fafc',
+            border: '1px solid #e2e8f0',
+            borderRadius: '6px',
+            padding: '20px',
+            marginBottom: '25px'
+          }}>
+            <h3 style={{
+              fontSize: '13px',
+              fontWeight: '700',
+              color: '#2d3748',
+              textTransform: 'uppercase',
+              marginBottom: '12px'
+            }}>Clinical Assessment</h3>
+            <p style={{
+              fontSize: '14px',
+              lineHeight: '1.8',
+              color: '#2d3748',
+              margin: 0
+            }}>
+              <strong>Diagnosis Confirmation:</strong> {reportData.prescription.diagnosis_confirmation === 'confirm' ? 'Confirmed - AI diagnosis verified' : reportData.prescription.diagnosis_confirmation === 'modify' ? 'Modified - See doctor\'s diagnosis below' : 'Inconclusive - Further tests recommended'}
+            </p>
+            {reportData.prescription.doctor_diagnosis && (
+              <p style={{
+                fontSize: '14px',
+                lineHeight: '1.8',
+                color: '#2d3748',
+                marginTop: '10px',
+                marginBottom: 0
+              }}>
+                <strong>Doctor's Diagnosis:</strong> {reportData.prescription.doctor_diagnosis}
+              </p>
+            )}
+          </div>
+
+          {/* Digital Signature Section */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '30px',
+            marginTop: '30px',
+            paddingTop: '25px',
+            borderTop: '1px solid #e2e8f0'
+          }}>
+            {/* Verification Details */}
+            <div style={{
+              flex: 1
+            }}>
+              <h3 style={{
+                fontSize: '12px',
+                fontWeight: '700',
+                color: '#2d3748',
+                textTransform: 'uppercase',
+                marginBottom: '15px',
+                letterSpacing: '0.5px'
+              }}>Verification Details</h3>
+              <div style={{
+                fontSize: '12px',
+                lineHeight: '2',
+                color: '#4a5568'
+              }}>
+                <div><strong>Report Verified By:</strong> Dr. {reportData.prescription.doctor_name}</div>
+                <div><strong>License Number:</strong> {reportData.prescription.doctor_license}</div>
+                <div><strong>Specialization:</strong> {reportData.prescription.doctor_specialization || 'General Practitioner'}</div>
+                {reportData.prescription.hospital_affiliation && (
+                  <div><strong>Hospital/Clinic:</strong> {reportData.prescription.hospital_affiliation}</div>
+                )}
+                <div><strong>Verification Timestamp:</strong> {reportData.prescription.verification_timestamp ? new Date(reportData.prescription.verification_timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A'}</div>
+                <div><strong>Verification ID:</strong> <span style={{ fontFamily: 'monospace', color: '#2c5f6f', fontWeight: '600' }}>{reportData.prescription.verification_id || 'N/A'}</span></div>
+              </div>
+            </div>
+
+            {/* Digital Signature */}
+            {reportData.prescription.doctor_signature_url && (
+              <div style={{
+                flex: 0,
+                minWidth: '300px',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  borderTop: '1px solid #000',
+                  marginBottom: '10px',
+                  width: '250px',
+                  marginLeft: 'auto',
+                  marginRight: 'auto'
+                }}></div>
+                <div style={{
+                  marginBottom: '8px'
+                }}>
+                  <img 
+                    src={`http://localhost:5000${reportData.prescription.doctor_signature_url}`} 
+                    alt="Doctor's Signature" 
+                    style={{
+                      maxWidth: '250px',
+                      maxHeight: '80px',
+                      objectFit: 'contain'
+                    }}
+                  />
+                </div>
+                <div style={{
+                  fontSize: '11px',
+                  color: '#4a5568',
+                  fontStyle: 'italic',
+                  lineHeight: '1.6'
+                }}>
+                  Digitally Signed by<br />
+                  <strong style={{ color: '#2c5f6f', fontSize: '12px' }}>Dr. {reportData.prescription.doctor_name}</strong><br />
+                  {reportData.prescription.doctor_license}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* No Signature Warning */}
+          {!reportData.prescription.doctor_signature_url && (
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '1px solid #fbbf24',
+              borderRadius: '6px',
+              padding: '12px',
+              marginTop: '15px',
+              fontSize: '12px',
+              color: '#92400e',
+              textAlign: 'center'
+            }}>
+              ⚠️ Digital signature not available. Verified by Dr. {reportData.prescription.doctor_name} ({reportData.prescription.doctor_license})
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

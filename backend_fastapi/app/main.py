@@ -1,11 +1,13 @@
-"""Main FastAPI Application"""
+﻿"""Main FastAPI Application"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import logging
+import os
 
 from .config import mysql_db, mongodb, settings
-from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports
+from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports, notifications, doctor_prescription, medical_reports, doctor_profile
 from .services.rag_service import rag_service
 
 # Configure logging
@@ -20,25 +22,19 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     # Startup
     logger.info("🔄 Starting MEDIVISION FastAPI Backend...")
-    
     try:
         # Connect to MySQL
         mysql_db.connect()
         logger.info("✅ MySQL connection established")
-        
         # Connect to MongoDB
         await mongodb.connect()
         logger.info("✅ MongoDB connection established")
-        
         # Initialize RAG service
         await rag_service.initialize()
         logger.info("✅ RAG service initialized")
-        
         logger.info(f"🚀 Server is running on http://localhost:{settings.PORT}")
         logger.info("✅ Backend is ready to accept requests")
-        
         yield
-        
     finally:
         # Shutdown
         logger.info("Shutting down MEDIVISION Backend...")
@@ -71,6 +67,14 @@ app.include_router(xray_chat.xray_router)
 app.include_router(xray_chat.chat_router)
 app.include_router(doctors.router)
 app.include_router(reports.router)
+app.include_router(notifications.notification_router)
+app.include_router(doctor_prescription.router)
+app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=["Medical Reports"])
+app.include_router(doctor_profile.router)
+
+# Static files for uploaded signatures
+os.makedirs("uploads/signatures", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Health check endpoint
 @app.get("/api/health")

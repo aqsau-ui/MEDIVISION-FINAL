@@ -1134,7 +1134,7 @@ const PatientProfile = () => {
               {/* Medical History */}
               <div className="form-section">
                 <h2 className="section-title">Medical History</h2>
-                <p className="section-subtitle">Highly relevant to both pneumonia & TB risk</p>
+                <p className="section-subtitle">Relevant to pneumonia risk</p>
                 <div className="form-content">
                   <div className="medical-history-grid">
                     {/* Previous Lung Diseases */}
@@ -1172,15 +1172,6 @@ const PatientProfile = () => {
                             onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
                           />
                           <span>Previous Pneumonia</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Previous Tuberculosis"
-                            checked={formData.medicalConditions.includes('Previous Tuberculosis')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Previous Tuberculosis</span>
                         </label>
                         <label className="checkbox-label">
                           <input
@@ -1266,46 +1257,6 @@ const PatientProfile = () => {
                             onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
                           />
                           <span>Taking steroids or immunosuppressive drugs</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Genetic Risk - TB */}
-                    <div className="medical-card genetic-card">
-                      <h3 className="card-title">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 2v20M2 12h20" />
-                          <circle cx="12" cy="12" r="4" />
-                        </svg>
-                        Genetic Risk - Tuberculosis
-                      </h3>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Family history of TB"
-                            checked={formData.medicalConditions.includes('Family history of TB')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Family history of TB</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Close contact with TB patient"
-                            checked={formData.medicalConditions.includes('Close contact with TB patient')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Close contact with TB patient</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Living in high TB burden area"
-                            checked={formData.medicalConditions.includes('Living in high TB burden area')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Living in high TB burden area</span>
                         </label>
                       </div>
                     </div>
@@ -1534,11 +1485,12 @@ const PatientProfile = () => {
                                 prediction: analysisResult.prediction,
                                 confidence: analysisResult.confidence,
                                 severity: analysisResult.confidence > 0.8 ? 'Severe' : analysisResult.confidence > 0.5 ? 'Moderate' : 'Mild',
-                                heatmapExplanation: analysisResult.explanation?.medical_context || ''
+                                heatmapExplanation: analysisResult.explanation?.medical_context || '',
+                                heatmap: analysisResult.heatmap || null
                               },
                               images: {
                                 original: filePreview,
-                                heatmap: analysisResult.heatmap || preprocessedImage
+                                heatmap: analysisResult.heatmap || null
                               }
                             }}
                             reportId={reportId}

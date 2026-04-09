@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
+import TrendNotificationPanel from './TrendNotificationPanel';
 import './DoctorLayout.css';
 
 const DoctorLayout = ({ children }) => {
@@ -9,6 +10,8 @@ const DoctorLayout = ({ children }) => {
   const [doctor, setDoctor] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [trendData, setTrendData] = useState(null);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   useEffect(() => {
     // Get doctor data from localStorage
@@ -25,6 +28,50 @@ const DoctorLayout = ({ children }) => {
       }
     }
   }, [navigate]);
+
+  // Fetch notification count periodically
+  useEffect(() => {
+    const fetchNotificationCount = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/notifications/disease-trends/count');
+        const data = await response.json();
+        
+        if (data.success) {
+          setNotificationCount(data.count);
+        }
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchNotificationCount();
+
+    // Fetch every 5 minutes
+    const interval = setInterval(fetchNotificationCount, 300000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch full trend data when notification panel is opened
+  useEffect(() => {
+    const fetchTrendData = async () => {
+      if (showNotifications) {
+        try {
+          const response = await fetch('http://localhost:5000/api/notifications/disease-trends');
+          const data = await response.json();
+          
+          if (data.success) {
+            setTrendData(data.data);
+          }
+        } catch (error) {
+          console.error('Error fetching trend data:', error);
+        }
+      }
+    };
+
+    fetchTrendData();
+  }, [showNotifications]);
 
   const handleLogout = () => {
     localStorage.removeItem('doctorData');
@@ -53,14 +100,10 @@ const DoctorLayout = ({ children }) => {
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
+            {notificationCount > 0 && (
+              <span className="notification-badge">{notificationCount}</span>
+            )}
           </button>
-          
-          {showNotifications && (
-            <div className="notification-dropdown">
-              <h3>Recurring Diseases</h3>
-              <p className="no-data-text">No data to show recurring diseases</p>
-            </div>
-          )}
           
           <div className="user-menu" onClick={() => setShowDropdown(!showDropdown)}>
             <div className="user-avatar">
@@ -129,6 +172,14 @@ const DoctorLayout = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Trend Notification Panel */}
+      {showNotifications && trendData && (
+        <TrendNotificationPanel 
+          trendData={trendData}
+          onClose={() => setShowNotifications(false)}
+        />
+      )}
     </div>
   );
 };

@@ -192,7 +192,7 @@
 /* Progress Main Content */
 .progress-main {
   flex: 1;
-  padding: 3rem;
+  padding: 5rem 3rem 3rem 3rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -207,10 +207,11 @@
 
 .progress-title {
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 700;
   color: #264040;
   margin-bottom: 1rem;
-  line-height: 1.2;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
   font-family: 'Playfair Display', Georgia, serif;
 }
 
@@ -595,6 +596,71 @@
   border: 2px solid #e5e7eb;
 }
 
+.comparison-box {
+  background: #eef7f7;
+  border: 1px solid #b7dada;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.comparison-box h4 {
+  margin: 0 0 8px;
+  color: #234E52;
+}
+
+.comparison-box p {
+  margin: 4px 0;
+  color: #325b5b;
+  font-size: 0.92rem;
+}
+
+.summary-box {
+  margin: 16px 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #d3d8de;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.chart-wrapper {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.history-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.history-card {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fcfdfd;
+}
+
+.history-thumb {
+  width: 140px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #d0d7de;
+}
+
+.history-meta p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+  color: #334155;
+}
+
 .error-banner {
   animation: slideDown 0.3s ease;
 }
@@ -624,5 +690,14 @@
 
   .new-upload-btn {
     width: 100%;
+  }
+
+  .history-card {
+    grid-template-columns: 1fr;
+  }
+
+  .history-thumb {
+    width: 100%;
+    height: 180px;
   }
 }

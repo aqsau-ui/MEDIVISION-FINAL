@@ -167,11 +167,13 @@ const DrAvatar = () => {
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const sessionId = userData.id || 'anonymous-' + Date.now();
+      const patientEmail = userData.email || null;
       
       console.log('Sending message:', inputMessage);
       console.log('Session ID:', sessionId);
+      console.log('Patient Email:', patientEmail);
       
-      // Send message to backend
+      // Send message to backend with patient email for location queries
       const response = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: {
@@ -179,7 +181,8 @@ const DrAvatar = () => {
         },
         body: JSON.stringify({
           message: inputMessage,
-          sessionId: sessionId
+          sessionId: sessionId,
+          patientEmail: patientEmail
         }),
       });
 
@@ -224,9 +227,22 @@ const DrAvatar = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      const errorMessage = {
+        id: messages.length + 1,
+        text: "Please upload a valid medical report (JPG, PNG, or PDF only).",
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages([...messages, errorMessage]);
+      return;
+    }
+
     const fileMessage = {
       id: messages.length + 1,
-      text: `Uploaded: ${file.name}`,
+      text: `📄 Uploading: ${file.name}...`,
       sender: 'user',
       timestamp: new Date(),
       isFile: true
@@ -236,27 +252,38 @@ const DrAvatar = () => {
 
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
+      const sessionId = userData.id || 'anonymous-' + Date.now();
+      const patientEmail = userData.email || null;
+      
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('sessionId', userData.id || 'default-session');
+      formData.append('session_id', sessionId);
+      formData.append('patient_email', patientEmail || '');
 
-      const response = await fetch('http://localhost:5000/api/chat/upload', {
+      const response = await fetch('http://localhost:5000/api/medical-reports/upload', {
         method: 'POST',
         body: formData,
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
       const data = await response.json();
 
-      // Store the report analysis
+      // Store the report information
       setUploadedReport({
+        reportId: data.report_id,
         fileName: file.name,
-        analysis: data.message,
+        testType: data.test_type || 'Medical Report',
+        extractedText: data.extracted_text || '',
         timestamp: new Date()
       });
 
       const botResponse = {
         id: messages.length + 2,
-        text: `I've received your medical report!\n\nWhat I Can Help You With:\n• Explain what the X-ray or report says in simple words\n• Help you understand medical terms and findings\n• Explain what the AI detected (like pneumonia or TB signs)\n• Answer questions about your symptoms\n• Tell you about treatment options\n• Help you prepare questions for your doctor\n\nWhat Would You Like to Know?\nFeel free to ask:\n• "What does this report mean?"\n• "Explain the AI findings in simple words"\n• "What are these symptoms?"\n• "What should I ask my doctor?"\n\nI'm here to help! What's your question?`,
+        text: `✅ I've received and analyzed your ${data.test_type || 'medical report'}!\n\n📋 **What I can help you with:**\n• Explain the report findings in simple language\n• Clarify medical terms\n• Answer questions about the results\n• Provide general health information\n\n💬 **Try asking:**\n• "What does this report mean?"\n• "Is this serious?"\n• "What should I do next?"\n• "What are the findings?"\n\n⚠️ **Important:** This is for information only. Always consult your doctor for medical advice.\n\nWhat would you like to know?`,
         sender: 'bot',
         timestamp: new Date(),
         hasQuestions: true
@@ -266,13 +293,13 @@ const DrAvatar = () => {
       
       // Speak the response
       if (voiceEnabled) {
-        setTimeout(() => speakText("I've received your medical report. What would you like to know about it?"), 500);
+        setTimeout(() => speakText("I've received and analyzed your medical report. What would you like to know about it?"), 500);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
       const errorResponse = {
         id: messages.length + 2,
-        text: "I had trouble analyzing your file. Please ensure it's a clear medical image or PDF.",
+        text: `❌ Upload failed: ${error.message}. Please ensure the file is clear and readable.`,
         sender: 'bot',
         timestamp: new Date()
       };
@@ -345,7 +372,7 @@ const DrAvatar = () => {
             {/* Chat Header */}
             <div className="chat-header">
               <div className="chat-header-content">
-                <h1 className="chat-title">Talk to Dr. Jarvis</h1>
+                <h1 className="chat-title">Dr. Jarvis - Medical AI Assistant</h1>
                 <p className="chat-subtitle">Your AI Health Assistant • Available 24/7</p>
               </div>
             </div>

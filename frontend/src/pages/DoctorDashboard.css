@@ -847,3 +847,235 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(44, 122, 123, 0.4);
 }
+
+
+/* Success Message Animation */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Signature Section Styles */
+.signature-section {
+  background: rgba(56, 178, 172, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 178, 172, 0.2);
+  margin-top: 1rem;
+}
+
+.signature-info {
+  font-size: 0.85rem;
+  color: #A0AEC0;
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.signature-mode-tabs {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  background: rgba(26, 31, 46, 0.6);
+  color: #A0AEC0;
+  border: 1px solid rgba(56, 178, 172, 0.3);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.tab-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tab-button:hover {
+  border-color: #38B2AC;
+  color: #38B2AC;
+  background: rgba(56, 178, 172, 0.1);
+}
+
+.tab-button.active {
+  background: linear-gradient(135deg, #38B2AC 0%, #2c7a7b 100%);
+  color: white;
+  border-color: #38B2AC;
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3);
+}
+
+.signature-upload-container,
+.signature-draw-container {
+  margin-top: 1rem;
+}
+
+.signature-preview {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(56, 178, 172, 0.4);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.signature-preview img {
+  max-width: 400px;
+  max-height: 150px;
+  object-fit: contain;
+  border: 1px solid rgba(56, 178, 172, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: white;
+}
+
+.remove-signature-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.remove-signature-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.remove-signature-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.signature-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 1rem 1.75rem;
+  background: linear-gradient(135deg, #38B2AC 0%, #2c7a7b 100%);
+  color: white;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.3);
+  width: fit-content;
+}
+
+.signature-upload-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(56, 178, 172, 0.4);
+}
+
+.signature-upload-label svg {
+  width: 20px;
+  height: 20px;
+}
+
+.signature-hint {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+
+.signature-pad-wrapper {
+  background: white;
+  border: 3px solid #38B2AC;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(56, 178, 172, 0.15);
+}
+
+.signature-pad {
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.signature-controls {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.clear-signature-btn,
+.save-signature-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clear-signature-btn {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3);
+}
+
+.clear-signature-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.4);
+}
+
+.save-signature-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.save-signature-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.clear-signature-btn svg,
+.save-signature-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Success Message Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

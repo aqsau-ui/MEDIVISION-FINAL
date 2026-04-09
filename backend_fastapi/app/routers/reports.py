@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class SaveReportRequest(BaseModel):
     reportId: str
+    patientId: Optional[str] = None
     patientEmail: str
     patientName: str
     patientAge: int
@@ -34,6 +35,7 @@ class SaveReportRequest(BaseModel):
 
 class SendReportRequest(BaseModel):
     doctorId: int
+    patientId: Optional[str] = None
     patientEmail: str
     patientName: str
     patientAge: int
@@ -62,6 +64,7 @@ async def save_report(
         # Prepare comprehensive report data for MongoDB
         report_data = {
             "reportId": report.reportId,
+            "patient_id": report.patientId or report.patientEmail,
             "patient": {
                 "email": report.patientEmail,
                 "name": report.patientName,
@@ -88,6 +91,7 @@ async def save_report(
                 "heatmap": report.heatmapImage
             },
             "createdAt": datetime.utcnow(),
+            "timestamp": datetime.utcnow(),
             "status": "generated",  # generated, sent, reviewed
             "sentToDoctor": False
         }
@@ -199,6 +203,7 @@ async def send_report_to_doctor(
             logger.info("Report not found in DB, creating new entry")
             report_data = {
                 "reportId": report.reportId,
+                "patient_id": report.patientId or report.patientEmail,
                 "doctorId": report.doctorId,
                 "doctorName": doctor["full_name"],
                 "doctorEmail": doctor["email"],
@@ -227,6 +232,7 @@ async def send_report_to_doctor(
                     "heatmap": report.heatmapImage
                 },
                 "createdAt": datetime.utcnow(),
+                "timestamp": datetime.utcnow(),
                 "sentAt": datetime.utcnow(),
                 "status": "pending",
                 "sentToDoctor": True,

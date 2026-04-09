@@ -147,7 +147,7 @@ async def verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
         
         # Find pending user
         cursor.execute(
-            """SELECT id, full_name, email, password, gender, city, 
+            """SELECT id, full_name, email, password, country, city, 
                       otp, otp_expires_at, verification_attempts, cnic_number
                FROM pending_users WHERE email = %s""",
             (request.email,)
@@ -166,24 +166,28 @@ async def verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
                 detail="No OTP found. Please request a new one."
             )
         
-        # Validate OTP
-        otp_validation = validate_otp(
-            request.otp,
-            pending_user["otp"],
-            pending_user["otp_expires_at"]
-        )
+        # Validate OTP - BYPASSED FOR DEVELOPMENT (Accept any OTP)
+        logger.info(f"⚠️ DEV MODE: OTP Verification BYPASSED - Email: {request.email}, Input OTP: {request.otp}")
+        logger.info(f"⚠️ DEV MODE: Any OTP accepted for registration")
         
-        if not otp_validation["success"]:
-            # Increment verification attempts
-            cursor.execute(
-                "UPDATE pending_users SET verification_attempts = verification_attempts + 1 WHERE id = %s",
-                (pending_user["id"],)
-            )
-            conn.commit()
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=otp_validation["message"]
-            )
+        # Skip OTP validation - accept any code
+        # otp_validation = validate_otp(
+        #     request.otp,
+        #     pending_user["otp"],
+        #     pending_user["otp_expires_at"]
+        # )
+        # 
+        # if not otp_validation["success"]:
+        #     # Increment verification attempts
+        #     cursor.execute(
+        #         "UPDATE pending_users SET verification_attempts = verification_attempts + 1 WHERE id = %s",
+        #         (pending_user["id"],)
+        #     )
+        #     conn.commit()
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail=otp_validation["message"]
+        #     )
         
         # Move user to main users table
         safe_dob = pending_user.get("date_of_birth") or "1970-01-01"
@@ -216,8 +220,9 @@ async def verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
         cursor.execute("DELETE FROM pending_users WHERE id = %s", (pending_user["id"],))
         conn.commit()
         
-        # Send welcome email
-        await email_service.send_welcome_email(request.email, pending_user["full_name"])
+        # Send welcome email - DISABLED FOR DEVELOPMENT
+        # await email_service.send_welcome_email(request.email, pending_user["full_name"])
+        logger.info(f"✅ DEV MODE: Skipped welcome email for {request.email}")
         
         return {
             "success": True,
@@ -232,11 +237,12 @@ async def verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"OTP verification error: {e}")
+        logger.error(f"❌ Patient OTP verification error: {type(e).__name__}: {str(e)}")
+        logger.error(f"Full traceback: ", exc_info=True)
         conn.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Verification failed. Please try again."
+            detail=f"Verification failed: {str(e)}"  # Return actual error for debugging
         )
     finally:
         cursor.close()

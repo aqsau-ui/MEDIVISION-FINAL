@@ -32,6 +32,7 @@
 }
 
 .notification-bell-btn {
+  position: relative;
   background: transparent;
   border: none;
   width: 40px;
@@ -52,6 +53,36 @@
 .notification-bell-btn svg {
   width: 22px;
   height: 22px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #E53E3E;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  box-shadow: 0 2px 6px rgba(229, 62, 62, 0.4);
+  animation: doctorPulse 2s infinite;
+}
+
+@keyframes doctorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 
 .notification-dropdown {

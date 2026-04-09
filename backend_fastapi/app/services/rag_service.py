@@ -29,7 +29,7 @@ class RAGService:
             "pneumonia": None
         }
         
-        self.system_prompt = """You are Dr. Jarvis, a friendly AI medical assistant specializing in tuberculosis (TB) and pneumonia.
+        self.system_prompt = """You are Dr. Jarvis, a friendly AI medical assistant specializing in pneumonia.
 
 COMMUNICATION STYLE:
 - Use simple, everyday language (talk like explaining to a friend)
