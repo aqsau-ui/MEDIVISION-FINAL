@@ -780,28 +780,41 @@ ${comparisonSection}
             </div>
 
             {/* ── X-Ray Images ── */}
-            {(viewReportData.xray_image || viewReportData.heatmap) && (
-              <div className="vr-images">
-                {viewReportData.xray_image && (
+            {viewReportData.xray_image && (
+              <div className={`vr-images${viewReportData.heatmap ? '' : ' vr-images--single'}`}>
+                {/* Original X-ray — always shown */}
+                <div className="vr-img-box">
+                  <p className="vr-img-label">Uploaded X-Ray</p>
+                  <img
+                    src={viewReportData.xray_image}
+                    alt="X-ray"
+                    className="vr-img"
+                    onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+
+                {/* Heatmap — shown when available, placeholder otherwise */}
+                {viewReportData.heatmap ? (
                   <div className="vr-img-box">
-                    <p className="vr-img-label">Uploaded X-Ray</p>
-                    <img
-                      src={viewReportData.xray_image}
-                      alt="X-ray"
-                      className="vr-img"
-                      onError={(e) => { e.target.parentElement.style.display = 'none'; }}
-                    />
-                  </div>
-                )}
-                {viewReportData.heatmap && (
-                  <div className="vr-img-box">
-                    <p className="vr-img-label">Affected Regions (Heatmap)</p>
+                    <p className="vr-img-label">Grad-CAM Heatmap — Affected Regions</p>
                     <img
                       src={viewReportData.heatmap}
-                      alt="Heatmap"
+                      alt="Grad-CAM Heatmap"
                       className="vr-img"
                       onError={(e) => { e.target.parentElement.style.display = 'none'; }}
                     />
+                    <p className="vr-img-caption">Red/yellow areas = highest model activation</p>
+                  </div>
+                ) : (
+                  <div className="vr-img-box">
+                    <p className="vr-img-label">Grad-CAM Heatmap</p>
+                    <div className="vr-heatmap-placeholder">
+                      <svg width="32" height="32" fill="none" stroke="#9ca3af" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                        <path d="M11 8v3m0 3h.01" strokeLinecap="round"/>
+                      </svg>
+                      <p>Heatmap not available<br/>for this record</p>
+                    </div>
                   </div>
                 )}
               </div>

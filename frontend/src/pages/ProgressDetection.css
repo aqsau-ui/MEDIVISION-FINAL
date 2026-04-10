@@ -916,6 +916,14 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
+/* When there's only an X-ray (no heatmap) center it with constrained width */
+.vr-images--single {
+  justify-content: center;
+}
+.vr-images--single .vr-img-box {
+  max-width: 340px;
+}
+
 .vr-img-box {
   flex: 1;
   min-width: 0;
@@ -932,12 +940,37 @@
 
 .vr-img {
   width: 100%;
-  height: 180px;
-  object-fit: cover;
+  height: 220px;
+  object-fit: contain;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
-  background: #111;
+  background: #0a0a0a;
   display: block;
+}
+
+.vr-img-caption {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  text-align: center;
+  margin: 6px 0 0;
+  font-style: italic;
+}
+
+.vr-heatmap-placeholder {
+  width: 100%;
+  height: 220px;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  text-align: center;
+  line-height: 1.5;
 }
 
 /* Diagnosis summary */
@@ -995,8 +1028,14 @@
   .vr-images {
     flex-direction: column;
   }
+  .vr-images--single .vr-img-box {
+    max-width: 100%;
+  }
   .vr-img {
-    height: 160px;
+    height: 180px;
+  }
+  .vr-heatmap-placeholder {
+    height: 180px;
   }
   .vr-summary-grid {
     grid-template-columns: 1fr;
