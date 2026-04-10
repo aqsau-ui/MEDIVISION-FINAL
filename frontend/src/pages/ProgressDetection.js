@@ -64,7 +64,7 @@ const ProgressDetection = () => {
     return 'Lung condition remains stable compared to the previous X-ray. Continue routine monitoring as advised by your healthcare provider.';
   };
 
-  const fetchProgressHistory = async () => {
+  const fetchProgressHistory = async (injectHeatmap = null, injectXrayImage = null) => {
     if (!patientId) {
       return;
     }
@@ -80,6 +80,20 @@ const ProgressDetection = () => {
       const sortedRecords = [...(data.records || [])].sort(
         (a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0)
       );
+      // If a fresh heatmap was just generated, inject it into the most recent record
+      // (DB projection might not return it yet if the server cache is stale)
+      if (injectHeatmap && sortedRecords.length > 0) {
+        const newest = sortedRecords[0];
+        if (!newest.heatmap) {
+          sortedRecords[0] = { ...newest, heatmap: injectHeatmap };
+        }
+      }
+      if (injectXrayImage && sortedRecords.length > 0) {
+        const newest = sortedRecords[0];
+        if (!newest.xray_image) {
+          sortedRecords[0] = { ...newest, xray_image: injectXrayImage };
+        }
+      }
       setHistoryRecords(sortedRecords);
     } catch (historyError) {
       // Network errors during history fetch shouldn't block the page
@@ -360,8 +374,19 @@ ${comparisonSection}
     setUploading(true);
     setAnalyzing(true);
 
+    // Read file as base64 data URL so we can inject it into history cards locally
+    let fileDataUrl = null;
     try {
-      const localPreview = URL.createObjectURL(file);
+      fileDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (_) { /* non-critical */ }
+
+    try {
+      const localPreview = fileDataUrl || URL.createObjectURL(file);
       setSelectedImage(localPreview);
 
       const formData = new FormData();
@@ -379,7 +404,9 @@ ${comparisonSection}
 
       setAnalysisResult(data);
       setProgressHistory(data.progress_history || []);
-      await fetchProgressHistory();
+      // Inject live heatmap + xray into the newest history record so View Report
+      // shows them immediately — no server-side projection dependency
+      await fetchProgressHistory(data.heatmap || null, fileDataUrl);
     } catch (uploadError) {
       setError(uploadError.message);
     } finally {
