@@ -463,6 +463,8 @@ const PatientProfile = () => {
           
           // Auto-save report to MongoDB
           saveReportToMongoDB(analysisData, newReportId, userName, userEmail);
+          // Seed progress baseline (fire-and-forget)
+          saveProgressBaseline(analysisData, userEmail);
           
           // Scroll to report
           setTimeout(() => {
@@ -584,6 +586,27 @@ const PatientProfile = () => {
     } catch (error) {
       console.error('❌ Error auto-saving report:', error);
       // Silent fail - don't disrupt user experience
+    }
+  };
+
+  // Seed progress baseline after first X-ray analysis
+  const saveProgressBaseline = async (analysisData, userEmail) => {
+    try {
+      await fetch('http://localhost:5000/api/xray/progress/baseline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: userEmail,
+          prediction: analysisData.prediction,
+          confidence: analysisData.confidence,
+          probabilities: analysisData.probabilities || {},
+          heatmap: analysisData.heatmap || '',
+          originalImage: filePreview || ''
+        })
+      });
+    } catch (err) {
+      // Silent fail — do not disrupt UI
+      console.warn('Progress baseline save failed:', err.message);
     }
   };
 
