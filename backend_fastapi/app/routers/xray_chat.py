@@ -28,49 +28,79 @@ conversation_store: Dict[str, list] = {}
 
 @xray_router.post("/validate-xray")
 async def validate_xray(file: UploadFile = File(...)):
-    """Validate if uploaded image is a chest X-ray"""
+    """Validate if uploaded image is a chest X-ray using pixel-level analysis."""
     try:
-        # Read file content
         file_content = await file.read()
-        image_base64 = base64.b64encode(file_content).decode('utf-8')
-        data_url = f"data:{file.content_type};base64,{image_base64}"
-        
-        # Call Python validator script
-        validator_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "..", "..", "backend", "services", "xrayValidator.py"
+        image = Image.open(BytesIO(file_content)).convert("RGB")
+
+        # ── Resize for fast analysis ──
+        thumb = image.resize((256, 256))
+        pixels = list(thumb.getdata())
+        total = len(pixels)
+
+        # Per-pixel analysis
+        gray_count = 0
+        dark_count = 0       # brightness < 60  (background of X-ray)
+        bright_count = 0     # brightness > 200 (lung/bone highlight)
+        total_brightness = 0.0
+
+        for r, g, b in pixels:
+            brightness = (r + g + b) / 3.0
+            total_brightness += brightness
+            # Strict grayscale: R≈G≈B within ±12
+            if max(abs(r - g), abs(g - b), abs(r - b)) <= 12:
+                gray_count += 1
+            if brightness < 60:
+                dark_count += 1
+            if brightness > 200:
+                bright_count += 1
+
+        gray_pct   = gray_count   / total * 100
+        dark_pct   = dark_count   / total * 100
+        bright_pct = bright_count / total * 100
+        avg_brightness = total_brightness / total
+
+        w, h = image.size
+        aspect = w / h
+
+        # ── Chest X-ray heuristics ──
+        # 1. Strictly grayscale (≥85 % of pixels have R≈G≈B within ±12)
+        is_grayscale   = gray_pct >= 85
+        # 2. Dark background is dominant (≥25 %)
+        has_dark_bg    = dark_pct >= 25
+        # 3. Some bright regions (bone/lung) present (≥5 %)
+        has_highlights = bright_pct >= 5
+        # 4. Average brightness low-to-mid (typical X-ray range)
+        good_brightness = 20 <= avg_brightness <= 160
+        # 5. Portrait or near-square aspect ratio
+        good_aspect    = 0.55 <= aspect <= 1.55
+
+        score = sum([is_grayscale, has_dark_bg, has_highlights, good_brightness, good_aspect])
+        is_xray = score >= 4   # must pass at least 4 of 5 criteria
+
+        logger.info(
+            f"Validation — gray:{gray_pct:.1f}% dark:{dark_pct:.1f}% "
+            f"bright:{bright_pct:.1f}% avgBright:{avg_brightness:.1f} "
+            f"aspect:{aspect:.2f} score:{score}/5 → {'PASS' if is_xray else 'FAIL'}"
         )
-        
-        if os.path.exists(validator_path):
-            result = subprocess.run(
-                ["python", validator_path, data_url],
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode == 0:
-                validation_result = json.loads(result.stdout)
-                return {
-                    "success": True,
-                    "isChestXray": validation_result.get("isChestXray", False),
-                    "confidence": validation_result.get("confidence", 0),
-                    "message": validation_result.get("message", "")
-                }
-        
-        # Fallback if validator not available
+
         return {
             "success": True,
-            "isChestXray": True,
-            "confidence": 0.9,
-            "message": "Image accepted (validation bypassed)"
+            "isChestXray": is_xray,
+            "confidence": round(score / 5, 2),
+            "message": (
+                "Valid chest X-ray detected."
+                if is_xray else
+                "Image does not meet chest X-ray characteristics. "
+                "Please upload a standard posterior-anterior (PA) chest radiograph."
+            )
         }
-    
+
     except Exception as e:
         logger.error(f"X-ray validation error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error validating X-ray image"
+            detail="Error validating image. Please try again."
         )
 
 @xray_router.post("/analyze")

@@ -196,8 +196,9 @@ const ProgressDetection = () => {
 
     // ── Clinical interpretation ──
     const interpretation = (() => {
-      const compNote = comp
-        ? ` Compared to the prior study (${prevDisease}, ${comp.previous_probability?.toFixed(1)}%), the current result shows a progression status of <strong>${comp.status}</strong>.`
+      const ssimStr = comp?.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A';
+      const compNote = comp && priorDate
+        ? ` Compared to the prior study dated ${priorDate}, the disease probability has changed from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}% (SSIM: ${ssimStr}), denoting a progression status of <strong>${comp.status}</strong>.`
         : '';
       if (isNormal) {
         return `No significant radiographic abnormality detected. Lung fields appear clear with a respiratory health score of ${score}/100.${compNote}`;
@@ -318,7 +319,7 @@ const ProgressDetection = () => {
     <div class="header-left">
       <p class="brand-tag">AI-Assisted Diagnostic Imaging Report</p>
       <div class="brand-name">MEDIVISION</div>
-      <p class="brand-sub">Chest Radiograph Analysis — Powered by DenseNet121-ResNet50 Feature Fusion</p>
+      <p class="brand-sub">AI-Assisted Chest Radiograph Analysis</p>
     </div>
     <div class="header-right">
       <p><strong>Report Date:</strong> ${reportDate}</p>
@@ -367,7 +368,12 @@ const ProgressDetection = () => {
 
 <script>
 function downloadReport() {
-  var blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+  // Hide action bar so it does not appear in the downloaded file
+  var bar = document.querySelector('.action-bar');
+  if (bar) bar.style.display = 'none';
+  var html = '<!DOCTYPE html>' + document.documentElement.outerHTML;
+  if (bar) bar.style.display = '';
+  var blob = new Blob([html], { type: 'text/html' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
@@ -436,6 +442,29 @@ function downloadReport() {
     } catch (_) { /* non-critical */ }
 
     try {
+      // ── Chest X-ray validation ──
+      try {
+        const validFormData = new FormData();
+        validFormData.append('file', file);
+        const validRes = await fetch('http://localhost:5000/api/xray/validate-xray', {
+          method: 'POST',
+          body: validFormData
+        });
+        const validData = await validRes.json();
+        if (validRes.ok && validData.isChestXray === false) {
+          throw new Error(
+            'The uploaded image does not meet the criteria for a valid chest radiograph. ' +
+            'Please upload a standard posterior-anterior (PA) chest X-ray in JPEG or PNG format. ' +
+            'Other types of images, photographs, or non-chest radiographs cannot be accepted.'
+          );
+        }
+      } catch (validErr) {
+        // If the error is our own validation rejection, re-throw it
+        if (validErr.message.includes('does not meet the criteria')) throw validErr;
+        // Otherwise (network error etc.) allow upload to proceed
+        console.warn('X-ray pre-validation unavailable, proceeding:', validErr.message);
+      }
+
       const localPreview = fileDataUrl || URL.createObjectURL(file);
       setSelectedImage(localPreview);
 

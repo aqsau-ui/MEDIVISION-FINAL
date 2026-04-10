@@ -101,7 +101,7 @@ const PatientProfile = () => {
         setFileValidationError('');
       } else {
         setFileValidationError(
-          '⚠️ This is not a valid chest X-ray. Please upload only chest X-ray images.'
+          'The uploaded image does not meet the criteria for a valid chest radiograph. Please upload a standard posterior-anterior (PA) chest X-ray in JPEG or PNG format. Other types of images, photographs, or non-chest radiographs cannot be accepted.'
         );
         setFilePreview(null);
         setFormData(prev => ({
@@ -122,23 +122,13 @@ const PatientProfile = () => {
   // Function to validate if the image is a chest X-ray using backend API
   const validateChestXray = async (file) => {
     try {
-      // Convert file to base64
-      const base64Image = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Send as multipart FormData — backend expects UploadFile
+      const formData = new FormData();
+      formData.append('file', file);
 
-      // Call backend validation API
       const response = await fetch('http://localhost:5000/api/xray/validate-xray', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData: base64Image
-        })
+        body: formData
       });
 
       const result = await response.json();
@@ -156,7 +146,7 @@ const PatientProfile = () => {
 
     } catch (error) {
       console.error('Backend validation error:', error);
-      // Fallback to client-side validation if backend fails
+      // Fallback to client-side validation if backend is unreachable
       return await validateChestXrayClientSide(file);
     }
   };
