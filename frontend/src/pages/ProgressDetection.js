@@ -23,6 +23,8 @@ const ProgressDetection = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [noPriorRecord, setNoPriorRecord] = useState(false);
   const [viewReportData, setViewReportData] = useState(null);
+  const [showReport, setShowReport] = useState(false);
+  const [reportHtml, setReportHtml] = useState('');
 
   const patientData = useMemo(() => {
     try {
@@ -113,7 +115,6 @@ const ProgressDetection = () => {
   };
 
   const handleGenerateReport = async () => {
-    // Fetch patient profile for age/gender
     let patientAge = 'N/A';
     let patientGender = 'N/A';
     let patientName = patientData?.fullName || patientData?.name || patientData?.username || 'Patient';
@@ -128,214 +129,324 @@ const ProgressDetection = () => {
       }
     } catch (_) {}
 
-    // Collect previous record from historyRecords
     const sortedHistory = [...historyRecords].sort(
       (a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0)
     );
+    // The most recent record in historyRecords is the one just saved; index 1 is the prior
     const priorRecord = sortedHistory.length > 1 ? sortedHistory[1] : null;
 
     const reportDate = new Date().toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+    const reportId = `RPT-${Date.now()}`;
+    const pred = analysisResult.prediction || 'N/A';
+    const prob = analysisResult.probability?.toFixed(1) ?? 'N/A';
+    const conf = (analysisResult.confidence * 100).toFixed(1);
+    const sev = analysisResult.severity || 'N/A';
+    const score = analysisResult.health_score ?? 'N/A';
+    const isNormal = pred.toLowerCase() === 'normal';
+    const comp = analysisResult.comparison || null;
+    const genderStr = typeof patientGender === 'string'
+      ? patientGender.charAt(0).toUpperCase() + patientGender.slice(1)
+      : 'N/A';
 
-    const probabilities = analysisResult.probabilities || {};
-    const probRows = Object.entries(probabilities)
-      .map(([d, v]) => `<tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;">${d}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;">${(v * 100).toFixed(1)}%</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;">
-          <div style="width:100%;height:8px;background:#e5e7eb;border-radius:4px;">
-            <div style="width:${(v * 100).toFixed(1)}%;height:8px;background:${d === analysisResult.prediction ? '#2C7A7B' : '#9ca3af'};border-radius:4px;"></div>
-          </div>
-        </td>
-      </tr>`).join('');
+    // ── Probability rows ──
+    const probRows = Object.entries(analysisResult.probabilities || {}).map(([d, v]) => `
+    <tr>
+      <td class="td-label">${d}</td>
+      <td class="td-val">${(v * 100).toFixed(1)}%</td>
+      <td class="td-bar">
+        <div class="bar-bg">
+          <div class="bar-fill" style="width:${(v * 100).toFixed(1)}%;background:${d === pred ? '#1d4e50' : '#b0bec5'};"></div>
+        </div>
+      </td>
+    </tr>`).join('');
 
-    const comparisonSection = analysisResult.comparison ? `
-      <section style="margin-bottom:28px;">
-        <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;">Comparative Analysis</h3>
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <tr>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:200px;">Previous Disease Probability</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.comparison.previous_probability?.toFixed(1)}%</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Current Disease Probability</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.comparison.current_probability?.toFixed(1)}%</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;">SSIM Structural Similarity</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.comparison.ssim_score !== null && analysisResult.comparison.ssim_score !== undefined ? (analysisResult.comparison.ssim_score * 100).toFixed(2) + '%' : 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280;">Clinical Progression Status</td>
-            <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.comparison.status}</td>
-          </tr>
-        </table>
-        ${priorRecord ? `
-          <div style="margin-top:20px;">
-            <p style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Previous vs Current Imaging</p>
-            <div style="display:flex;gap:20px;flex-wrap:wrap;">
-              ${priorRecord.xray_image ? `<div style="flex:1;min-width:160px;">
-                <p style="font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:600;">Previous X-Ray (${new Date(priorRecord.timestamp || priorRecord.createdAt).toLocaleDateString()})</p>
-                <img src="${priorRecord.xray_image}" alt="Previous X-ray" style="width:100%;max-width:220px;border-radius:6px;border:1px solid #d1d5db;" />
-              </div>` : ''}
-              ${selectedImage ? `<div style="flex:1;min-width:160px;">
-                <p style="font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:600;">Current X-Ray (${new Date().toLocaleDateString()})</p>
-                <img src="${selectedImage}" alt="Current X-ray" style="width:100%;max-width:220px;border-radius:6px;border:1px solid #d1d5db;" />
-              </div>` : ''}
-              ${analysisResult.heatmap ? `<div style="flex:1;min-width:160px;">
-                <p style="font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:600;">Current — Affected Regions (Heatmap)</p>
-                <img src="${analysisResult.heatmap}" alt="Heatmap" style="width:100%;max-width:220px;border-radius:6px;border:1px solid #d1d5db;" />
-              </div>` : ''}
-            </div>
-          </div>
-        ` : (selectedImage || analysisResult.heatmap ? `
-          <div style="margin-top:20px;">
-            <p style="font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Imaging</p>
-            <div style="display:flex;gap:20px;flex-wrap:wrap;">
-              ${selectedImage ? `<div style="flex:1;min-width:160px;">
-                <p style="font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:600;">X-Ray</p>
-                <img src="${selectedImage}" alt="X-ray" style="width:100%;max-width:220px;border-radius:6px;border:1px solid #d1d5db;" />
-              </div>` : ''}
-              ${analysisResult.heatmap ? `<div style="flex:1;min-width:160px;">
-                <p style="font-size:11px;color:#6b7280;margin-bottom:6px;font-weight:600;">Affected Regions (Heatmap)</p>
-                <img src="${analysisResult.heatmap}" alt="Heatmap" style="width:100%;max-width:220px;border-radius:6px;border:1px solid #d1d5db;" />
-              </div>` : ''}
-            </div>
-          </div>
-        ` : '')}
-      </section>
-    ` : '';
+    // ── Imaging block ──
+    const priorDate = priorRecord
+      ? new Date(priorRecord.timestamp || priorRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+      : null;
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+    const imagingBlock = (() => {
+      const imgs = [];
+      if (priorRecord?.xray_image) imgs.push({ label: `Previous X-Ray<br><span class="img-date">${priorDate}</span>`, src: priorRecord.xray_image });
+      if (priorRecord?.heatmap) imgs.push({ label: `Previous Heatmap<br><span class="img-date">${priorDate}</span>`, src: priorRecord.heatmap });
+      if (selectedImage) imgs.push({ label: `Current X-Ray<br><span class="img-date">${currentDate}</span>`, src: selectedImage });
+      if (analysisResult.heatmap) imgs.push({ label: `Current Heatmap<br><span class="img-date">${currentDate}</span>`, src: analysisResult.heatmap });
+      if (!imgs.length) return '';
+      return `
+      <section class="report-section">
+        <h3 class="section-title">${comp ? 'Previous vs. Current Imaging' : 'Radiographic Imaging'}</h3>
+        <div class="imaging-grid">
+          ${imgs.map(i => `
+            <div class="img-card">
+              <p class="img-label">${i.label}</p>
+              <img src="${i.src}" alt="X-ray" class="report-img" />
+            </div>`).join('')}
+        </div>
+      </section>`;
+    })();
+
+    // ── Comparative analysis block ──
+    const comparativeBlock = comp ? `
+    <section class="report-section">
+      <h3 class="section-title">Comparative Analysis</h3>
+      <table class="report-table">
+        <tr><td class="td-label">Previous Disease Probability</td><td class="td-val">${comp.previous_probability?.toFixed(1)}%</td></tr>
+        <tr class="alt"><td class="td-label">Current Disease Probability</td><td class="td-val">${comp.current_probability?.toFixed(1)}%</td></tr>
+        <tr><td class="td-label">SSIM Structural Similarity Index</td><td class="td-val">${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}</td></tr>
+        <tr class="alt"><td class="td-label">Clinical Progression Status</td>
+          <td class="td-val" style="font-weight:700;color:${comp.status === 'Improved' ? '#1a6b3c' : comp.status === 'Worsened' ? '#b91c1c' : '#92400e'};">${comp.status}</td>
+        </tr>
+      </table>
+    </section>` : '';
+
+    // ── Clinical interpretation ──
+    const interpretation = (() => {
+      if (isNormal) {
+        return `The current chest radiograph demonstrates no radiographic evidence of consolidation, air-space opacification, interstitial infiltrates, or pleural effusion as detectable by the AI model. The lung fields appear clear bilaterally. A respiratory health score of ${score}/100 was assigned, reflecting a clinically favourable pulmonary profile.
+      ${comp ? `In comparison with the prior radiograph dated ${priorDate}, the structural similarity index (SSIM) was recorded at ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}, indicating ${comp.status === 'Improved' ? 'a continued improvement in pulmonary status' : comp.status === 'Worsened' ? 'a decline relative to the prior study' : 'stable findings with no clinically significant interval change'}.` : ''}`;
+      }
+      if (sev === 'Mild') {
+        return `The chest radiograph demonstrates early radiographic findings suggestive of <strong>${pred}</strong>, with a disease probability of ${prob}% and a model confidence of ${conf}%. The pattern is consistent with mild pulmonary involvement, characterised by subtle parenchymal haziness without frank consolidation. The respiratory health score of ${score}/100 reflects a mildly compromised pulmonary reserve.
+      ${comp ? `Compared to the prior study dated ${priorDate}, the disease probability has ${comp.status === 'Improved' ? `decreased from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}%, indicating measurable clinical improvement in line with ongoing management` : comp.status === 'Worsened' ? `increased from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}%, suggesting early progression that warrants prompt clinical reassessment` : `remained relatively stable at ${comp.current_probability?.toFixed(1)}%, indicating no significant interval change`}. The SSIM structural similarity index was ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}.` : ''}`;
+      }
+      if (sev === 'Moderate') {
+        return `The chest radiograph demonstrates radiographic findings consistent with <strong>${pred}</strong> of moderate severity, with a disease probability of ${prob}% and a model confidence of ${conf}%. Pulmonary infiltrates or patchy consolidation may be present in one or more lung zones, consistent with an active inflammatory or infective process. The respiratory health score of ${score}/100 reflects a moderately compromised respiratory reserve requiring active clinical management.
+      ${comp ? `Serial comparison with the prior radiograph dated ${priorDate} reveals a disease probability change from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}% (SSIM: ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}), indicating a clinical status of <strong>${comp.status}</strong>. ${comp.status === 'Improved' ? 'This trajectory is encouraging and suggests a positive response to treatment; continued monitoring is advised.' : comp.status === 'Worsened' ? 'This worsening trend necessitates prompt re-evaluation of the current therapeutic regimen.' : 'Absence of significant interval change suggests the disease process is currently contained; adherence to prescribed management is essential.'}` : ''}`;
+      }
+      // Severe
+      return `The chest radiograph demonstrates extensive radiographic abnormalities consistent with <strong>severe ${pred}</strong>, with a disease probability of ${prob}% and a model confidence of ${conf}%. Findings may include widespread consolidation, bilateral infiltrates, or significant air-space opacification indicative of a substantially compromised pulmonary parenchyma. The respiratory health score of ${score}/100 reflects severely diminished respiratory reserve and warrants urgent clinical attention.
+    ${comp ? `Compared to the prior study dated ${priorDate}, the disease probability has changed from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}% (SSIM: ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}), denoting a progression status of <strong>${comp.status}</strong>. ${comp.status === 'Worsened' ? 'The radiographic deterioration relative to prior imaging is of significant concern and mandates immediate escalation of clinical care.' : comp.status === 'Improved' ? 'Despite the severity classification, a reduction in disease probability relative to the prior study is noted, which may reflect early treatment response; however, close inpatient or outpatient monitoring remains essential.' : 'The stable trajectory in the context of severe disease indicates that the condition is neither resolving nor deteriorating; sustained aggressive management is required.'}` : ''}`;
+    })();
+
+    // ── Recommendations ──
+    const recommendations = (() => {
+      if (isNormal) {
+        return `
+        <li>The chest radiograph is within normal limits per AI-assisted assessment. No acute pulmonary pathology is currently identified.</li>
+        <li>Continue routine health maintenance, including age-appropriate vaccinations (pneumococcal, influenza) as recommended by your healthcare provider.</li>
+        <li>Maintain an active lifestyle, adequate hydration, and a balanced diet to support optimal respiratory and immune function.</li>
+        ${comp?.status === 'Improved' ? '<li>The notable improvement from your previous scan is an encouraging sign. Continue adhering to your current health regimen — your lungs are responding well.</li>' : ''}
+        ${comp?.status === 'Stable' ? '<li>Your lungs have remained consistently clear across sequential examinations — a testament to good preventive care. Continue your current routine.</li>' : ''}
+        <li>Schedule a follow-up chest radiograph as clinically indicated or as directed by your physician.</li>`;
+      }
+      if (sev === 'Mild') {
+        return `
+        <li>Clinical correlation with the patient's presenting symptoms, physical examination findings (auscultation, percussion), and baseline laboratory investigations (complete blood count, C-reactive protein) is recommended.</li>
+        <li>Initiate or continue appropriate pharmacological management as directed by the treating physician. Oral antibiotic therapy may be considered pending microbiological confirmation.</li>
+        <li>Encourage adequate oral hydration (≥2 litres/day unless contraindicated), rest, and avoidance of respiratory irritants including tobacco smoke.</li>
+        ${comp?.status === 'Improved' ? '<li>The decline in disease probability from your previous scan is an encouraging development. Your lungs are showing early signs of recovery — continue following your treatment plan diligently.</li>' : ''}
+        ${comp?.status === 'Worsened' ? '<li>The mild increase in disease probability compared to the prior study suggests early progression. Prompt reassessment by your physician is advised to prevent further deterioration.</li>' : ''}
+        <li>A follow-up chest radiograph in 4–6 weeks is recommended to document treatment response and ensure radiographic resolution.</li>`;
+      }
+      if (sev === 'Moderate') {
+        return `
+        <li>Prompt clinical evaluation is recommended, including thorough history-taking, physical examination, and comprehensive laboratory workup (CBC with differential, CRP/ESR, sputum Gram stain and culture, pulse oximetry).</li>
+        <li>Antibiotic therapy should be initiated or optimised based on clinical severity scoring (e.g., CURB-65) and local antimicrobial resistance patterns, in consultation with the treating physician.</li>
+        <li>Supplemental oxygen therapy should be considered if peripheral oxygen saturation (SpO₂) falls below 94% on room air.</li>
+        <li>Ensure adequate nutritional support, hydration, and bed rest. Incentive spirometry may assist in preventing atelectasis.</li>
+        ${comp?.status === 'Improved' ? '<li>The measurable reduction in disease probability relative to the prior scan is an encouraging sign of treatment efficacy. Continue the prescribed regimen and maintain close clinical follow-up.</li>' : ''}
+        ${comp?.status === 'Worsened' ? '<li>The increase in disease probability compared to the prior study is clinically significant. Re-evaluation of the current treatment approach, consideration of escalated antibiotic therapy, and possible hospital admission should be discussed with the treating physician urgently.</li>' : ''}
+        <li>Repeat chest radiograph in 3–4 weeks to assess radiographic improvement, or sooner if clinical deterioration occurs.</li>`;
+      }
+      // Severe
+      return `
+      <li><strong>Urgent medical attention is required.</strong> Immediate clinical assessment by a respiratory physician or emergency care provider is strongly advised.</li>
+      <li>Hospital admission should be strongly considered given the severity of radiographic findings. Assess for need of supplemental oxygen or ventilatory support.</li>
+      <li>Comprehensive investigations are essential: arterial blood gas (ABG), high-resolution CT chest (if clinically indicated), blood cultures, sputum culture and sensitivity, and inflammatory markers.</li>
+      <li>Empirical broad-spectrum intravenous antibiotic therapy should be initiated promptly per local hospital guidelines, pending microbiological results.</li>
+      ${comp?.status === 'Worsened' ? '<li><strong>Radiographic deterioration compared to the prior study requires immediate escalation of care.</strong> Do not delay seeking specialist evaluation.</li>' : ''}
+      ${comp?.status === 'Improved' ? '<li>Despite severe classification, the reduction in disease probability from the prior study suggests early response to treatment. This is encouraging — continue current management under close supervision.</li>' : ''}
+      <li>Arrange follow-up chest radiograph within 1–2 weeks of treatment initiation, or earlier if clinical status changes.</li>`;
+    })();
 
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<title>MEDIVISION Radiological Report — ${patientName}</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>MEDIVISION Radiological Report</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Times New Roman', Times, serif; background: #fff; color: #1a1a1a; font-size: 13px; padding: 40px 52px; max-width: 860px; margin: 0 auto; }
-  h1 { font-size: 18px; font-weight: 700; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .report-wrap { max-width: 820px; margin: 0 auto; padding: 40px 48px; }
+  /* Header */
+  .report-header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 16px; border-bottom: 2px solid #1a1a1a; margin-bottom: 24px; }
+  .header-left {}
+  .brand-tag { font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: #9ca3af; margin-bottom: 5px; font-family: Arial, sans-serif; }
+  .brand-name { font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.3px; }
+  .brand-sub { font-size: 11px; color: #6b7280; margin-top: 3px; font-family: Arial, sans-serif; }
+  .header-right { text-align: right; font-size: 11px; color: #4b5563; font-family: Arial, sans-serif; line-height: 1.8; }
+  .header-right strong { color: #1a1a1a; }
+  /* Patient Info */
+  .patient-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px; }
+  .patient-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; margin-top: 10px; }
+  .patient-field label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #9ca3af; margin-bottom: 3px; font-family: Arial, sans-serif; }
+  .patient-field span { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+  /* Section */
+  .report-section { margin-bottom: 24px; }
+  .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #6b7280; border-bottom: 1px solid #e5e7eb; padding-bottom: 7px; margin-bottom: 14px; font-family: Arial, sans-serif; }
+  .box-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 10px; font-family: Arial, sans-serif; }
+  /* Tables */
+  .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .report-table td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; }
+  .report-table tr.alt td { background: #f8f9fa; }
+  .td-label { color: #4b5563; width: 200px; }
+  .td-val { font-weight: 600; color: #1a1a1a; }
+  .td-bar { width: 180px; }
+  .bar-bg { width: 100%; height: 7px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 7px; border-radius: 4px; }
+  /* Imaging */
+  .imaging-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .img-card { text-align: center; }
+  .img-label { font-size: 10px; color: #6b7280; margin-bottom: 6px; font-family: Arial, sans-serif; line-height: 1.4; }
+  .img-date { font-size: 9px; color: #9ca3af; font-style: italic; }
+  .report-img { width: 100%; height: 150px; object-fit: cover; border-radius: 5px; border: 1px solid #d1d5db; background: #111; display: block; }
+  /* Interpretation */
+  .interp-text { font-size: 13px; color: #1f2937; line-height: 1.85; text-align: justify; }
+  /* Recommendations */
+  .rec-list { list-style: none; padding: 0; }
+  .rec-list li { padding: 6px 0 6px 18px; position: relative; font-size: 12px; color: #374151; line-height: 1.7; border-bottom: 1px dotted #e5e7eb; }
+  .rec-list li:last-child { border-bottom: none; }
+  .rec-list li::before { content: '\\25B8'; position: absolute; left: 0; color: #1d4e50; font-size: 10px; top: 9px; }
+  /* Disclaimer */
+  .disclaimer { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 12px 16px; font-size: 10.5px; color: #6b7280; line-height: 1.7; font-family: Arial, sans-serif; }
+  .disclaimer strong { color: #374151; }
+  /* Action bar */
+  .action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 28px; }
+  .btn-download { padding: 9px 20px; background: #1d4e50; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: Arial, sans-serif; }
+  .btn-download:hover { background: #163a3c; }
+  /* Findings summary box */
+  .findings-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px; }
+  .findings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; margin-top: 10px; }
+  .findings-field label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #9ca3af; margin-bottom: 3px; font-family: Arial, sans-serif; }
+  .findings-field span { font-size: 13px; font-weight: 700; }
   @media print {
-    body { padding: 20px 32px; }
-    .no-print { display: none !important; }
+    .action-bar { display: none !important; }
+    body { background: #fff; }
+    .report-wrap { padding: 20px 30px; }
   }
 </style>
 </head>
 <body>
+<div class="report-wrap">
 
-<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a1a1a;padding-bottom:14px;margin-bottom:20px;">
-  <div>
-    <p style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;margin-bottom:4px;">Artificial Intelligence Diagnostic Imaging Report</p>
-    <h1>MEDIVISION Medical Platform</h1>
-    <p style="font-size:11px;color:#6b7280;margin-top:2px;">AI-Assisted Chest Radiograph Analysis</p>
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn-download" onclick="downloadReport()">&#11015; Download Report</button>
   </div>
-  <div style="text-align:right;font-size:11px;color:#4b5563;">
-    <p><strong>Report Date:</strong> ${reportDate}</p>
-    <p><strong>Report ID:</strong> RPT-${Date.now()}</p>
-    <p><strong>Modality:</strong> Chest X-Ray (CXR)</p>
+
+  <!-- Header -->
+  <div class="report-header">
+    <div class="header-left">
+      <p class="brand-tag">AI-Assisted Diagnostic Imaging Report</p>
+      <div class="brand-name">MEDIVISION</div>
+      <p class="brand-sub">Chest Radiograph Analysis — Powered by DenseNet121-ResNet50 Feature Fusion</p>
+    </div>
+    <div class="header-right">
+      <p><strong>Report Date:</strong> ${reportDate}</p>
+      <p><strong>Report ID:</strong> ${reportId}</p>
+      <p><strong>Modality:</strong> Chest X-Ray (CXR — PA View)</p>
+    </div>
   </div>
+
+  <!-- Patient Information -->
+  <div class="patient-box">
+    <p class="box-title">Patient Information</p>
+    <div class="patient-grid">
+      <div class="patient-field"><label>Full Name</label><span>${patientName}</span></div>
+      <div class="patient-field"><label>Age</label><span>${patientAge}</span></div>
+      <div class="patient-field"><label>Gender</label><span>${genderStr}</span></div>
+      <div class="patient-field"><label>Patient ID / Email</label><span>${patientId}</span></div>
+      <div class="patient-field"><label>Examination Date</label><span>${currentDate}</span></div>
+      <div class="patient-field"><label>Study Type</label><span>Chest Radiograph</span></div>
+    </div>
+  </div>
+
+  <!-- AI Findings Summary -->
+  <div class="findings-box">
+    <p class="box-title">AI Findings Summary</p>
+    <div class="findings-grid">
+      <div class="findings-field"><label>Primary Diagnosis</label><span style="color:${isNormal ? '#15803d' : '#b45309'};">${pred}</span></div>
+      <div class="findings-field"><label>Disease Probability</label><span>${prob}%</span></div>
+      <div class="findings-field"><label>Model Confidence</label><span>${conf}%</span></div>
+      <div class="findings-field"><label>Clinical Severity</label><span style="color:${sev === 'Severe' ? '#b91c1c' : sev === 'Moderate' ? '#b45309' : '#15803d'};">${sev}</span></div>
+      <div class="findings-field"><label>Respiratory Health Score</label><span>${score} / 100</span></div>
+      ${comp ? `<div class="findings-field"><label>Progression Status</label><span style="color:${comp.status === 'Improved' ? '#15803d' : comp.status === 'Worsened' ? '#b91c1c' : '#b45309'};">${comp.status}</span></div>` : ''}
+    </div>
+  </div>
+
+  <!-- Probability Distribution -->
+  ${probRows ? `
+  <section class="report-section">
+    <h3 class="section-title">Differential Probability Distribution</h3>
+    <table class="report-table">
+      <thead>
+        <tr class="alt">
+          <td class="td-label" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Classification</td>
+          <td class="td-val" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Probability</td>
+          <td class="td-bar" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Distribution</td>
+        </tr>
+      </thead>
+      <tbody>${probRows}</tbody>
+    </table>
+  </section>` : ''}
+
+  <!-- Comparative Analysis -->
+  ${comparativeBlock}
+
+  <!-- Imaging -->
+  ${imagingBlock}
+
+  <!-- Clinical Interpretation -->
+  <section class="report-section">
+    <h3 class="section-title">Clinical Interpretation</h3>
+    <p class="interp-text">${interpretation}</p>
+  </section>
+
+  <!-- Recommendations -->
+  <section class="report-section">
+    <h3 class="section-title">Clinical Recommendations</h3>
+    <ul class="rec-list">${recommendations}</ul>
+  </section>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> This report was generated by the MEDIVISION AI diagnostic system (DenseNet121-ResNet50 Feature Fusion with CBAM Attention, binary classification: Normal vs. Pneumonia). It is intended solely as a clinical decision-support tool and does not constitute a formal radiological or medical diagnosis. All findings must be interpreted by a qualified and licensed clinician or radiologist in the context of the patient's complete clinical history, examination, and ancillary investigations. MEDIVISION and its AI systems assume no medico-legal liability for clinical decisions made on the basis of this report.
+  </div>
+
 </div>
 
-<section style="margin-bottom:24px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;">
-  <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-bottom:10px;">Patient Information</h3>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:12px;">
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Full Name</p><p style="font-weight:600;">${patientName}</p></div>
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Age</p><p style="font-weight:600;">${patientAge}</p></div>
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Gender</p><p style="font-weight:600;">${typeof patientGender === 'string' ? patientGender.charAt(0).toUpperCase() + patientGender.slice(1) : 'N/A'}</p></div>
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Patient ID</p><p style="font-weight:600;">${patientId}</p></div>
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Examination Date</p><p style="font-weight:600;">${new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</p></div>
-    <div><p style="color:#6b7280;font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;">Examination Type</p><p style="font-weight:600;">Chest Radiograph (PA View)</p></div>
-  </div>
-</section>
-
-<section style="margin-bottom:24px;">
-  <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;">AI Diagnostic Findings</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;">
-    <tr style="background:#f3f4f6;">
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:700;width:200px;">Primary Diagnosis</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${analysisResult.prediction === 'Pneumonia' ? '#b45309' : '#15803d'};">${analysisResult.prediction}</td>
-    </tr>
-    <tr>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;">Disease Probability</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.probability?.toFixed(1)}%</td>
-    </tr>
-    <tr style="background:#f9fafb;">
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;">Model Confidence</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${(analysisResult.confidence * 100).toFixed(1)}%</td>
-    </tr>
-    <tr>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;">Clinical Severity</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.severity}</td>
-    </tr>
-    <tr style="background:#f9fafb;">
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;color:#4b5563;">Respiratory Health Score</td>
-      <td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;">${analysisResult.health_score} / 100</td>
-    </tr>
-  </table>
-</section>
-
-<section style="margin-bottom:24px;">
-  <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;">Differential Probability Analysis</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:12px;">
-    <thead>
-      <tr style="background:#f3f4f6;">
-        <th style="padding:6px 12px;text-align:left;border-bottom:1px solid #e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Diagnosis</th>
-        <th style="padding:6px 12px;text-align:left;border-bottom:1px solid #e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Probability</th>
-        <th style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;width:200px;">Distribution</th>
-      </tr>
-    </thead>
-    <tbody>${probRows}</tbody>
-  </table>
-</section>
-
-${comparisonSection}
-
-<section style="margin-bottom:24px;">
-  <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;">Clinical Interpretation</h3>
-  <p style="line-height:1.75;font-size:13px;color:#1f2937;">
-    ${analysisResult.prediction === 'Normal'
-      ? `The chest radiograph demonstrates no significant pathological findings consistent with pneumonia. Lung fields appear clear with no evidence of consolidation, interstitial markings, or pleural effusion detectable by the AI model. A respiratory health score of ${analysisResult.health_score}/100 is recorded.`
-      : `The chest radiograph demonstrates findings consistent with <strong>${analysisResult.prediction}</strong> at a disease probability of ${analysisResult.probability?.toFixed(1)}%, classified as <strong>${analysisResult.severity}</strong> severity. The AI model assigns a model confidence of ${(analysisResult.confidence * 100).toFixed(1)}%. The respiratory health score is ${analysisResult.health_score}/100. ${analysisResult.comparison ? `Comparative analysis with the prior radiograph indicates a status of <strong>${analysisResult.comparison.status}</strong>, with disease probability ${analysisResult.comparison.status === 'Improved' ? 'decreasing' : analysisResult.comparison.status === 'Worsened' ? 'increasing' : 'remaining stable'} from ${analysisResult.comparison.previous_probability?.toFixed(1)}% to ${analysisResult.comparison.current_probability?.toFixed(1)}%.` : ''}`
-    }
-  </p>
-</section>
-
-<section style="margin-bottom:28px;">
-  <h3 style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;">Recommendations</h3>
-  <ul style="list-style:none;font-size:12px;line-height:1.8;color:#374151;">
-    ${analysisResult.prediction === 'Normal'
-      ? `<li style="padding:4px 0;">• Chest radiograph within normal limits per AI assessment. No immediate action indicated.</li>
-         <li style="padding:4px 0;">• Routine follow-up as per clinical schedule.</li>
-         <li style="padding:4px 0;">• Maintain preventive health measures and vaccination status.</li>`
-      : `<li style="padding:4px 0;">• Urgent clinical correlation with the patient's presenting symptoms, auscultation findings, and laboratory investigations (CBC, CRP, sputum culture) is recommended.</li>
-         <li style="padding:4px 0;">• ${analysisResult.severity === 'Severe' ? 'Immediate' : 'Timely'} consultation with a pulmonologist or respiratory physician is advised.</li>
-         <li style="padding:4px 0;">• Consider follow-up chest radiograph in 4–6 weeks to assess treatment response.</li>
-         <li style="padding:4px 0;">• Adequate hydration, rest, and antibiotic therapy (if bacterially confirmed) as directed by the treating physician.</li>
-         ${analysisResult.comparison?.status === 'Worsened' ? '<li style="padding:4px 0;">• Clinical deterioration noted compared to prior imaging — escalation of care may be warranted.</li>' : ''}`
-    }
-  </ul>
-</section>
-
-<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:14px 18px;font-size:11px;color:#6b7280;line-height:1.7;">
-  <strong style="color:#374151;">Disclaimer:</strong> This report has been generated by the MEDIVISION AI diagnostic system. AI findings are intended to assist — not replace — clinical decision-making. This report does not constitute a definitive medical diagnosis and must be reviewed and countersigned by a licensed radiologist or clinician before clinical use.
-</div>
-
-<div class="no-print" style="margin-top:28px;text-align:right;">
-  <button onclick="window.print()" style="padding:10px 24px;background:#2C7A7B;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">
-    🖨 Print / Save as PDF
-  </button>
-</div>
-
+<script>
+function downloadReport() {
+  var blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'MEDIVISION_Report_${reportId}.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
 </body>
 </html>`;
 
-    const reportWindow = window.open('', '_blank');
-    if (reportWindow) {
-      reportWindow.document.write(html);
-      reportWindow.document.close();
-    }
+    setReportHtml(html);
+    setShowReport(true);
+
+    // Scroll to top of the page so report is visible
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleFileInputClick = async (e) => {
@@ -445,6 +556,61 @@ ${comparisonSection}
 
   return (
     <PatientLayout>
+      {showReport && (
+        <div
+          id="medivision-report-overlay"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            background: 'rgba(15,23,42,0.72)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+            overflowY: 'auto',
+            padding: '32px 16px 48px',
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowReport(false); }}
+        >
+          <div style={{
+            width: '100%',
+            maxWidth: '860px',
+            background: '#fff',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
+            position: 'relative',
+          }}>
+            {/* Close button outside iframe */}
+            <button
+              onClick={() => setShowReport(false)}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 16,
+                zIndex: 10,
+                background: 'rgba(255,255,255,0.95)',
+                border: '1px solid #d1d5db',
+                borderRadius: '7px',
+                padding: '6px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#374151',
+                cursor: 'pointer',
+                fontFamily: 'Arial, sans-serif',
+              }}
+            >
+              ✕ Close
+            </button>
+            <iframe
+              srcDoc={reportHtml}
+              title="MEDIVISION Radiological Report"
+              style={{ width: '100%', height: '90vh', border: 'none', display: 'block' }}
+              sandbox="allow-scripts allow-same-origin allow-downloads"
+            />
+          </div>
+        </div>
+      )}
       <div className="progress-page-content">
         <div className="progress-header">
           <h1 className="progress-title">Track Your Respiratory Health</h1>
