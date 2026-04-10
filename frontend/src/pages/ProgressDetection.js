@@ -151,18 +151,6 @@ const ProgressDetection = () => {
       ? patientGender.charAt(0).toUpperCase() + patientGender.slice(1)
       : 'N/A';
 
-    // ── Probability rows ──
-    const probRows = Object.entries(analysisResult.probabilities || {}).map(([d, v]) => `
-    <tr>
-      <td class="td-label">${d}</td>
-      <td class="td-val">${(v * 100).toFixed(1)}%</td>
-      <td class="td-bar">
-        <div class="bar-bg">
-          <div class="bar-fill" style="width:${(v * 100).toFixed(1)}%;background:${d === pred ? '#1d4e50' : '#b0bec5'};"></div>
-        </div>
-      </td>
-    </tr>`).join('');
-
     // ── Imaging block ──
     const priorDate = priorRecord
       ? new Date(priorRecord.timestamp || priorRecord.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
@@ -190,11 +178,14 @@ const ProgressDetection = () => {
     })();
 
     // ── Comparative analysis block ──
+    const prevDisease = priorRecord?.disease || priorRecord?.analysis?.prediction || 'N/A';
     const comparativeBlock = comp ? `
     <section class="report-section">
       <h3 class="section-title">Comparative Analysis</h3>
       <table class="report-table">
-        <tr><td class="td-label">Previous Disease Probability</td><td class="td-val">${comp.previous_probability?.toFixed(1)}%</td></tr>
+        <tr><td class="td-label">Previous Disease</td><td class="td-val">${prevDisease}</td></tr>
+        <tr class="alt"><td class="td-label">Previous Disease Probability</td><td class="td-val">${comp.previous_probability?.toFixed(1)}%</td></tr>
+        <tr><td class="td-label">Current Disease</td><td class="td-val">${pred}</td></tr>
         <tr class="alt"><td class="td-label">Current Disease Probability</td><td class="td-val">${comp.current_probability?.toFixed(1)}%</td></tr>
         <tr><td class="td-label">SSIM Structural Similarity Index</td><td class="td-val">${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}</td></tr>
         <tr class="alt"><td class="td-label">Clinical Progression Status</td>
@@ -205,62 +196,47 @@ const ProgressDetection = () => {
 
     // ── Clinical interpretation ──
     const interpretation = (() => {
+      const compNote = comp
+        ? ` Compared to the prior study (${prevDisease}, ${comp.previous_probability?.toFixed(1)}%), the current result shows a progression status of <strong>${comp.status}</strong>.`
+        : '';
       if (isNormal) {
-        return `The current chest radiograph demonstrates no radiographic evidence of consolidation, air-space opacification, interstitial infiltrates, or pleural effusion as detectable by the AI model. The lung fields appear clear bilaterally. A respiratory health score of ${score}/100 was assigned, reflecting a clinically favourable pulmonary profile.
-      ${comp ? `In comparison with the prior radiograph dated ${priorDate}, the structural similarity index (SSIM) was recorded at ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}, indicating ${comp.status === 'Improved' ? 'a continued improvement in pulmonary status' : comp.status === 'Worsened' ? 'a decline relative to the prior study' : 'stable findings with no clinically significant interval change'}.` : ''}`;
+        return `No significant radiographic abnormality detected. Lung fields appear clear with a respiratory health score of ${score}/100.${compNote}`;
       }
-      if (sev === 'Mild') {
-        return `The chest radiograph demonstrates early radiographic findings suggestive of <strong>${pred}</strong>, with a disease probability of ${prob}% and a model confidence of ${conf}%. The pattern is consistent with mild pulmonary involvement, characterised by subtle parenchymal haziness without frank consolidation. The respiratory health score of ${score}/100 reflects a mildly compromised pulmonary reserve.
-      ${comp ? `Compared to the prior study dated ${priorDate}, the disease probability has ${comp.status === 'Improved' ? `decreased from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}%, indicating measurable clinical improvement in line with ongoing management` : comp.status === 'Worsened' ? `increased from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}%, suggesting early progression that warrants prompt clinical reassessment` : `remained relatively stable at ${comp.current_probability?.toFixed(1)}%, indicating no significant interval change`}. The SSIM structural similarity index was ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}.` : ''}`;
-      }
-      if (sev === 'Moderate') {
-        return `The chest radiograph demonstrates radiographic findings consistent with <strong>${pred}</strong> of moderate severity, with a disease probability of ${prob}% and a model confidence of ${conf}%. Pulmonary infiltrates or patchy consolidation may be present in one or more lung zones, consistent with an active inflammatory or infective process. The respiratory health score of ${score}/100 reflects a moderately compromised respiratory reserve requiring active clinical management.
-      ${comp ? `Serial comparison with the prior radiograph dated ${priorDate} reveals a disease probability change from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}% (SSIM: ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}), indicating a clinical status of <strong>${comp.status}</strong>. ${comp.status === 'Improved' ? 'This trajectory is encouraging and suggests a positive response to treatment; continued monitoring is advised.' : comp.status === 'Worsened' ? 'This worsening trend necessitates prompt re-evaluation of the current therapeutic regimen.' : 'Absence of significant interval change suggests the disease process is currently contained; adherence to prescribed management is essential.'}` : ''}`;
-      }
-      // Severe
-      return `The chest radiograph demonstrates extensive radiographic abnormalities consistent with <strong>severe ${pred}</strong>, with a disease probability of ${prob}% and a model confidence of ${conf}%. Findings may include widespread consolidation, bilateral infiltrates, or significant air-space opacification indicative of a substantially compromised pulmonary parenchyma. The respiratory health score of ${score}/100 reflects severely diminished respiratory reserve and warrants urgent clinical attention.
-    ${comp ? `Compared to the prior study dated ${priorDate}, the disease probability has changed from ${comp.previous_probability?.toFixed(1)}% to ${comp.current_probability?.toFixed(1)}% (SSIM: ${comp.ssim_score != null ? (comp.ssim_score * 100).toFixed(2) + '%' : 'N/A'}), denoting a progression status of <strong>${comp.status}</strong>. ${comp.status === 'Worsened' ? 'The radiographic deterioration relative to prior imaging is of significant concern and mandates immediate escalation of clinical care.' : comp.status === 'Improved' ? 'Despite the severity classification, a reduction in disease probability relative to the prior study is noted, which may reflect early treatment response; however, close inpatient or outpatient monitoring remains essential.' : 'The stable trajectory in the context of severe disease indicates that the condition is neither resolving nor deteriorating; sustained aggressive management is required.'}` : ''}`;
+      return `Radiographic findings are consistent with <strong>${pred}</strong> (${sev} severity). Disease probability: ${prob}%, health score: ${score}/100.${compNote}`;
     })();
 
     // ── Recommendations ──
     const recommendations = (() => {
       if (isNormal) {
         return `
-        <li>The chest radiograph is within normal limits per AI-assisted assessment. No acute pulmonary pathology is currently identified.</li>
-        <li>Continue routine health maintenance, including age-appropriate vaccinations (pneumococcal, influenza) as recommended by your healthcare provider.</li>
-        <li>Maintain an active lifestyle, adequate hydration, and a balanced diet to support optimal respiratory and immune function.</li>
-        ${comp?.status === 'Improved' ? '<li>The notable improvement from your previous scan is an encouraging sign. Continue adhering to your current health regimen — your lungs are responding well.</li>' : ''}
-        ${comp?.status === 'Stable' ? '<li>Your lungs have remained consistently clear across sequential examinations — a testament to good preventive care. Continue your current routine.</li>' : ''}
-        <li>Schedule a follow-up chest radiograph as clinically indicated or as directed by your physician.</li>`;
+        <li>No immediate action required. Continue routine health monitoring as advised by your physician.</li>
+        <li>Maintain preventive measures: adequate hydration, regular exercise, and up-to-date vaccinations.</li>
+        ${comp?.status === 'Improved' ? '<li>Improvement noted from prior scan — continue your current health regimen.</li>' : ''}
+        <li>Schedule a follow-up radiograph as clinically indicated.</li>`;
       }
       if (sev === 'Mild') {
         return `
-        <li>Clinical correlation with the patient's presenting symptoms, physical examination findings (auscultation, percussion), and baseline laboratory investigations (complete blood count, C-reactive protein) is recommended.</li>
-        <li>Initiate or continue appropriate pharmacological management as directed by the treating physician. Oral antibiotic therapy may be considered pending microbiological confirmation.</li>
-        <li>Encourage adequate oral hydration (≥2 litres/day unless contraindicated), rest, and avoidance of respiratory irritants including tobacco smoke.</li>
-        ${comp?.status === 'Improved' ? '<li>The decline in disease probability from your previous scan is an encouraging development. Your lungs are showing early signs of recovery — continue following your treatment plan diligently.</li>' : ''}
-        ${comp?.status === 'Worsened' ? '<li>The mild increase in disease probability compared to the prior study suggests early progression. Prompt reassessment by your physician is advised to prevent further deterioration.</li>' : ''}
-        <li>A follow-up chest radiograph in 4–6 weeks is recommended to document treatment response and ensure radiographic resolution.</li>`;
+        <li>Correlate with clinical symptoms and consider baseline blood work (CBC, CRP).</li>
+        <li>Follow prescribed treatment; oral antibiotics may be considered if clinically indicated.</li>
+        ${comp?.status === 'Worsened' ? '<li>Disease probability has increased — prompt physician reassessment is advised.</li>' : ''}
+        ${comp?.status === 'Improved' ? '<li>Probability has decreased from prior scan — continue treatment and follow up.</li>' : ''}
+        <li>Follow-up chest X-ray in 4–6 weeks to confirm resolution.</li>`;
       }
       if (sev === 'Moderate') {
         return `
-        <li>Prompt clinical evaluation is recommended, including thorough history-taking, physical examination, and comprehensive laboratory workup (CBC with differential, CRP/ESR, sputum Gram stain and culture, pulse oximetry).</li>
-        <li>Antibiotic therapy should be initiated or optimised based on clinical severity scoring (e.g., CURB-65) and local antimicrobial resistance patterns, in consultation with the treating physician.</li>
-        <li>Supplemental oxygen therapy should be considered if peripheral oxygen saturation (SpO₂) falls below 94% on room air.</li>
-        <li>Ensure adequate nutritional support, hydration, and bed rest. Incentive spirometry may assist in preventing atelectasis.</li>
-        ${comp?.status === 'Improved' ? '<li>The measurable reduction in disease probability relative to the prior scan is an encouraging sign of treatment efficacy. Continue the prescribed regimen and maintain close clinical follow-up.</li>' : ''}
-        ${comp?.status === 'Worsened' ? '<li>The increase in disease probability compared to the prior study is clinically significant. Re-evaluation of the current treatment approach, consideration of escalated antibiotic therapy, and possible hospital admission should be discussed with the treating physician urgently.</li>' : ''}
-        <li>Repeat chest radiograph in 3–4 weeks to assess radiographic improvement, or sooner if clinical deterioration occurs.</li>`;
+        <li>Prompt clinical evaluation recommended. Obtain CBC, CRP/ESR, sputum culture, and pulse oximetry.</li>
+        <li>Initiate or optimise antibiotic therapy per clinical severity (CURB-65) and local guidelines.</li>
+        ${comp?.status === 'Worsened' ? '<li>Worsening trend vs. prior scan — consider escalated treatment or hospital referral.</li>' : ''}
+        ${comp?.status === 'Improved' ? '<li>Improvement noted — maintain current regimen with close clinical monitoring.</li>' : ''}
+        <li>Repeat chest X-ray in 3–4 weeks or sooner if condition deteriorates.</li>`;
       }
       // Severe
       return `
-      <li><strong>Urgent medical attention is required.</strong> Immediate clinical assessment by a respiratory physician or emergency care provider is strongly advised.</li>
-      <li>Hospital admission should be strongly considered given the severity of radiographic findings. Assess for need of supplemental oxygen or ventilatory support.</li>
-      <li>Comprehensive investigations are essential: arterial blood gas (ABG), high-resolution CT chest (if clinically indicated), blood cultures, sputum culture and sensitivity, and inflammatory markers.</li>
-      <li>Empirical broad-spectrum intravenous antibiotic therapy should be initiated promptly per local hospital guidelines, pending microbiological results.</li>
-      ${comp?.status === 'Worsened' ? '<li><strong>Radiographic deterioration compared to the prior study requires immediate escalation of care.</strong> Do not delay seeking specialist evaluation.</li>' : ''}
-      ${comp?.status === 'Improved' ? '<li>Despite severe classification, the reduction in disease probability from the prior study suggests early response to treatment. This is encouraging — continue current management under close supervision.</li>' : ''}
-      <li>Arrange follow-up chest radiograph within 1–2 weeks of treatment initiation, or earlier if clinical status changes.</li>`;
+      <li><strong>Urgent medical attention required.</strong> Seek immediate evaluation by a respiratory physician or emergency provider.</li>
+      <li>Hospital admission and supplemental oxygen should be considered. Obtain ABG, blood cultures, and sputum cultures.</li>
+      ${comp?.status === 'Worsened' ? '<li><strong>Radiographic deterioration vs. prior scan</strong> — immediate escalation of care is indicated.</li>' : ''}
+      ${comp?.status === 'Improved' ? '<li>Disease probability reduced from prior scan — possible early treatment response; continue close monitoring.</li>' : ''}
+      <li>Follow-up imaging within 1–2 weeks of treatment initiation.</li>`;
     })();
 
     const html = `<!DOCTYPE html>
@@ -300,11 +276,8 @@ const ProgressDetection = () => {
   .report-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   .report-table td { padding: 7px 12px; border-bottom: 1px solid #e5e7eb; }
   .report-table tr.alt td { background: #f8f9fa; }
-  .td-label { color: #4b5563; width: 200px; }
+  .td-label { color: #4b5563; width: 220px; }
   .td-val { font-weight: 600; color: #1a1a1a; }
-  .td-bar { width: 180px; }
-  .bar-bg { width: 100%; height: 7px; background: #e5e7eb; border-radius: 4px; overflow: hidden; }
-  .bar-fill { height: 7px; border-radius: 4px; }
   /* Imaging */
   .imaging-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .img-card { text-align: center; }
@@ -325,11 +298,6 @@ const ProgressDetection = () => {
   .action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 28px; }
   .btn-download { padding: 9px 20px; background: #1d4e50; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: Arial, sans-serif; }
   .btn-download:hover { background: #163a3c; }
-  /* Findings summary box */
-  .findings-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px 18px; margin-bottom: 24px; }
-  .findings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; margin-top: 10px; }
-  .findings-field label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #9ca3af; margin-bottom: 3px; font-family: Arial, sans-serif; }
-  .findings-field span { font-size: 13px; font-weight: 700; }
   @media print {
     .action-bar { display: none !important; }
     body { background: #fff; }
@@ -371,35 +339,6 @@ const ProgressDetection = () => {
       <div class="patient-field"><label>Study Type</label><span>Chest Radiograph</span></div>
     </div>
   </div>
-
-  <!-- AI Findings Summary -->
-  <div class="findings-box">
-    <p class="box-title">AI Findings Summary</p>
-    <div class="findings-grid">
-      <div class="findings-field"><label>Primary Diagnosis</label><span style="color:${isNormal ? '#15803d' : '#b45309'};">${pred}</span></div>
-      <div class="findings-field"><label>Disease Probability</label><span>${prob}%</span></div>
-      <div class="findings-field"><label>Model Confidence</label><span>${conf}%</span></div>
-      <div class="findings-field"><label>Clinical Severity</label><span style="color:${sev === 'Severe' ? '#b91c1c' : sev === 'Moderate' ? '#b45309' : '#15803d'};">${sev}</span></div>
-      <div class="findings-field"><label>Respiratory Health Score</label><span>${score} / 100</span></div>
-      ${comp ? `<div class="findings-field"><label>Progression Status</label><span style="color:${comp.status === 'Improved' ? '#15803d' : comp.status === 'Worsened' ? '#b91c1c' : '#b45309'};">${comp.status}</span></div>` : ''}
-    </div>
-  </div>
-
-  <!-- Probability Distribution -->
-  ${probRows ? `
-  <section class="report-section">
-    <h3 class="section-title">Differential Probability Distribution</h3>
-    <table class="report-table">
-      <thead>
-        <tr class="alt">
-          <td class="td-label" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Classification</td>
-          <td class="td-val" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Probability</td>
-          <td class="td-bar" style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-family:Arial,sans-serif;">Distribution</td>
-        </tr>
-      </thead>
-      <tbody>${probRows}</tbody>
-    </table>
-  </section>` : ''}
 
   <!-- Comparative Analysis -->
   ${comparativeBlock}
