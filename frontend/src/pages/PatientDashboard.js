@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PatientLayout from '../components/PatientLayout';
+import PatientChatPanel from '../components/PatientChatPanel';
 import './PatientDashboard.css';
+import '../components/ChatModule.css';
 
 const PatientDashboard = () => {
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [activeChat, setActiveChat] = useState(null); // { sessionId, doctorId, doctorName }
+
+  useEffect(() => {
+    // Check if there's an active chat session from a previous page
+    const stored = localStorage.getItem('activeChatSession');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.sessionId) setActiveChat(parsed);
+      } catch (_) {}
+    }
+  }, []);
 
   return (
     <PatientLayout>
@@ -549,6 +563,18 @@ const PatientDashboard = () => {
           </div>
         )}
       </div>
+      {/* Show active chat panel on home page if patient has an ongoing session */}
+      {activeChat && (
+        <PatientChatPanel
+          doctorId={activeChat.doctorId}
+          doctorName={activeChat.doctorName}
+          availabilityTime={activeChat.availabilityTime}
+          onClose={() => {
+            setActiveChat(null);
+            localStorage.removeItem('activeChatSession');
+          }}
+        />
+      )}
     </PatientLayout>
   );
 };

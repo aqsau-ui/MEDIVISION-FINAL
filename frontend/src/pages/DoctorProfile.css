@@ -1,0 +1,295 @@
+.doctor-profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 30px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.profile-header h1 {
+  color: #2c5f6f;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.profile-info-card,
+.signature-card,
+.usage-info-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info-card h2,
+.signature-card h2,
+.usage-info-card h2 {
+  color: #2c5f6f;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+  border-bottom: 2px solid #38B2AC;
+  padding-bottom: 10px;
+}
+
+/* Profile Information */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.info-item span {
+  color: #333;
+  font-size: 1.1rem;
+}
+
+/* Signature Section */
+.signature-description {
+  color: #666;
+  margin-bottom: 25px;
+  line-height: 1.6;
+}
+
+.current-signature,
+.upload-section {
+  margin-bottom: 30px;
+}
+
+.current-signature h3,
+.upload-section h3 {
+  color: #2c5f6f;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+}
+
+.signature-preview-container {
+  background: #f8f9fa;
+  border: 2px dashed #38B2AC;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.signature-image {
+  max-width: 400px;
+  max-height: 150px;
+  object-fit: contain;
+  background: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.signature-image.preview {
+  border: 1px solid #ddd;
+}
+
+/* Upload Instructions */
+.upload-instructions {
+  background: #f0f8ff;
+  border-left: 4px solid #38B2AC;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.upload-instructions p {
+  margin: 0 0 10px 0;
+  color: #2c5f6f;
+  font-weight: 600;
+}
+
+.upload-instructions ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #555;
+}
+
+.upload-instructions li {
+  margin-bottom: 5px;
+}
+
+/* File Input */
+.file-input-wrapper {
+  margin: 20px 0;
+}
+
+#signature-upload {
+  display: none;
+}
+
+.file-input-label {
+  display: inline-block;
+  padding: 12px 30px;
+  background: #38B2AC;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s ease;
+}
+
+.file-input-label:hover {
+  background: #2c8a81;
+}
+
+/* Buttons */
+.btn-upload,
+.btn-delete {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-upload {
+  background: #38B2AC;
+  color: white;
+  margin-top: 15px;
+}
+
+.btn-upload:hover:not(:disabled) {
+  background: #2c8a81;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(56, 178, 172, 0.3);
+}
+
+.btn-delete {
+  background: #e74c3c;
+  color: white;
+  margin-top: 15px;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background: #c0392b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+.btn-upload:disabled,
+.btn-delete:disabled,
+.file-input-label:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.message {
+  padding: 15px;
+  border-radius: 6px;
+  margin-top: 20px;
+  font-weight: 500;
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Usage Steps */
+.usage-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.step {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.step-number {
+  width: 50px;
+  height: 50px;
+  background: #38B2AC;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-content h3 {
+  color: #2c5f6f;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+}
+
+.step-content p {
+  color: #666;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Loading */
+.loading-spinner {
+  text-align: center;
+  padding: 100px 20px;
+  font-size: 1.2rem;
+  color: #38B2AC;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .doctor-profile-container {
+    padding: 20px 15px;
+  }
+
+  .profile-header h1 {
+    font-size: 2rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .signature-image {
+    max-width: 100%;
+  }
+
+  .step {
+    flex-direction: column;
+  }
+
+  .step-number {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+}

@@ -101,7 +101,7 @@ const PatientProfile = () => {
         setFileValidationError('');
       } else {
         setFileValidationError(
-          '⚠️ This is not a valid chest X-ray. Please upload only chest X-ray images.'
+          'The uploaded image does not meet the criteria for a valid chest radiograph. Please upload a standard posterior-anterior (PA) chest X-ray in JPEG or PNG format. Other types of images, photographs, or non-chest radiographs cannot be accepted.'
         );
         setFilePreview(null);
         setFormData(prev => ({
@@ -122,23 +122,13 @@ const PatientProfile = () => {
   // Function to validate if the image is a chest X-ray using backend API
   const validateChestXray = async (file) => {
     try {
-      // Convert file to base64
-      const base64Image = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Send as multipart FormData — backend expects UploadFile
+      const formData = new FormData();
+      formData.append('file', file);
 
-      // Call backend validation API
       const response = await fetch('http://localhost:5000/api/xray/validate-xray', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageData: base64Image
-        })
+        body: formData
       });
 
       const result = await response.json();
@@ -156,7 +146,7 @@ const PatientProfile = () => {
 
     } catch (error) {
       console.error('Backend validation error:', error);
-      // Fallback to client-side validation if backend fails
+      // Fallback to client-side validation if backend is unreachable
       return await validateChestXrayClientSide(file);
     }
   };
@@ -463,6 +453,8 @@ const PatientProfile = () => {
           
           // Auto-save report to MongoDB
           saveReportToMongoDB(analysisData, newReportId, userName, userEmail);
+          // Seed progress baseline (fire-and-forget)
+          saveProgressBaseline(analysisData, userEmail);
           
           // Scroll to report
           setTimeout(() => {
@@ -584,6 +576,27 @@ const PatientProfile = () => {
     } catch (error) {
       console.error('❌ Error auto-saving report:', error);
       // Silent fail - don't disrupt user experience
+    }
+  };
+
+  // Seed progress baseline after first X-ray analysis
+  const saveProgressBaseline = async (analysisData, userEmail) => {
+    try {
+      await fetch('http://localhost:5000/api/xray/progress/baseline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: userEmail,
+          prediction: analysisData.prediction,
+          confidence: analysisData.confidence,
+          probabilities: analysisData.probabilities || {},
+          heatmap: analysisData.heatmap || '',
+          originalImage: filePreview || ''
+        })
+      });
+    } catch (err) {
+      // Silent fail — do not disrupt UI
+      console.warn('Progress baseline save failed:', err.message);
     }
   };
 
@@ -791,6 +804,13 @@ const PatientProfile = () => {
       
       if (result.success) {
         setShowDoctorModal(false);
+        // Store chat session so PatientDashboard can open the panel
+        localStorage.setItem('activeChatSession', JSON.stringify({
+          sessionId: result.session_id || Date.now(),
+          doctorId: selectedDoctor.id,
+          doctorName: selectedDoctor.fullName,
+          availabilityTime: selectedDoctor.availabilityTime || selectedDoctor.availability_time || ''
+        }));
         setSelectedDoctor(null);
         console.log(`✅ Report sent successfully to Dr. ${result.doctorName}!`);
       } else {
@@ -1134,7 +1154,7 @@ const PatientProfile = () => {
               {/* Medical History */}
               <div className="form-section">
                 <h2 className="section-title">Medical History</h2>
-                <p className="section-subtitle">Highly relevant to both pneumonia & TB risk</p>
+                <p className="section-subtitle">Relevant to pneumonia risk</p>
                 <div className="form-content">
                   <div className="medical-history-grid">
                     {/* Previous Lung Diseases */}
@@ -1172,15 +1192,6 @@ const PatientProfile = () => {
                             onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
                           />
                           <span>Previous Pneumonia</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Previous Tuberculosis"
-                            checked={formData.medicalConditions.includes('Previous Tuberculosis')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Previous Tuberculosis</span>
                         </label>
                         <label className="checkbox-label">
                           <input
@@ -1266,46 +1277,6 @@ const PatientProfile = () => {
                             onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
                           />
                           <span>Taking steroids or immunosuppressive drugs</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {/* Genetic Risk - TB */}
-                    <div className="medical-card genetic-card">
-                      <h3 className="card-title">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M12 2v20M2 12h20" />
-                          <circle cx="12" cy="12" r="4" />
-                        </svg>
-                        Genetic Risk - Tuberculosis
-                      </h3>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Family history of TB"
-                            checked={formData.medicalConditions.includes('Family history of TB')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Family history of TB</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Close contact with TB patient"
-                            checked={formData.medicalConditions.includes('Close contact with TB patient')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Close contact with TB patient</span>
-                        </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            value="Living in high TB burden area"
-                            checked={formData.medicalConditions.includes('Living in high TB burden area')}
-                            onChange={(e) => handleCheckboxChange(e, 'medicalConditions')}
-                          />
-                          <span>Living in high TB burden area</span>
                         </label>
                       </div>
                     </div>
@@ -1534,11 +1505,12 @@ const PatientProfile = () => {
                                 prediction: analysisResult.prediction,
                                 confidence: analysisResult.confidence,
                                 severity: analysisResult.confidence > 0.8 ? 'Severe' : analysisResult.confidence > 0.5 ? 'Moderate' : 'Mild',
-                                heatmapExplanation: analysisResult.explanation?.medical_context || ''
+                                heatmapExplanation: analysisResult.explanation?.medical_context || '',
+                                heatmap: analysisResult.heatmap || null
                               },
                               images: {
                                 original: filePreview,
-                                heatmap: analysisResult.heatmap || preprocessedImage
+                                heatmap: analysisResult.heatmap || null
                               }
                             }}
                             reportId={reportId}
@@ -1734,42 +1706,56 @@ const PatientProfile = () => {
                             transition: 'all 0.3s'
                           }}
                         >
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '8px'
-                          }}>
-                            <h4 style={{
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: '#1a202c',
-                              margin: 0
-                            }}>Dr. {doctor.fullName}</h4>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: 52, height: 52, borderRadius: '50%',
+                              background: '#e0f2f1', flexShrink: 0,
+                              overflow: 'hidden', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center',
+                              border: '2px solid #38B2AC'
+                            }}>
+                              {doctor.profilePhoto ? (
+                                <img src={doctor.profilePhoto} alt={doctor.fullName}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38B2AC" strokeWidth="2">
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a202c', margin: 0 }}>
+                                Dr. {doctor.fullName}
+                              </h4>
+                              {doctor.education && (
+                                <p style={{ fontSize: '12px', color: '#38B2AC', margin: '2px 0', fontWeight: 600 }}>
+                                  {doctor.education}
+                                </p>
+                              )}
+                            </div>
                             {selectedDoctor?.id === doctor.id && (
-                              <span style={{
-                                color: '#38B2AC',
-                                fontSize: '18px'
-                              }}>✓</span>
+                              <span style={{ color: '#38B2AC', fontSize: '18px', flexShrink: 0 }}>✓</span>
                             )}
                           </div>
                           {doctor.specialization && (
-                            <p style={{
-                              fontSize: '13px',
-                              color: '#718096',
-                              margin: '4px 0'
-                            }}><strong>Specialization:</strong> {doctor.specialization}</p>
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Specialization:</strong> {doctor.specialization}
+                            </p>
                           )}
-                          <p style={{
-                            fontSize: '13px',
-                            color: '#718096',
-                            margin: '4px 0'
-                          }}><strong>PMDC:</strong> {doctor.pmdcNumber}</p>
-                          <p style={{
-                            fontSize: '13px',
-                            color: '#718096',
-                            margin: '4px 0'
-                          }}><strong>Email:</strong> {doctor.email}</p>
+                          {doctor.workplace && (
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Hospital/Clinic:</strong> {doctor.workplace}
+                            </p>
+                          )}
+                          {doctor.experience && (
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Experience:</strong> {doctor.experience}
+                            </p>
+                          )}
+                          <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                            <strong>PMDC:</strong> {doctor.pmdcNumber}
+                          </p>
                         </div>
                       )))
                       }

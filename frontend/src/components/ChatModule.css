@@ -1,0 +1,812 @@
+/* ============================================================
+   ChatModule.css — Patient Chat Panel + Doctor Chat Inbox
+   ============================================================ */
+
+/* ── Patient Chat Panel ─────────────────────────────────────── */
+
+.cp-panel {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 340px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  transition: height 0.25s ease;
+  overflow: hidden;
+}
+
+.cp-collapsed {
+  height: 58px;
+}
+
+.cp-expanded {
+  height: 520px;
+}
+
+.cp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #38B2AC 0%, #2C7A7B 100%);
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.cp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-avatar {
+  font-size: 22px;
+}
+
+.cp-doctor-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.cp-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.cp-status-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.85);
+  vertical-align: middle;
+}
+
+.cp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-connecting {
+  color: #fde68a;
+  font-size: 14px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.cp-header-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cp-header-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.cp-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f8fafc;
+}
+
+.cp-empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 40px;
+  line-height: 1.6;
+  padding: 0 16px;
+}
+
+.cp-bubble-wrap {
+  display: flex;
+}
+
+.cp-me {
+  justify-content: flex-end;
+}
+
+.cp-them {
+  justify-content: flex-start;
+}
+
+.cp-bubble {
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  position: relative;
+}
+
+.cp-bubble-me {
+  background: #2C7A7B;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.cp-bubble-them {
+  background: #e2e8f0;
+  color: #1e293b;
+  border-bottom-left-radius: 4px;
+}
+
+.cp-time {
+  display: block;
+  font-size: 10px;
+  opacity: 0.65;
+  margin-top: 3px;
+  text-align: right;
+}
+
+.cp-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.cp-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.cp-input:focus {
+  border-color: #38B2AC;
+}
+
+.cp-mic-btn {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cp-mic-btn:hover {
+  background: #e2e8f0;
+}
+
+.cp-recording {
+  background: #fee2e2 !important;
+  animation: blink 0.6s infinite;
+}
+
+.cp-send-btn {
+  background: #2C7A7B;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cp-send-btn:hover {
+  background: #38B2AC;
+}
+
+.cp-locked-bar {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+/* ── Doctor Chat Inbox ──────────────────────────────────────── */
+
+.dci-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  z-index: 9100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dci-modal {
+  background: #1e293b;
+  border-radius: 16px;
+  width: 95vw;
+  max-width: 1100px;
+  height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+.dci-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #38B2AC 0%, #2C7A7B 100%);
+  flex-shrink: 0;
+}
+
+.dci-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dci-close {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.dci-close:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.dci-body {
+  display: grid;
+  grid-template-columns: 240px 1fr 240px;
+  flex: 1;
+  overflow: hidden;
+  background: #1e293b;
+}
+
+/* Column 1: Sessions */
+.dci-col-sessions {
+  border-right: 1px solid #334155;
+  overflow-y: auto;
+  padding: 12px 0;
+  background: #0f172a;
+}
+
+.dci-col-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  padding: 0 14px 8px;
+  margin: 0;
+}
+
+.dci-empty {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.dci-session-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.dci-session-item:hover {
+  background: #1e293b;
+}
+
+.dci-session-active {
+  background: #1e293b;
+  border-left-color: #38B2AC;
+}
+
+.dci-session-avatar {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.dci-session-info {
+  min-width: 0;
+}
+
+.dci-session-email {
+  margin: 0 0 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 148px;
+}
+
+.dci-session-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.dci-session-badge {
+  font-size: 10px;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Column 2: Active chat */
+.dci-col-chat {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #0f172a;
+}
+
+.dci-no-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 14px;
+  background: #0f172a;
+}
+
+.dci-chat-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid #334155;
+  background: #0f172a;
+  flex-shrink: 0;
+}
+
+.dci-chat-patient {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.dci-toggle-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.dci-toggle-btn:hover {
+  opacity: 0.85;
+}
+
+.dci-toggle-open {
+  background: #450a0a;
+  color: #fca5a5;
+}
+
+.dci-toggle-closed {
+  background: #052e16;
+  color: #86efac;
+}
+
+.dci-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Message bubbles */
+.dci-bubble-me {
+  background: #38B2AC;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.dci-bubble-them {
+  background: #334155;
+  color: #e2e8f0;
+  border-bottom-left-radius: 4px;
+}
+
+.dci-msg-time {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  margin-top: 3px;
+  text-align: right;
+}
+
+/* Input area */
+.dci-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-top: 1px solid #334155;
+  background: #1e293b;
+  flex-shrink: 0;
+}
+
+.dci-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1.5px solid #334155;
+  border-radius: 20px;
+  font-size: 13px;
+  outline: none;
+  background: #0f172a;
+  color: #e2e8f0;
+  transition: border-color 0.15s;
+}
+
+.dci-input:focus {
+  border-color: #38B2AC;
+}
+
+.dci-input::placeholder {
+  color: #64748b;
+}
+
+/* Column 3: Context sidebar */
+.dci-col-context {
+  border-left: 1px solid #334155;
+  overflow-y: auto;
+  padding: 16px;
+  background: #0f172a;
+}
+
+.dci-context-card {
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid #334155;
+  font-size: 13px;
+  color: #e2e8f0;
+}
+
+.dci-ctx-row {
+  margin: 0 0 8px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+.dci-ctx-divider {
+  border: none;
+  border-top: 1px solid #334155;
+  margin: 12px 0;
+}
+
+.dci-ctx-hint {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Availability box */
+.dci-availability-box {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+/* Consultation request button (patient panel) */
+.dci-consult-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #38B2AC;
+  border-radius: 8px;
+  background: transparent;
+  color: #38B2AC;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.dci-consult-btn:hover {
+  background: rgba(56,178,172,0.12);
+}
+
+/* ── Chat icon button in doctor nav ─────────────────────────── */
+
+.dci-nav-btn {
+  position: relative;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 20px;
+  transition: background 0.15s;
+}
+
+.dci-nav-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.dci-unread-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 99px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+/* ── "Chat with Doctor" button in patient sections ───────────── */
+
+.cp-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2C7A7B;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.cp-chat-btn:hover {
+  background: #38B2AC;
+  transform: translateY(-1px);
+}
+
+/* ── Patient panel: icon buttons in header ──────────────────────── */
+
+.cp-avatar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+}
+
+.cp-icon-btn {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.cp-icon-btn:hover {
+  background: rgba(255,255,255,0.38);
+}
+
+/* mic button in input bar */
+.cp-input-bar .cp-icon-btn {
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+}
+
+.cp-input-bar .cp-icon-btn:hover {
+  background: #e2e8f0;
+}
+
+.cp-connecting-dot {
+  color: #fde68a;
+  font-size: 14px;
+  animation: blink 1s infinite;
+}
+
+/* ── Maximized state ────────────────────────────────────────────── */
+
+.cp-maximized {
+  width: 480px !important;
+}
+
+.cp-maximized:not(.cp-collapsed) {
+  height: min(78vh, 700px) !important;
+}
+
+/* ── Doctor inbox fullscreen ────────────────────────────────────── */
+
+.dci-fullscreen {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+/* ── Doctor inbox header icon button ────────────────────────────── */
+
+.dci-icon-btn-hdr {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.dci-icon-btn-hdr:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+/* ── Doctor inbox session avatar ────────────────────────────────── */
+
+.dci-session-avatar {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Doctor inbox context report buttons ────────────────────────── */
+
+.dci-ctx-report-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #38B2AC;
+  border-radius: 8px;
+  background: #1a2744;
+  color: #38B2AC;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.dci-ctx-report-btn:hover:not(:disabled) {
+  background: rgba(56,178,172,0.15);
+  border-color: #38B2AC;
+  color: #4fd1c5;
+}
+
+.dci-ctx-report-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: #334155;
+  color: #64748b;
+  background: #0f172a;
+}
+
+/* ── Full-report modal overlay (inside DoctorChatInbox) ─────────── */
+
+.dci-report-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 9300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dci-report-modal {
+  background: #1e293b;
+  border-radius: 14px;
+  width: min(95vw, 1050px);
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.dci-report-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #38B2AC 0%, #2C7A7B 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dci-report-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: #fff;
+}

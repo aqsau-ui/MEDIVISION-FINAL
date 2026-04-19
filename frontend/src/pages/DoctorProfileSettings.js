@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DoctorLayout from '../components/DoctorLayout';
+import SignatureCanvas from 'react-signature-canvas';
 import './DoctorProfileSettings.css';
 
 function DoctorProfileSettings() {
@@ -9,10 +10,14 @@ function DoctorProfileSettings() {
   const [formData, setFormData] = useState({
     education: '',
     specialization: '',
-    profilePicture: null
+    profilePicture: null,
+    signatureFile: null
   });
   const [previewImage, setPreviewImage] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
+  const [signatureMode, setSignatureMode] = useState('upload'); // 'upload' or 'draw'
   const [successMessage, setSuccessMessage] = useState('');
+  const signaturePadRef = useRef(null);
 
   useEffect(() => {
     const doctorData = localStorage.getItem('doctorData');
@@ -25,10 +30,14 @@ function DoctorProfileSettings() {
         setFormData({
           education: parsed.education || '',
           specialization: parsed.specialization || '',
-          profilePicture: null
+          profilePicture: null,
+          signatureFile: null
         });
         if (parsed.profilePicture) {
           setPreviewImage(parsed.profilePicture);
+        }
+        if (parsed.signature) {
+          setSignaturePreview(parsed.signature);
         }
       } catch (e) {
         console.error('Error parsing doctor data:', e);
@@ -54,6 +63,55 @@ function DoctorProfileSettings() {
     }
   };
 
+  const handleSignatureFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
+      
+      // Validate file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Signature file size should not exceed 2MB');
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, signatureFile: file }));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearSignature = () => {
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+    }
+  };
+
+  const handleSaveDrawnSignature = () => {
+    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+      const signatureDataURL = signaturePadRef.current.toDataURL('image/png');
+      setSignaturePreview(signatureDataURL);
+      setSuccessMessage('Signature captured! Click "Save Profile" to save.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } else {
+      alert('Please draw your signature first');
+    }
+  };
+
+  const handleRemoveSignature = () => {
+    setSignaturePreview(null);
+    setFormData(prev => ({ ...prev, signatureFile: null }));
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -62,7 +120,8 @@ function DoctorProfileSettings() {
       ...doctor,
       education: formData.education,
       specialization: formData.specialization,
-      profilePicture: previewImage
+      profilePicture: previewImage,
+      signature: signaturePreview
     };
     
     localStorage.setItem('doctorData', JSON.stringify(updatedDoctor));
@@ -150,6 +209,142 @@ function DoctorProfileSettings() {
                   className="file-input"
                 />
               </div>
+            </div>
+
+            {/* Signature Section */}
+            <div className="form-group signature-section">
+              <label>Digital Signature</label>
+              <p className="signature-info">
+                Your signature will appear on all prescriptions you issue
+              </p>
+              
+              <div className="signature-mode-tabs">
+                <button
+                  type="button"
+                  className={`tab-button ${signatureMode === 'upload' ? 'active' : ''}`}
+                  onClick={() => setSignatureMode('upload')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Upload Image
+                </button>
+                <button
+                  type="button"
+                  className={`tab-button ${signatureMode === 'draw' ? 'active' : ''}`}
+                  onClick={() => setSignatureMode('draw')}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                    <path d="M2 2l7.586 7.586"></path>
+                    <circle cx="11" cy="11" r="2"></circle>
+                  </svg>
+                  Draw Signature
+                </button>
+              </div>
+
+              {signatureMode === 'upload' ? (
+                <div className="signature-upload-container">
+                  {signaturePreview && (
+                    <div className="signature-preview">
+                      <img src={signaturePreview} alt="Signature Preview" />
+                      <button 
+                        type="button" 
+                        className="remove-signature-btn"
+                        onClick={handleRemoveSignature}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  <label htmlFor="signatureFile" className="signature-upload-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    {signaturePreview ? 'Change Signature' : 'Upload Signature Image'}
+                  </label>
+                  <input
+                    type="file"
+                    id="signatureFile"
+                    name="signatureFile"
+                    onChange={handleSignatureFileChange}
+                    accept="image/*"
+                    className="file-input"
+                  />
+                  <p className="signature-hint">
+                    Upload a PNG or JPG image of your signature (max 2MB)
+                  </p>
+                </div>
+              ) : (
+                <div className="signature-draw-container">
+                  {signaturePreview ? (
+                    <div className="signature-preview">
+                      <img src={signaturePreview} alt="Signature Preview" />
+                      <button 
+                        type="button" 
+                        className="remove-signature-btn"
+                        onClick={handleRemoveSignature}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        Remove & Redraw
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="signature-pad-wrapper">
+                        <SignatureCanvas
+                          ref={signaturePadRef}
+                          canvasProps={{
+                            className: 'signature-pad',
+                            width: 500,
+                            height: 200
+                          }}
+                          backgroundColor="white"
+                          penColor="black"
+                        />
+                      </div>
+                      <div className="signature-controls">
+                        <button 
+                          type="button" 
+                          className="clear-signature-btn"
+                          onClick={handleClearSignature}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                          </svg>
+                          Clear
+                        </button>
+                        <button 
+                          type="button" 
+                          className="save-signature-btn"
+                          onClick={handleSaveDrawnSignature}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          Save Signature
+                        </button>
+                      </div>
+                      <p className="signature-hint">
+                        Draw your signature above using mouse or touchscreen
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             <button type="submit" className="save-profile-btn">

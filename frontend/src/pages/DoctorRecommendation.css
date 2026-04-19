@@ -175,7 +175,7 @@
 /* Main Content */
 .doctor-recommendation-main {
   flex: 1;
-  padding: 3rem;
+  padding: 5rem 3rem 3rem 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -190,10 +190,170 @@
 .doctor-recommendation-title {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 2rem;
-  font-weight: 800;
-  color: #264040;
-  margin: 0 0 1rem 0;
-  line-height: 1.2;
+  font-weight: 700;
+  color: #2C7A7B;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+}
+
+.doctor-recommendation-subtitle {
+  font-size: 1rem;
+  color: #4A5568;
+  margin: 0;
+}
+
+/* Prescriptions Grid */
+.prescriptions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 24px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Prescription Card */
+.prescription-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.prescription-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.prescription-card-header {
+  background: #2C7A7B;
+  color: white;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prescription-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.prescription-date {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.prescription-card-body {
+  padding: 20px;
+}
+
+.prescription-info p {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #2D3748;
+  line-height: 1.6;
+}
+
+.prescription-info strong {
+  color: #2C7A7B;
+  font-weight: 600;
+}
+
+.prescription-card-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #E2E8F0;
+  text-align: center;
+}
+
+.view-prescription-btn {
+  background: #38B2AC;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.view-prescription-btn:hover {
+  background: #2C7A7B;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #4A5568;
+  font-size: 16px;
+}
+
+/* Prescription Modal */
+.prescription-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.prescription-modal-content {
+  background: white;
+  border-radius: 8px;
+  max-width: 1100px;
+  max-height: 95vh;
+  width: 100%;
+  overflow: auto;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: #EF4444;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.modal-close-btn:hover {
+  background: #DC2626;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .prescriptions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .prescription-modal-content {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
 }
 
 /* Doctor Recommendation Content */

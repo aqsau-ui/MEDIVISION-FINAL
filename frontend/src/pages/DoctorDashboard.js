@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import MedicalReport from '../components/MedicalReport';
+import TrendNotificationPanel from '../components/TrendNotificationPanel';
+import DoctorReviewPanel from '../components/DoctorReviewPanel';
+import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
+import SignatureCanvas from 'react-signature-canvas';
+import DoctorChatInbox from '../components/DoctorChatInbox';
 import './DoctorDashboard.css';
 
 function DoctorDashboard() {
@@ -16,6 +21,9 @@ function DoctorDashboard() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
+  const [signatureMode, setSignatureMode] = useState('upload');
+  const signaturePadRef = useRef(null);
   const [editFormData, setEditFormData] = useState({
     medicalDegrees: [],
     specialization: '',
@@ -26,6 +34,21 @@ function DoctorDashboard() {
   const [patientReports, setPatientReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [trendData, setTrendData] = useState(null);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [hasPlayedSound, setHasPlayedSound] = useState(false);
+  const previousCountRef = useRef(0);
+  
+  // Chat inbox toggle
+  const [showChatInbox, setShowChatInbox] = useState(false);
+
+  // Prescription states
+  const [showReviewPanel, setShowReviewPanel] = useState(false);
+  const [showPrescriptionReport, setShowPrescriptionReport] = useState(false);
+  const [currentPrescription, setCurrentPrescription] = useState(null);
+  const [submittingPrescription, setSubmittingPrescription] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     const doctorData = localStorage.getItem('doctorData');
@@ -34,6 +57,12 @@ function DoctorDashboard() {
     } else {
       try {
         const parsedDoctor = JSON.parse(doctorData);
+        console.log('=== DOCTOR LOGIN DATA ===');
+        console.log('Doctor object:', parsedDoctor);
+        console.log('Doctor fullName:', parsedDoctor.fullName);
+        console.log('Doctor full_name:', parsedDoctor.full_name);
+        console.log('Doctor name:', parsedDoctor.name);
+        console.log('========================');
         
         // Load saved profile data
         const savedProfile = localStorage.getItem(`doctorProfile_${parsedDoctor.id}`);
@@ -42,6 +71,7 @@ function DoctorDashboard() {
             const profile = JSON.parse(savedProfile);
             setEditFormData(profile);
             setProfilePhoto(profile.profilePhoto || null);
+            setSignaturePreview(profile.signature || null);
           } catch (e) {
             console.error('Error parsing profile data:', e);
           }
@@ -136,6 +166,33 @@ function DoctorDashboard() {
     setFilteredPatients(filtered);
   }, [searchTerm, statusFilter, diseaseFilter, patients]);
 
+  // Fetch trend notifications
+  useEffect(() => {
+    fetchTrendNotifications();
+    const interval = setInterval(fetchTrendNotifications, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchTrendNotifications = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/notifications/disease-trends');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setTrendData(result.data);
+        const trendCount = result.data.trending_diseases?.length || 0;
+        setNotificationCount(trendCount);
+        
+        previousCountRef.current = trendCount;
+        if (trendCount === 0) {
+          setHasPlayedSound(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching trend notifications:', error);
+    }
+  };
+
   const handleEditProfile = () => {
     setShowEditModal(true);
     setShowProfileMenu(false);
@@ -169,18 +226,275 @@ function DoctorDashboard() {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSignatureFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please upload an image file');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Signature file size should not exceed 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSignaturePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearSignature = () => {
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+    }
+  };
+
+  const handleSaveDrawnSignature = () => {
+    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+      const signatureDataURL = signaturePadRef.current.toDataURL('image/png');
+      setSignaturePreview(signatureDataURL);
+    }
+  };
+
+  const handleRemoveSignature = () => {
+    setSignaturePreview(null);
+    if (signaturePadRef.current) {
+      signaturePadRef.current.clear();
+    }
+  };
+
+  const handleSaveProfile = async () => {
     const profileData = {
       ...editFormData,
-      profilePhoto: profilePhoto
+      profilePhoto: profilePhoto,
+      signature: signaturePreview
     };
     localStorage.setItem(`doctorProfile_${doctor.id}`, JSON.stringify(profileData));
+
+    // Persist to backend
+    try {
+      await fetch(`http://localhost:5000/api/doctors/${doctor.id}/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profilePhoto: profilePhoto,
+          education: editFormData.education || editFormData.specialization || '',
+          experience: editFormData.experience || '',
+          workplace: editFormData.workplace || editFormData.hospital || '',
+          city_name: editFormData.city || ''
+        })
+      });
+    } catch (_) {}
+
+    // Update doctor data with signature
+    const updatedDoctor = {
+      ...doctor,
+      signature: signaturePreview
+    };
+    localStorage.setItem('doctorData', JSON.stringify(updatedDoctor));
+    setDoctor(updatedDoctor);
+
     setShowEditModal(false);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('doctorData');
     navigate('/doctor-login');
+  };
+
+  // Prescription handlers
+  const handleAddPrescription = () => {
+    setShowReviewPanel(true);
+  };
+
+  const handlePrescriptionSubmit = async (prescriptionData) => {
+    setSubmittingPrescription(true);
+    console.log('Submitting prescription data:', prescriptionData);
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/doctor-prescription/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(prescriptionData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Prescription submitted successfully:', result);
+        setCurrentPrescription(result.prescription);
+        setShowReviewPanel(false);
+        setShowPrescriptionReport(true);
+        
+        // NO immediate removal - we'll refetch after sending to patient
+      } else {
+        const error = await response.json();
+        console.error('Prescription submission error:', error);
+        
+        // Handle validation errors from FastAPI
+        if (Array.isArray(error.detail)) {
+          const errorMessages = error.detail.map(err => 
+            `${err.loc?.join(' -> ') || 'Field'}: ${err.msg}`
+          ).join('\n');
+          alert('Validation errors:\n' + errorMessages);
+        } else if (typeof error.detail === 'string') {
+          alert('Failed to submit prescription: ' + error.detail);
+        } else {
+          alert('Failed to submit prescription. Please check all required fields.');
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting prescription:', error);
+      alert('Failed to submit prescription. Please check your connection and try again.');
+    } finally {
+      setSubmittingPrescription(false);
+    }
+  };
+
+  const handleCancelPrescription = () => {
+    setShowReviewPanel(false);
+  };
+
+  const handleDownloadPDF = async (reportRef) => {
+    if (!reportRef || !reportRef.current) {
+      alert('Unable to generate PDF. Please try again.');
+      return;
+    }
+
+    try {
+      // Dynamically import html2canvas and jsPDF
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      // Hide the download button during PDF generation
+      const downloadButton = reportRef.current.querySelector('.no-print');
+      if (downloadButton) {
+        downloadButton.style.display = 'none';
+      }
+
+      // Generate canvas from the prescription report
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // Show the download button again
+      if (downloadButton) {
+        downloadButton.style.display = 'block';
+      }
+
+      // Calculate dimensions
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      let position = 0;
+
+      // Add image to PDF
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add more pages if content is longer than one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `Doctor_Prescription_${currentPrescription?.patient_name || 'Patient'}_${timestamp}.pdf`;
+      
+      // Save PDF
+      pdf.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handleSendToPatient = async (prescription) => {
+    try {
+      // First, send the prescription to patient
+      const response = await fetch('http://localhost:5000/api/doctor-prescription/send-to-patient', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prescription_id: prescription._id,
+          patient_id: prescription.patient_id
+        }),
+      });
+
+      if (response.ok) {
+        // Update patient report status to completed
+        const statusResponse = await fetch(`http://localhost:5000/api/reports/update-status/${prescription.report_id}?status=completed`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (statusResponse.ok) {
+          setSuccessMessage('✅ Prescription sent to patient successfully!');
+          setShowSuccessMessage(true);
+          
+          // Refetch patient reports to update the list
+          const reportsResponse = await fetch(`http://localhost:5000/api/reports/doctor/${doctor.id}`);
+          const data = await reportsResponse.json();
+          
+          if (data.success) {
+            const transformedPatients = data.reports.map(report => ({
+              id: report.reportId,
+              name: report.patient.name,
+              date: report.sentAt,
+              status: report.status,
+              disease: report.analysis.prediction,
+              reportData: report
+            }));
+            
+            setPatients(transformedPatients);
+            setFilteredPatients(transformedPatients);
+          }
+          
+          handleCloseReportModal();
+          
+          setTimeout(() => {
+            setShowSuccessMessage(false);
+            setSuccessMessage('');
+          }, 3000);
+        } else {
+          throw new Error('Failed to update patient status');
+        }
+      } else {
+        const error = await response.json();
+        setSuccessMessage('❌ Failed: ' + (error.detail || 'Unknown error'));
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error sending prescription to patient:', error);
+      setSuccessMessage('❌ Failed to send prescription. Please try again.');
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
+    }
+  };
+
+  const handleCloseReportModal = () => {
+    setShowReportModal(false);
+    setShowReviewPanel(false);
+    setShowPrescriptionReport(false);
+    setCurrentPrescription(null);
   };
 
   if (!doctor) {
@@ -214,8 +528,19 @@ function DoctorDashboard() {
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
-              <span className="notification-badge">3</span>
+              {notificationCount > 0 && (
+                <span className="notification-badge">{notificationCount}</span>
+              )}
             </button>
+            {doctor && (
+              <button
+                className="dci-nav-btn"
+                onClick={() => setShowChatInbox(true)}
+                title="Patient Consultations"
+              >
+                💬
+              </button>
+            )}
             <div className="profile-dropdown">
               <button className="profile-btn" onClick={() => setShowProfileMenu(!showProfileMenu)}>
                 <div className="profile-avatar">
@@ -237,18 +562,54 @@ function DoctorDashboard() {
         </div>
       </nav>
 
+      {/* Notification Dropdown */}
+      {showNotifications && (
+        <div className="notification-dropdown-overlay" onClick={() => setShowNotifications(false)}>
+          <div className="notification-dropdown-container" onClick={(e) => e.stopPropagation()}>
+            <TrendNotificationPanel 
+              trendData={trendData} 
+              onClose={() => setShowNotifications(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="dashboard-main-content">
+        {/* Success Message */}
+        {showSuccessMessage && (
+          <div style={{
+            position: 'fixed',
+            top: '80px',
+            right: '20px',
+            backgroundColor: successMessage.includes('✅') ? '#38B2AC' : '#E53E3E',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 9999,
+            fontSize: '16px',
+            fontWeight: '600',
+            animation: 'slideIn 0.3s ease-out'
+          }}>
+            {successMessage}
+          </div>
+        )}
+        
         {/* Top Section - Two Columns */}
         <div className="top-section">
           {/* Left: Doctor Information Card */}
           <div className="doctor-info-card">
             <div className="doctor-header">
               <div className="doctor-avatar-large">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+                {profilePhoto ? (
+                  <img src={profilePhoto} alt="Profile" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                )}
               </div>
               <div className="doctor-title">
                 <h2>{doctor.fullName || 'Dr. User'}</h2>
@@ -394,7 +755,6 @@ function DoctorDashboard() {
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
               </select>
             </div>
@@ -579,6 +939,135 @@ function DoctorDashboard() {
                   className="modal-input"
                 />
               </div>
+
+              {/* Digital Signature Section */}
+              <div className="form-group signature-section">
+                <label>Digital Signature</label>
+                <p className="signature-info">Your signature will appear on all prescriptions you issue</p>
+                
+                <div className="signature-mode-tabs">
+                  <button
+                    type="button"
+                    className={`tab-button ${signatureMode === 'upload' ? 'active' : ''}`}
+                    onClick={() => setSignatureMode('upload')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Upload Image
+                  </button>
+                  <button
+                    type="button"
+                    className={`tab-button ${signatureMode === 'draw' ? 'active' : ''}`}
+                    onClick={() => setSignatureMode('draw')}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                      <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                      <path d="M2 2l7.586 7.586"></path>
+                      <circle cx="11" cy="11" r="2"></circle>
+                    </svg>
+                    Draw Signature
+                  </button>
+                </div>
+
+                {signatureMode === 'upload' ? (
+                  <div className="signature-upload-container">
+                    {signaturePreview && (
+                      <div className="signature-preview">
+                        <img src={signaturePreview} alt="Signature Preview" />
+                        <button 
+                          type="button" 
+                          className="remove-signature-btn"
+                          onClick={handleRemoveSignature}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                          Remove
+                        </button>
+                      </div>
+                    )}
+                    <input
+                      type="file"
+                      id="signature-upload"
+                      accept="image/*"
+                      onChange={handleSignatureFileChange}
+                      style={{display: 'none'}}
+                    />
+                    <label htmlFor="signature-upload" className="signature-upload-label">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                      </svg>
+                      {signaturePreview ? 'Change Signature' : 'Upload Signature Image'}
+                    </label>
+                    <p className="signature-hint">Upload a PNG or JPG image of your signature (max 2MB)</p>
+                  </div>
+                ) : (
+                  <div className="signature-draw-container">
+                    {signaturePreview ? (
+                      <div className="signature-preview">
+                        <img src={signaturePreview} alt="Signature Preview" />
+                        <button 
+                          type="button" 
+                          className="remove-signature-btn"
+                          onClick={handleRemoveSignature}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                          Remove & Redraw
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="signature-pad-wrapper">
+                          <SignatureCanvas
+                            ref={signaturePadRef}
+                            canvasProps={{
+                              className: 'signature-pad',
+                              width: 500,
+                              height: 200
+                            }}
+                            backgroundColor="white"
+                            penColor="black"
+                          />
+                        </div>
+                        <div className="signature-controls">
+                          <button 
+                            type="button" 
+                            className="clear-signature-btn"
+                            onClick={handleClearSignature}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="1 4 1 10 7 10"></polyline>
+                              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                            </svg>
+                            Clear
+                          </button>
+                          <button 
+                            type="button" 
+                            className="save-signature-btn"
+                            onClick={handleSaveDrawnSignature}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Save Signature
+                          </button>
+                        </div>
+                        <p className="signature-hint">Draw your signature above using mouse or touchscreen</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="modal-footer">
               <button className="cancel-btn" onClick={() => setShowEditModal(false)}>
@@ -594,12 +1083,18 @@ function DoctorDashboard() {
 
       {/* Report Viewing Modal */}
       {showReportModal && selectedReport && (
-        <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
-          <div className="modal-content" style={{ maxWidth: '1100px', maxHeight: '95vh', overflow: 'auto', padding: '20px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={handleCloseReportModal}>
+          <div className="modal-content" style={{ 
+            maxWidth: '1100px', 
+            maxHeight: '95vh', 
+            overflow: 'auto', 
+            padding: '20px',
+            backgroundColor: 'white'
+          }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
               <button 
                 className="modal-close" 
-                onClick={() => setShowReportModal(false)}
+                onClick={handleCloseReportModal}
                 style={{
                   background: '#ef4444',
                   color: 'white',
@@ -612,44 +1107,213 @@ function DoctorDashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '20px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  zIndex: 10
                 }}
               >
                 ×
               </button>
             </div>
-            <MedicalReport
-              reportData={{
-                date: selectedReport.sentAt,
-                patient: {
-                  name: selectedReport.patient?.name || 'Unknown',
-                  email: selectedReport.patient?.email || '',
-                  age: selectedReport.patient?.age || 0,
-                  gender: selectedReport.patient?.gender || 'Not specified',
-                  smokingStatus: selectedReport.patient?.smokingStatus || 'Unknown',
-                  hasCough: selectedReport.patient?.hasCough || 'No',
-                  coughDuration: selectedReport.patient?.coughDuration || 'N/A',
-                  coughType: selectedReport.patient?.coughType || 'N/A'
-                },
-                medicalInfo: {
-                  symptoms: selectedReport.medicalInfo?.symptoms || 'None reported',
-                  medicalHistory: selectedReport.medicalInfo?.medicalHistory || 'None'
-                },
-                analysis: {
-                  prediction: selectedReport.analysis?.prediction || 'Unknown',
-                  confidence: selectedReport.analysis?.confidence || 0,
-                  severity: selectedReport.analysis?.severity || 'Unknown',
-                  heatmapExplanation: selectedReport.analysis?.heatmapExplanation || ''
-                },
-                images: {
-                  original: selectedReport.images?.original || '',
-                  heatmap: selectedReport.images?.heatmap || ''
-                }
-              }}
-              reportId={selectedReport.reportId}
-            />
+
+            {/* AI Medical Report */}
+            {!showReviewPanel && !showPrescriptionReport && (
+              <>
+                <MedicalReport
+                  reportData={{
+                    date: selectedReport.sentAt,
+                    patient: {
+                      name: selectedReport.patient?.name || 'Unknown',
+                      email: selectedReport.patient?.email || '',
+                      age: selectedReport.patient?.age || 0,
+                      gender: selectedReport.patient?.gender || 'Not specified',
+                      smokingStatus: selectedReport.patient?.smokingStatus || 'Unknown',
+                      hasCough: selectedReport.patient?.hasCough || 'No',
+                      coughDuration: selectedReport.patient?.coughDuration || 'N/A',
+                      coughType: selectedReport.patient?.coughType || 'N/A',
+                      dateOfBirth: selectedReport.patient?.dateOfBirth,
+                      symptoms: selectedReport.patient?.symptoms
+                    },
+                    medicalInfo: {
+                      symptoms: selectedReport.medicalInfo?.symptoms || 'None reported',
+                      medicalHistory: selectedReport.medicalInfo?.medicalHistory || 'None'
+                    },
+                    analysis: {
+                      prediction: selectedReport.analysis?.prediction || 'Unknown',
+                      confidence: selectedReport.analysis?.confidence || 0,
+                      severity: selectedReport.analysis?.severity || 'Unknown',
+                      heatmapExplanation: selectedReport.analysis?.heatmapExplanation || ''
+                    },
+                    images: {
+                      original: selectedReport.images?.original || '',
+                      heatmap: selectedReport.images?.heatmap || ''
+                    }
+                  }}
+                  reportId={selectedReport.reportId}
+                />
+
+                {/* Add Prescription Button */}
+                <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                  <button 
+                    onClick={handleAddPrescription}
+                    style={{
+                      background: '#38B2AC',
+                      color: 'white',
+                      border: 'none',
+                      padding: '14px 32px',
+                      borderRadius: '6px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#2C7A7B';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#38B2AC';
+                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    Add Doctor Prescription
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Doctor Review Panel */}
+            {showReviewPanel && (
+              <DoctorReviewPanel
+                patientReport={{
+                  reportId: selectedReport.reportId,
+                  patient: {
+                    id: String(selectedReport.patient?.id || selectedReport.patient?.email || selectedReport.patient?.name || 'unknown'),
+                    name: selectedReport.patient?.name || 'Unknown',
+                    email: selectedReport.patient?.email || '',
+                    age: selectedReport.patient?.age || 0,
+                    gender: selectedReport.patient?.gender || 'Not specified',
+                    dateOfBirth: selectedReport.patient?.dateOfBirth,
+                    symptoms: selectedReport.patient?.symptoms
+                  },
+                  analysis: selectedReport.analysis
+                }}
+                doctorInfo={{
+                  id: String(doctor.id || doctor.email || 'doctor_' + Date.now()),
+                  name: (() => {
+                    const name = doctor.fullName || doctor.full_name || doctor.name || 'Doctor';
+                    console.log('=== PASSING TO REVIEW PANEL ===');
+                    console.log('Doctor object:', doctor);
+                    console.log('Resolved name:', name);
+                    console.log('==============================');
+                    return name;
+                  })(),
+                  qualifications: editFormData.medicalDegrees?.join(', ') || 'MBBS',
+                  specialization: editFormData.specialization || 'General Physician',
+                  license: doctor.pmdcNumber || 'N/A',
+                  signature: doctor.signature || signaturePreview || null
+                }}
+                onSubmit={handlePrescriptionSubmit}
+                onCancel={handleCancelPrescription}
+              />
+            )}
+
+            {/* Doctor Prescription Report */}
+            {showPrescriptionReport && currentPrescription && (
+              <div style={{ padding: '20px', backgroundColor: 'white', minHeight: '400px' }}>
+                <div style={{ 
+                  background: '#2C7A7B',
+                  padding: '16px 24px',
+                  borderRadius: '6px',
+                  marginBottom: '20px',
+                  color: 'white',
+                  fontSize: '18px',
+                  fontWeight: '700'
+                }}>
+                  Prescription Submitted Successfully
+                </div>
+                
+                <DoctorPrescriptionReport
+                  prescription={currentPrescription}
+                  patientReport={{
+                    patient: {
+                      age: selectedReport?.patient?.age,
+                      dateOfBirth: selectedReport?.patient?.dateOfBirth,
+                      gender: selectedReport?.patient?.gender || 'Not specified',
+                      smokingStatus: selectedReport?.patient?.smokingStatus || 'Unknown',
+                      hasCough: selectedReport?.patient?.hasCough || 'No',
+                      coughDuration: selectedReport?.patient?.coughDuration || 'N/A',
+                      coughType: selectedReport?.patient?.coughType || 'N/A',
+                      symptoms: selectedReport?.medicalInfo?.symptoms || selectedReport?.patient?.symptoms || 'None',
+                      medicalHistory: selectedReport?.medicalInfo?.medicalHistory || 'None'
+                    },
+                    analysis: {
+                      prediction: selectedReport?.analysis?.prediction || 'Unknown',
+                      confidence: selectedReport?.analysis?.confidence || 0,
+                      severity: selectedReport?.analysis?.severity || 'Unknown'
+                    }
+                  }}
+                  doctor={doctor}
+                  onDownloadPDF={handleDownloadPDF}
+                />
+
+                {/* Send to Patient Button */}
+                <div style={{ 
+                  marginTop: '30px', 
+                  paddingTop: '20px',
+                  borderTop: '2px solid #E2E8F0',
+                  textAlign: 'center' 
+                }}>
+                  <button
+                    onClick={() => handleSendToPatient(currentPrescription)}
+                    style={{
+                      background: '#38B2AC',
+                      color: 'white',
+                      border: 'none',
+                      padding: '14px 32px',
+                      borderRadius: '6px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.background = '#2C7A7B';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.background = '#38B2AC';
+                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
+                    }}
+                  >
+                    Send to Patient
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Debug: Show what state we're in */}
+            {showPrescriptionReport && !currentPrescription && (
+              <div style={{ padding: '20px', color: 'red', backgroundColor: 'white' }}>
+                Error: showPrescriptionReport is true but currentPrescription is null/undefined
+              </div>
+            )}
+            
+            {!showReviewPanel && !showPrescriptionReport && !selectedReport && (
+              <div style={{ padding: '20px', color: 'orange', backgroundColor: 'white' }}>
+                No report selected
+              </div>
+            )}
           </div>
         </div>
+      )}
+      {/* Doctor Chat Inbox modal */}
+      {showChatInbox && doctor && (
+        <DoctorChatInbox
+          doctorId={String(doctor.id)}
+          onClose={() => setShowChatInbox(false)}
+        />
       )}
     </div>
   );

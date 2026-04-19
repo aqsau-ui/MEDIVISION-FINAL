@@ -192,6 +192,14 @@ const DoctorRegisterPage = () => {
         // Step 2: PMDC verified, now create account and send email OTP
         setServerError('✓ PMDC verified! Sending verification email...');
 
+        console.log('Sending registration request:', {
+          fullName: formData.fullName,
+          email: formData.email,
+          password: '***',
+          cnicNumber: formData.cnicNumber,
+          pmdcNumber: formData.pmdcNumber
+        });
+
         const response = await fetch('http://localhost:5000/api/auth/doctor-register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -204,7 +212,9 @@ const DoctorRegisterPage = () => {
           })
         });
 
+        console.log('Response status:', response.status);
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (data.success) {
           // Step 3: Email sent, show OTP verification modal
@@ -212,7 +222,9 @@ const DoctorRegisterPage = () => {
           setRegisteredEmail(formData.email);
           setShowOTPVerification(true);
         } else {
-          setServerError(data.message || 'Registration failed. Please try again.');
+          const errorMsg = data.detail || data.message || 'Registration failed. Please try again.';
+          console.error('Registration failed:', errorMsg);
+          setServerError(errorMsg);
         }
       } catch (err) {
         setServerError('Cannot connect to server. Please make sure the backend is running.');
