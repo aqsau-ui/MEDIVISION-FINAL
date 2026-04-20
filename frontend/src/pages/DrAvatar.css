@@ -1,97 +1,94 @@
 /* ═══════════════════════════════════════════════════════════
-   Dr. Jarvis – AI Medical Chatbot  |  Glass-morphism UI
+   Dr. Jarvis – AI Medical Chatbot  |  Beige / Teal Theme
 ═══════════════════════════════════════════════════════════ */
 
 /* ── Page wrapper ─────────────────────────────────────────── */
 .dra-page {
   min-height: calc(100vh - 60px);
-  background:
-    radial-gradient(ellipse at 15% 20%, rgba(56,178,172,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 85% 75%, rgba(44,122,123,0.08) 0%, transparent 55%),
-    linear-gradient(145deg, #071c28 0%, #0b2d3c 40%, #0d3a48 70%, #081825 100%);
+  background: #EBE4D6;
   padding: 20px 24px 24px;
   box-sizing: border-box;
 }
 
-/* ── Two-column layout ────────────────────────────────────── */
+/* ── Single-column layout ─────────────────────────────────── */
 .dra-layout {
   display: grid;
-  grid-template-columns: 270px 1fr;
-  gap: 18px;
-  max-width: 1160px;
+  grid-template-columns: 1fr;
+  max-width: 860px;
   margin: 0 auto;
   height: calc(100vh - 104px);
   min-height: 580px;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   AVATAR PANEL (left column)
+   CHAT PANEL
 ═══════════════════════════════════════════════════════════ */
-.dra-avatar-panel {
-  background: rgba(255,255,255,0.055);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255,255,255,0.10);
+.dra-chat-panel {
+  background: #FFFFFF;
+  border: 1px solid rgba(44,122,123,0.18);
   border-radius: 22px;
-  padding: 28px 18px 22px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.dra-avatar-panel::-webkit-scrollbar { width: 3px; }
-.dra-avatar-panel::-webkit-scrollbar-thumb { background: rgba(56,178,172,0.3); border-radius: 3px; }
-
-/* Avatar image */
-.dra-avatar-ring {
-  position: relative;
-  width: 110px;
-  height: 110px;
-  margin-bottom: 18px;
-}
-
-.dra-avatar-wrap {
-  width: 110px;
-  height: 110px;
-  border-radius: 50%;
   overflow: hidden;
-  border: 2.5px solid rgba(56,178,172,0.55);
-  box-shadow:
-    0 0 0 6px rgba(56,178,172,0.08),
-    0 8px 32px rgba(0,0,0,0.45);
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 28px rgba(44,122,123,0.10);
+}
+
+/* ── Chat header ──────────────────────────────────────────── */
+.dra-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, #2C7A7B 0%, #285E61 100%);
+  flex-shrink: 0;
+}
+
+.dra-chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+/* Small avatar in header */
+.dra-header-avatar {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.dra-header-avatar img {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255,255,255,0.45);
+  display: block;
   position: relative;
   z-index: 1;
 }
 
-.dra-avatar-wrap.dra-speaking {
-  border-color: #38B2AC;
-  box-shadow: 0 0 0 8px rgba(56,178,172,0.18), 0 8px 32px rgba(0,0,0,0.4);
+.dra-header-avatar.dra-speaking img {
+  border-color: #81e6d9;
+  box-shadow: 0 0 0 4px rgba(129,230,217,0.28);
   animation: dra-pulse-ring 1.2s ease-in-out infinite;
 }
 
-.dra-avatar-wrap.dra-listening {
+.dra-header-avatar.dra-listening img {
   border-color: #fc8181;
-  box-shadow: 0 0 0 8px rgba(252,129,129,0.15), 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 0 0 4px rgba(252,129,129,0.22);
   animation: dra-pulse-ring 0.8s ease-in-out infinite;
-}
-
-.dra-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 .dra-avatar-pulse {
   position: absolute;
-  inset: -6px;
+  inset: -5px;
   border-radius: 50%;
-  border: 2px solid rgba(56,178,172,0.4);
+  border: 2px solid rgba(129,230,217,0.45);
   animation: dra-expand 1.4s ease-out infinite;
+  z-index: 0;
 }
 
 @keyframes dra-pulse-ring {
@@ -100,231 +97,50 @@
 }
 
 @keyframes dra-expand {
-  0% { transform: scale(1); opacity: 0.7; }
-  100% { transform: scale(1.55); opacity: 0; }
-}
-
-/* Doctor name/title */
-.dra-doc-meta {
-  text-align: center;
-  margin-bottom: 18px;
-}
-
-.dra-doc-name {
-  font-size: 1.22rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin: 0 0 4px;
-  letter-spacing: -0.3px;
-}
-
-.dra-doc-title {
-  font-size: 0.78rem;
-  color: rgba(255,255,255,0.45);
-  margin: 0 0 10px;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-}
-
-.dra-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgba(56,178,172,0.15);
-  border: 1px solid rgba(56,178,172,0.3);
-  border-radius: 20px;
-  padding: 3px 12px;
-  font-size: 0.73rem;
-  font-weight: 600;
-  color: #4fd1c5;
-}
-
-.dra-status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #38B2AC;
-  box-shadow: 0 0 6px #38B2AC;
-  animation: dra-blink 2s ease-in-out infinite;
-}
-
-@keyframes dra-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-/* Divider */
-.dra-divider {
-  width: 100%;
-  height: 1px;
-  background: rgba(255,255,255,0.08);
-  margin: 14px 0;
-}
-
-/* Capabilities */
-.dra-cap-heading {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.35);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin: 0 0 10px;
-  align-self: flex-start;
-  width: 100%;
-}
-
-.dra-capabilities {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.dra-cap-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.65);
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(255,255,255,0.04);
-  transition: background 0.2s;
-}
-
-.dra-cap-item:hover { background: rgba(255,255,255,0.08); }
-
-.dra-cap-icon { font-size: 1rem; }
-
-/* Quick-ask chips */
-.dra-quick-chips {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.dra-chip {
-  width: 100%;
-  padding: 8px 12px;
-  background: rgba(56,178,172,0.10);
-  border: 1px solid rgba(56,178,172,0.22);
-  border-radius: 10px;
-  color: #81e6d9;
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.dra-chip:hover {
-  background: rgba(56,178,172,0.22);
-  border-color: rgba(56,178,172,0.5);
-  color: #e2e8f0;
-  transform: translateX(3px);
-}
-
-/* Status bars */
-.dra-status-bar {
-  width: 100%;
-  text-align: center;
-  border-radius: 10px;
-  padding: 7px 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  margin-top: 12px;
-}
-
-.dra-listening-bar { background: rgba(252,129,129,0.15); color: #fc8181; border: 1px solid rgba(252,129,129,0.3); }
-.dra-speaking-bar  { background: rgba(56,178,172,0.15);  color: #4fd1c5; border: 1px solid rgba(56,178,172,0.3); }
-
-/* ═══════════════════════════════════════════════════════════
-   CHAT PANEL (right column)
-═══════════════════════════════════════════════════════════ */
-.dra-chat-panel {
-  background: rgba(255,255,255,0.055);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(255,255,255,0.10);
-  border-radius: 22px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Chat header */
-.dra-chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 22px;
-  background: rgba(255,255,255,0.04);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  flex-shrink: 0;
-}
-
-.dra-chat-header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.dra-chat-header-icon {
-  width: 36px;
-  height: 36px;
-  background: rgba(56,178,172,0.2);
-  border: 1px solid rgba(56,178,172,0.35);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dra-chat-header-icon svg {
-  width: 18px;
-  height: 18px;
-  stroke: #4fd1c5;
+  0%   { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
 }
 
 .dra-chat-header h3 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: #FFFFFF;
   margin: 0 0 2px;
 }
 
 .dra-chat-header span {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.38);
+  font-size: 0.73rem;
+  color: rgba(255,255,255,0.65);
   letter-spacing: 0.3px;
 }
 
 .dra-chat-header-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
 
+/* Header icon buttons */
 .dra-hdr-btn {
   width: 36px;
   height: 36px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.22);
   border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  color: rgba(255,255,255,0.5);
+  color: rgba(255,255,255,0.7);
 }
 
 .dra-hdr-btn svg { width: 16px; height: 16px; stroke: currentColor; }
-.dra-hdr-btn:hover { background: rgba(255,255,255,0.12); color: #e2e8f0; }
-.dra-hdr-btn.active { background: rgba(56,178,172,0.2); border-color: rgba(56,178,172,0.4); color: #4fd1c5; }
+.dra-hdr-btn:hover { background: rgba(255,255,255,0.22); color: #FFFFFF; }
+.dra-hdr-btn.active { background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.5); color: #FFFFFF; }
 .dra-hdr-btn.speaking { animation: dra-pulse-ring 0.9s ease-in-out infinite; }
 
-/* Messages scroll area */
+/* ── Messages scroll area ─────────────────────────────────── */
 .dra-messages {
   flex: 1;
   overflow-y: auto;
@@ -332,13 +148,14 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  background: #F9F6F0;
 }
 
 .dra-messages::-webkit-scrollbar { width: 4px; }
 .dra-messages::-webkit-scrollbar-track { background: transparent; }
-.dra-messages::-webkit-scrollbar-thumb { background: rgba(56,178,172,0.25); border-radius: 4px; }
+.dra-messages::-webkit-scrollbar-thumb { background: rgba(44,122,123,0.25); border-radius: 4px; }
 
-/* Individual message row */
+/* ── Individual message row ───────────────────────────────── */
 .dra-msg {
   display: flex;
   align-items: flex-end;
@@ -359,8 +176,8 @@
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgba(56,178,172,0.18);
-  border: 1px solid rgba(56,178,172,0.3);
+  background: rgba(44,122,123,0.12);
+  border: 1px solid rgba(44,122,123,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,7 +187,7 @@
 .dra-msg-avatar svg {
   width: 16px;
   height: 16px;
-  stroke: #4fd1c5;
+  stroke: #2C7A7B;
 }
 
 /* Message body wrapper */
@@ -384,7 +201,7 @@
 .dra-msg-user .dra-msg-body { align-items: flex-end; }
 .dra-msg-bot  .dra-msg-body { align-items: flex-start; }
 
-/* Glass bubble */
+/* Bubble */
 .dra-bubble {
   padding: 11px 15px;
   border-radius: 16px;
@@ -393,26 +210,22 @@
   word-break: break-word;
 }
 
-/* Bot bubble */
+/* Bot bubble — light beige */
 .dra-msg-bot .dra-bubble {
-  background: rgba(255,255,255,0.09);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.13);
+  background: #FFFFFF;
+  border: 1px solid rgba(44,122,123,0.14);
   border-bottom-left-radius: 4px;
-  color: #cbd5e0;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07);
+  color: #2D3748;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
-/* User bubble */
+/* User bubble — teal gradient */
 .dra-msg-user .dra-bubble {
-  background: rgba(56,178,172,0.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(56,178,172,0.38);
+  background: linear-gradient(135deg, #38B2AC, #2C7A7B);
+  border: none;
   border-bottom-right-radius: 4px;
-  color: #e2e8f0;
-  box-shadow: 0 2px 12px rgba(56,178,172,0.12), inset 0 1px 0 rgba(255,255,255,0.07);
+  color: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(56,178,172,0.28);
 }
 
 .dra-bubble p {
@@ -423,7 +236,7 @@
 /* Timestamp */
 .dra-msg-time {
   font-size: 0.68rem;
-  color: rgba(255,255,255,0.22);
+  color: rgba(45,55,72,0.35);
   padding: 0 4px;
 }
 
@@ -439,7 +252,7 @@
 .dra-typing span {
   width: 7px;
   height: 7px;
-  background: rgba(255,255,255,0.4);
+  background: rgba(44,122,123,0.4);
   border-radius: 50%;
   display: inline-block;
   animation: dra-dot-bounce 1.3s ease-in-out infinite;
@@ -453,42 +266,42 @@
   40% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Location fallback bubble extras */
+/* Location fallback bubble */
 .dra-fallback-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin: 10px 0 6px;
   padding: 7px 14px;
-  background: rgba(56,178,172,0.25);
-  border: 1px solid rgba(56,178,172,0.45);
+  background: rgba(56,178,172,0.12);
+  border: 1px solid rgba(56,178,172,0.35);
   border-radius: 8px;
-  color: #81e6d9;
+  color: #2C7A7B;
   font-size: 0.82rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.2s;
 }
 
-.dra-fallback-link:hover { background: rgba(56,178,172,0.4); color: #fff; }
+.dra-fallback-link:hover { background: rgba(56,178,172,0.22); color: #285E61; }
 
 .dra-tip {
   font-size: 0.75rem !important;
-  color: rgba(255,255,255,0.38) !important;
+  color: rgba(45,55,72,0.45) !important;
   margin-top: 8px !important;
 }
 
 /* Quick questions */
 .dra-quick-q {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(44,122,123,0.05);
+  border: 1px solid rgba(44,122,123,0.14);
   border-radius: 14px;
   padding: 14px 16px;
 }
 
 .dra-quick-q > p {
   font-size: 0.75rem;
-  color: rgba(255,255,255,0.4);
+  color: rgba(44,122,123,0.7);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin: 0 0 10px;
@@ -503,10 +316,10 @@
 
 .dra-q-btn {
   padding: 8px 10px;
-  background: rgba(56,178,172,0.10);
-  border: 1px solid rgba(56,178,172,0.22);
+  background: rgba(56,178,172,0.08);
+  border: 1px solid rgba(56,178,172,0.25);
   border-radius: 8px;
-  color: #81e6d9;
+  color: #2C7A7B;
   font-size: 0.78rem;
   text-align: left;
   cursor: pointer;
@@ -515,22 +328,22 @@
 }
 
 .dra-q-btn:hover {
-  background: rgba(56,178,172,0.22);
-  color: #e2e8f0;
+  background: rgba(56,178,172,0.18);
+  color: #285E61;
   border-color: rgba(56,178,172,0.45);
 }
 
 /* ── Input area ───────────────────────────────────────────── */
 .dra-input-area {
-  border-top: 1px solid rgba(255,255,255,0.07);
+  border-top: 1px solid rgba(44,122,123,0.12);
   padding: 12px 18px 16px;
-  background: rgba(0,0,0,0.08);
+  background: #FFFFFF;
   flex-shrink: 0;
 }
 
 .dra-input-hint {
   font-size: 0.70rem;
-  color: rgba(255,255,255,0.25);
+  color: rgba(45,55,72,0.38);
   margin: 0 0 9px;
   text-align: center;
   letter-spacing: 0.2px;
@@ -540,49 +353,49 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.12);
+  background: #F9F6F0;
+  border: 1.5px solid rgba(44,122,123,0.22);
   border-radius: 14px;
   padding: 6px 8px;
   transition: border-color 0.2s;
 }
 
 .dra-input-form:focus-within {
-  border-color: rgba(56,178,172,0.45);
-  background: rgba(255,255,255,0.09);
+  border-color: #38B2AC;
+  background: #FFFFFF;
 }
 
 .dra-icon-btn {
   width: 34px;
   height: 34px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(44,122,123,0.08);
+  border: 1px solid rgba(44,122,123,0.18);
   border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: rgba(255,255,255,0.45);
+  color: #2C7A7B;
   transition: all 0.2s;
   flex-shrink: 0;
 }
 
 .dra-icon-btn svg { width: 16px; height: 16px; }
-.dra-icon-btn:hover { background: rgba(255,255,255,0.12); color: #e2e8f0; }
-.dra-icon-btn.active { background: rgba(56,178,172,0.2); color: #4fd1c5; border-color: rgba(56,178,172,0.35); }
+.dra-icon-btn:hover { background: rgba(44,122,123,0.16); }
+.dra-icon-btn.active { background: rgba(56,178,172,0.18); color: #285E61; border-color: rgba(56,178,172,0.4); }
 
 .dra-text-input {
   flex: 1;
   background: transparent;
   border: none;
   outline: none;
-  color: #e2e8f0;
+  color: #2D3748;
   font-size: 0.875rem;
   padding: 6px 4px;
   caret-color: #38B2AC;
 }
 
-.dra-text-input::placeholder { color: rgba(255,255,255,0.25); }
+.dra-text-input::placeholder { color: rgba(45,55,72,0.35); }
 
 .dra-send-btn {
   width: 38px;
@@ -604,18 +417,16 @@
 .dra-send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
 
 /* ═══════════════════════════════════════════════════════════
-   LOCATION RESULT CARD  (dark glass)
+   LOCATION RESULT CARD
 ═══════════════════════════════════════════════════════════ */
 .dra-loc-card {
-  background: rgba(10,28,40,0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(56,178,172,0.25);
+  background: #FFFFFF;
+  border: 1px solid rgba(44,122,123,0.22);
   border-radius: 14px;
   overflow: hidden;
   min-width: 280px;
-  max-width: 440px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  max-width: 480px;
+  box-shadow: 0 4px 20px rgba(44,122,123,0.10);
 }
 
 .dra-loc-header {
@@ -623,32 +434,32 @@
   align-items: center;
   gap: 7px;
   padding: 10px 14px;
-  background: linear-gradient(90deg, rgba(56,178,172,0.25), rgba(44,122,123,0.18));
-  border-bottom: 1px solid rgba(56,178,172,0.2);
-  color: #81e6d9;
+  background: linear-gradient(90deg, #2C7A7B, #285E61);
+  border-bottom: 1px solid rgba(44,122,123,0.2);
+  color: #FFFFFF;
 }
 
 .dra-loc-label {
   font-weight: 600;
   font-size: 0.82rem;
   flex: 1;
-  color: #a3f0eb;
+  color: #FFFFFF;
 }
 
 .dra-loc-count {
-  background: rgba(56,178,172,0.2);
-  border: 1px solid rgba(56,178,172,0.3);
+  background: rgba(255,255,255,0.22);
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: 20px;
   padding: 2px 9px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: #4fd1c5;
+  color: #FFFFFF;
 }
 
 .dra-loc-map {
   width: 100%;
   height: 210px;
-  background: #0a1e2a;
+  background: #E8F5F5;
 }
 
 .dra-loc-list {
@@ -657,18 +468,18 @@
 }
 
 .dra-loc-list::-webkit-scrollbar { width: 3px; }
-.dra-loc-list::-webkit-scrollbar-thumb { background: rgba(56,178,172,0.3); border-radius: 3px; }
+.dra-loc-list::-webkit-scrollbar-thumb { background: rgba(44,122,123,0.3); border-radius: 3px; }
 
 .dra-loc-item {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(44,122,123,0.08);
   transition: background 0.15s;
 }
 
-.dra-loc-item:hover { background: rgba(56,178,172,0.08); }
+.dra-loc-item:hover { background: rgba(56,178,172,0.06); }
 .dra-loc-item:last-child { border-bottom: none; }
 
 .dra-loc-num {
@@ -701,7 +512,7 @@
 .dra-loc-info h4 {
   font-weight: 600;
   font-size: 0.82rem;
-  color: #e2e8f0;
+  color: #2D3748;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -720,26 +531,26 @@
 }
 
 .dra-dist-badge.near {
-  background: rgba(56,200,120,0.2);
-  border: 1px solid rgba(56,200,120,0.4);
-  color: #68d391;
+  background: rgba(56,200,120,0.15);
+  border: 1px solid rgba(56,200,120,0.35);
+  color: #276749;
 }
 
 .dra-dist-badge.mid {
-  background: rgba(246,173,85,0.18);
-  border: 1px solid rgba(246,173,85,0.35);
-  color: #f6ad55;
+  background: rgba(246,173,85,0.15);
+  border: 1px solid rgba(246,173,85,0.3);
+  color: #975a16;
 }
 
 .dra-dist-badge.far {
-  background: rgba(252,129,129,0.15);
-  border: 1px solid rgba(252,129,129,0.3);
-  color: #fc8181;
+  background: rgba(245,101,101,0.12);
+  border: 1px solid rgba(245,101,101,0.25);
+  color: #c53030;
 }
 
 .dra-loc-info p {
   font-size: 0.72rem;
-  color: rgba(255,255,255,0.38);
+  color: rgba(45,55,72,0.45);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -750,32 +561,26 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(56,178,172,0.18);
-  border: 1px solid rgba(56,178,172,0.35);
+  background: rgba(56,178,172,0.10);
+  border: 1px solid rgba(56,178,172,0.3);
   border-radius: 7px;
   padding: 5px 10px;
   font-size: 0.72rem;
   font-weight: 600;
-  color: #4fd1c5;
+  color: #2C7A7B;
   text-decoration: none;
   white-space: nowrap;
   transition: all 0.2s;
   flex-shrink: 0;
 }
 
-.dra-dir-btn:hover { background: rgba(56,178,172,0.35); color: #fff; }
+.dra-dir-btn:hover { background: rgba(56,178,172,0.22); color: #285E61; }
 
-.dra-loc-empty {
-  padding: 20px 16px;
-  text-align: center;
-  color: rgba(255,255,255,0.4);
-  font-size: 0.82rem;
-}
-
-/* Google Maps search section */
+/* Google Maps section */
 .dra-gmaps-section {
   padding: 12px 14px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(44,122,123,0.08);
+  background: #F9F6F0;
 }
 
 .dra-gmaps-section-title {
@@ -784,7 +589,7 @@
   gap: 5px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: rgba(255,255,255,0.35);
+  color: rgba(44,122,123,0.65);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   margin: 0 0 9px;
@@ -801,21 +606,23 @@
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  background: linear-gradient(135deg, rgba(66,133,244,0.18), rgba(52,168,83,0.12));
-  border: 1px solid rgba(66,133,244,0.3);
+  background: #FFFFFF;
+  border: 1px solid rgba(44,122,123,0.22);
   border-radius: 9px;
-  color: #93c5fd;
+  color: #2C7A7B;
   font-size: 0.78rem;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(44,122,123,0.08);
 }
 
 .dra-gmaps-chip:hover {
-  background: linear-gradient(135deg, rgba(66,133,244,0.35), rgba(52,168,83,0.25));
-  border-color: rgba(66,133,244,0.55);
-  color: #fff;
+  background: rgba(56,178,172,0.10);
+  border-color: rgba(56,178,172,0.45);
+  color: #285E61;
   transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(44,122,123,0.15);
 }
 
 .dra-osm-label {
@@ -824,111 +631,41 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  color: rgba(255,255,255,0.25);
+  color: rgba(45,55,72,0.35);
 }
-
-.dra-gmaps-primary-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: calc(100% - 28px);
-  margin: 12px 14px 2px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(66,133,244,0.3), rgba(52,168,83,0.25));
-  border: 1px solid rgba(66,133,244,0.5);
-  border-radius: 10px;
-  color: #93c5fd;
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.2s;
-  letter-spacing: 0.2px;
-}
-
-.dra-gmaps-primary-btn:hover {
-  background: linear-gradient(135deg, rgba(66,133,244,0.5), rgba(52,168,83,0.4));
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(66,133,244,0.25);
-}
-
-.dra-loc-empty-sub {
-  font-size: 0.73rem;
-  color: rgba(255,255,255,0.28);
-  margin: 4px 0 0;
-}
-
-.dra-gmaps-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 7px 16px;
-  background: rgba(66,133,244,0.25);
-  border: 1px solid rgba(66,133,244,0.4);
-  color: #93b4f8;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s;
-}
-
-.dra-gmaps-btn:hover { background: rgba(66,133,244,0.4); color: #fff; }
 
 .dra-loc-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 7px 14px;
-  background: rgba(0,0,0,0.15);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  background: #F5F2EC;
+  border-top: 1px solid rgba(44,122,123,0.08);
   font-size: 0.68rem;
-  color: rgba(255,255,255,0.22);
+  color: rgba(45,55,72,0.35);
 }
 
 .dra-loc-footer a {
-  color: rgba(66,133,244,0.7);
+  color: #2C7A7B;
   text-decoration: none;
   font-weight: 500;
 }
 
-.dra-loc-footer a:hover { color: #93b4f8; }
+.dra-loc-footer a:hover { color: #285E61; text-decoration: underline; }
 
 /* ═══════════════════════════════════════════════════════════
    RESPONSIVE
 ═══════════════════════════════════════════════════════════ */
 @media (max-width: 820px) {
   .dra-page { padding: 12px 14px 16px; }
-
-  .dra-layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    height: auto;
-    min-height: unset;
-  }
-
-  .dra-avatar-panel {
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 16px;
-    gap: 12px;
-    border-radius: 16px;
-  }
-
-  .dra-avatar-ring { width: 70px; height: 70px; margin-bottom: 0; }
-  .dra-avatar-wrap { width: 70px; height: 70px; }
-
-  .dra-doc-meta { text-align: left; }
-  .dra-doc-name { font-size: 1rem; }
-  .dra-divider, .dra-capabilities, .dra-quick-chips { display: none; }
-
+  .dra-layout { height: auto; min-height: unset; }
   .dra-chat-panel { min-height: 550px; border-radius: 16px; }
+  .dra-header-avatar { width: 38px; height: 38px; }
+  .dra-header-avatar img { width: 38px; height: 38px; }
 }
 
 @media (max-width: 480px) {
   .dra-quick-q-grid { grid-template-columns: 1fr; }
   .dra-msg-body { max-width: 88%; }
+  .dra-gmaps-grid { grid-template-columns: 1fr 1fr; }
 }
