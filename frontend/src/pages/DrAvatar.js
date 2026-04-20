@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import PatientLayout from '../components/PatientLayout';
+import AnimatedDoctorAvatar from './DoctorAvatarSVG';
 import './DrAvatar.css';
 
 // ─── Location helpers ─────────────────────────────────────────────────────────
@@ -554,17 +555,29 @@ const DrAvatar = () => {
       <div className="dra-page">
         <div className="dra-layout">
 
-          {/* ── Chat Panel ──────────────────────────────────── */}
+          {/* ── Animated Doctor Avatar Panel (left) ─────────── */}
+          <aside className="dra-avatar-panel">
+            <AnimatedDoctorAvatar isSpeaking={isSpeaking} isListening={isListening} />
+            <div className="dra-doc-info">
+              <h2 className="dra-doc-name">Dr. Jarvis</h2>
+              <p className="dra-doc-title">AI Medical Assistant</p>
+              <span className="dra-status-badge">
+                <span className={`dra-status-dot${isSpeaking ? ' dot-speaking' : isListening ? ' dot-listening' : ''}`}/>
+                {isSpeaking ? 'Speaking…' : isListening ? 'Listening…' : 'Online'}
+              </span>
+            </div>
+          </aside>
+
+          {/* ── Chat Panel (right) ──────────────────────────── */}
           <div className="dra-chat-panel">
             <div className="dra-chat-header">
               <div className="dra-chat-header-left">
-                <div className={`dra-header-avatar ${isSpeaking ? 'dra-speaking' : ''} ${isListening ? 'dra-listening' : ''}`}>
-                  <img src="/images/doctoravatar.png" alt="Dr. Jarvis" />
-                  {(isSpeaking || isListening) && <div className="dra-avatar-pulse" />}
+                <div className="dra-chat-header-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
                 <div>
-                  <h3>Dr. Jarvis</h3>
-                  <span>AI Pneumonia Specialist · Available 24/7</span>
+                  <h3>Medical AI Chat</h3>
+                  <span>Pneumonia Specialist · Available 24/7</span>
                 </div>
               </div>
               <div className="dra-chat-header-actions">
