@@ -149,7 +149,17 @@ const _nominatim = async (lat, lon, searchType) => {
   return results.filter(p => p.lat && p.lon).slice(0, 8);
 };
 
-// ── Combined fetch: Overpass + Nominatim in parallel, merged ─────────────────
+// ── Haversine distance in km ──────────────────────────────────────────────────
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2
+    + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+// ── Combined fetch: Overpass + Nominatim in parallel, sorted by distance ──────
 const fetchNearbyPlaces = async (lat, lon, searchType) => {
   const [ovR, nomR] = await Promise.allSettled([
     _overpass(lat, lon, searchType),
@@ -161,6 +171,8 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
   const seen = new Set();
   return [...ov, ...nom]
     .filter(p => p.lat && p.lon && !seen.has(p.name) && seen.add(p.name))
+    .map(p => ({ ...p, distKm: haversineKm(lat, lon, p.lat, p.lon) }))
+    .sort((a, b) => a.distKm - b.distKm)   // nearest first
     .slice(0, 10);
 };
 
@@ -244,7 +256,16 @@ const LocationResultCard = ({ places, center, searchType }) => {
             <div key={i} className="dra-loc-item">
               <div className="dra-loc-num">{i+1}</div>
               <div className="dra-loc-info">
-                <h4>{place.name}</h4>
+                <div className="dra-loc-name-row">
+                  <h4>{place.name}</h4>
+                  {place.distKm != null && (
+                    <span className={`dra-dist-badge ${place.distKm < 3 ? 'near' : place.distKm < 7 ? 'mid' : 'far'}`}>
+                      {place.distKm < 1
+                        ? `${Math.round(place.distKm * 1000)} m`
+                        : `${place.distKm.toFixed(1)} km`}
+                    </span>
+                  )}
+                </div>
                 {place.address && <p>📍 {place.address}</p>}
                 {place.phone && <p>📞 {place.phone}</p>}
               </div>

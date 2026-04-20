@@ -690,14 +690,51 @@
   min-width: 0;
 }
 
+.dra-loc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
 .dra-loc-info h4 {
   font-weight: 600;
   font-size: 0.82rem;
   color: #e2e8f0;
-  margin: 0 0 2px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.dra-dist-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dra-dist-badge.near {
+  background: rgba(56,200,120,0.2);
+  border: 1px solid rgba(56,200,120,0.4);
+  color: #68d391;
+}
+
+.dra-dist-badge.mid {
+  background: rgba(246,173,85,0.18);
+  border: 1px solid rgba(246,173,85,0.35);
+  color: #f6ad55;
+}
+
+.dra-dist-badge.far {
+  background: rgba(252,129,129,0.15);
+  border: 1px solid rgba(252,129,129,0.3);
+  color: #fc8181;
 }
 
 .dra-loc-info p {
