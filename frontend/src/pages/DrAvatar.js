@@ -58,68 +58,110 @@ const getUserCoords = () =>
     );
   });
 
-const fetchNearbyPlaces = async (lat, lon, searchType) => {
-  // 15 km radius — Pakistan OSM data is sparse so we cast wide
-  const r = 15000;
+// ── Overpass source ───────────────────────────────────────────────────────────
+const _overpass = async (lat, lon, searchType) => {
+  const r = 20000; // 20 km — cast very wide for Pakistan
 
-  // Common broad filters (work well even with thin OSM data in Pakistan)
-  const broad = `
-    node["amenity"~"^(hospital|clinic|doctors|health_post)$"](around:${r},${lat},${lon});
-    way["amenity"~"^(hospital|clinic|doctors|health_post)$"](around:${r},${lat},${lon});
+  // Broad catch-all: every amenity/healthcare element in area + name-based search
+  const filters = `
+    node["amenity"](around:${r},${lat},${lon});
+    way["amenity"](around:${r},${lat},${lon});
     node["healthcare"](around:${r},${lat},${lon});
     way["healthcare"](around:${r},${lat},${lon});
-    node["name"~"hospital|clinic|medical|health|shifa|shifakhana|centre|center",i](around:${r},${lat},${lon});
-    way["name"~"hospital|clinic|medical|health|shifa|shifakhana|centre|center",i](around:${r},${lat},${lon});
+    node["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|shifa|doctor|centre|center|scan|imag|pims|idc|agha|liaquat|services|poly",i](around:${r},${lat},${lon});
+    way["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|shifa|doctor|centre|center|scan|imag|pims|idc|agha|liaquat|services|poly",i](around:${r},${lat},${lon});
   `;
+  const query = `[out:json][timeout:30];(${filters});out center 30;`;
 
-  // Type-specific extras
-  const specific = {
-    radiology: `
-      node["healthcare"~"radiology|laboratory"](around:${r},${lat},${lon});
-      node["name"~"radiol|x.ray|xray|diagnostic|imaging|scan|lab|idc|pims|pmrc",i](around:${r},${lat},${lon});
-      way["name"~"radiol|x.ray|xray|diagnostic|imaging|scan|lab|idc|pims|pmrc",i](around:${r},${lat},${lon});
-    `,
-    hospital: `
-      node["amenity"="hospital"](around:${r},${lat},${lon});
-      way["amenity"="hospital"](around:${r},${lat},${lon});
-    `,
-    laboratory: `
-      node["healthcare"~"laboratory|blood_bank"](around:${r},${lat},${lon});
-      node["name"~"lab|diagnostic|patholog|blood|test|idc|cpc",i](around:${r},${lat},${lon});
-      way["name"~"lab|diagnostic|patholog|blood|test|idc|cpc",i](around:${r},${lat},${lon});
-    `,
-  };
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 14000);
+  const res = await fetch(
+    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+    { signal: ctrl.signal }
+  );
+  clearTimeout(tid);
+  if (!res.ok) throw new Error('overpass');
+  const data = await res.json();
 
-  const filters = (specific[searchType] || '') + broad;
-  const query = `[out:json][timeout:30];(${filters});out center 15;`;
+  const medAmenities = new Set(['hospital','clinic','doctors','health_post','dentist','pharmacy']);
+  const typeRe = {
+    radiology:  /radiol|xray|x.ray|diagnostic|imaging|scan|lab|idc|pims/i,
+    hospital:   /hospit|clinic|medical|health|shifa|poly|services/i,
+    laboratory: /lab|diagnost|patholog|blood|cpc|idc/i,
+    medical:    /hospit|clinic|medical|health|shifa/i,
+  }[searchType] || /hospit|clinic|medical|health/i;
 
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 15000);
-  try {
-    const res = await fetch(
-      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
-      { signal: controller.signal }
-    );
-    clearTimeout(tid);
-    if (!res.ok) throw new Error('Overpass error');
-    const data = await res.json();
-    const seen = new Set();
-    return data.elements
-      .filter(el => el.tags && el.tags.name && !seen.has(el.tags.name) && seen.add(el.tags.name))
-      .map(el => ({
-        name: el.tags.name,
-        address: [el.tags['addr:street'], el.tags['addr:housenumber'], el.tags['addr:city']]
-          .filter(Boolean).join(', ') || el.tags['addr:full'] || '',
-        phone: el.tags.phone || el.tags['contact:phone'] || '',
-        lat: el.lat ?? el.center?.lat,
-        lon: el.lon ?? el.center?.lon,
-      }))
-      .filter(p => p.lat && p.lon)
-      .slice(0, 10);
-  } catch (e) {
-    clearTimeout(tid);
-    throw e;
+  const seen = new Set();
+  return data.elements
+    .filter(el => {
+      if (!el.tags?.name || seen.has(el.tags.name)) return false;
+      const a = el.tags.amenity || '', hc = el.tags.healthcare || '', n = el.tags.name;
+      const ok = medAmenities.has(a) || hc || typeRe.test(n);
+      if (ok) seen.add(n);
+      return ok;
+    })
+    .map(el => ({
+      name: el.tags.name,
+      address: [el.tags['addr:street'], el.tags['addr:city']].filter(Boolean).join(', ') || '',
+      phone: el.tags.phone || el.tags['contact:phone'] || '',
+      lat: el.lat ?? el.center?.lat,
+      lon: el.lon ?? el.center?.lon,
+    }))
+    .filter(p => p.lat && p.lon)
+    .slice(0, 10);
+};
+
+// ── Nominatim source (fallback / supplement) ──────────────────────────────────
+const _nominatim = async (lat, lon, searchType) => {
+  const queries = {
+    radiology:  ['diagnostic center','radiology clinic','x-ray lab'],
+    hospital:   ['hospital','medical clinic'],
+    laboratory: ['diagnostic laboratory','blood test lab'],
+    medical:    ['hospital','medical center'],
+  }[searchType] || ['hospital'];
+
+  const delta = 0.18; // ~20 km box
+  const vb = `${lon-delta},${lat+delta},${lon+delta},${lat-delta}`;
+  const seen = new Set();
+  const results = [];
+
+  for (const q of queries.slice(0, 2)) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&bounded=1&viewbox=${vb}&countrycodes=pk&addressdetails=1&accept-language=en`;
+      const r = await fetch(url, { headers: { 'User-Agent': 'MEDIVISION/1.0' } });
+      if (!r.ok) continue;
+      const data = await r.json();
+      data.forEach(item => {
+        const name = (item.name || item.display_name.split(',')[0]).trim();
+        if (!name || seen.has(name)) return;
+        seen.add(name);
+        results.push({
+          name,
+          address: item.display_name.split(',').slice(1,3).join(', ').trim(),
+          phone: '',
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+        });
+      });
+    } catch {}
+    if (results.length >= 6) break;
   }
+  return results.filter(p => p.lat && p.lon).slice(0, 8);
+};
+
+// ── Combined fetch: Overpass + Nominatim in parallel, merged ─────────────────
+const fetchNearbyPlaces = async (lat, lon, searchType) => {
+  const [ovR, nomR] = await Promise.allSettled([
+    _overpass(lat, lon, searchType),
+    _nominatim(lat, lon, searchType),
+  ]);
+  const ov  = ovR.status  === 'fulfilled' ? ovR.value  : [];
+  const nom = nomR.status === 'fulfilled' ? nomR.value : [];
+
+  const seen = new Set();
+  return [...ov, ...nom]
+    .filter(p => p.lat && p.lon && !seen.has(p.name) && seen.add(p.name))
+    .slice(0, 10);
 };
 
 // ─── Location Result Card (dark glass themed) ─────────────────────────────────
@@ -186,19 +228,17 @@ const LocationResultCard = ({ places, center, searchType }) => {
       <div className="dra-loc-header">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         <span className="dra-loc-label">{label}</span>
-        <span className="dra-loc-count">{places.length} found</span>
+        {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
       <div ref={mapDivRef} className="dra-loc-map" />
-      {places.length === 0 ? (
-        <div className="dra-loc-empty">
-          <p>OpenStreetMap has limited medical data for this area.</p>
-          <p className="dra-loc-empty-sub">Use Google Maps to find nearby centers — it will open centered on your location:</p>
-          <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            Open Google Maps → {label}
-          </a>
-        </div>
-      ) : (
+
+      {/* Always show Google Maps button at top — it's the most reliable source */}
+      <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-primary-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Search on Google Maps (most results)
+      </a>
+
+      {places.length > 0 ? (
         <div className="dra-loc-list">
           {places.map((place, i) => (
             <div key={i} className="dra-loc-item">
@@ -215,10 +255,15 @@ const LocationResultCard = ({ places, center, searchType }) => {
             </div>
           ))}
         </div>
+      ) : (
+        <div className="dra-loc-empty">
+          <p>No results found in open map databases for this area.</p>
+          <p className="dra-loc-empty-sub">Google Maps has the most complete data — click the button above to search.</p>
+        </div>
       )}
       <div className="dra-loc-footer">
         <span>© OpenStreetMap contributors</span>
-        <a href={gmapsSearch} target="_blank" rel="noopener noreferrer">Open Google Maps</a>
+        <a href={gmapsSearch} target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>
       </div>
     </div>
   );
