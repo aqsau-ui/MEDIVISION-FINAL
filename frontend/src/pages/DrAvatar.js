@@ -149,6 +149,24 @@ const _nominatim = async (lat, lon, searchType) => {
   return results.filter(p => p.lat && p.lon).slice(0, 8);
 };
 
+// ── Reverse geocode to get user's area name ───────────────────────────────────
+const reverseGeocode = async (lat, lon) => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`,
+      { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
+    );
+    const data = await res.json();
+    const a = data.address || {};
+    // Build a human-readable area name, e.g. "Bahria Town, Rawalpindi"
+    const sub  = a.suburb || a.neighbourhood || a.quarter || '';
+    const town = a.city || a.town || a.county || a.state_district || '';
+    return [sub, town].filter(Boolean).join(', ') || '';
+  } catch {
+    return '';
+  }
+};
+
 // ── Haversine distance in km ──────────────────────────────────────────────────
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
@@ -178,10 +196,18 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
 
 // ─── Location Result Card (dark glass themed) ─────────────────────────────────
 
-const LocationResultCard = ({ places, center, searchType }) => {
+const GMAPS_CATEGORIES = [
+  { key: 'hospital',   emoji: '🏥', label: 'Hospitals' },
+  { key: 'clinic',     emoji: '🩺', label: 'Clinics' },
+  { key: 'radiology',  emoji: '📡', label: 'Radiology / X-Ray' },
+  { key: 'diagnostic', emoji: '🔬', label: 'Diagnostic Labs' },
+];
+
+const LocationResultCard = ({ places, center, searchType, areaName }) => {
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
   const label = TYPE_LABELS[searchType] || 'Medical Facilities';
+  const locationHint = areaName ? ` near ${areaName}` : '';
 
   useEffect(() => {
     if (!mapDivRef.current || mapRef.current) return;
@@ -231,59 +257,81 @@ const LocationResultCard = ({ places, center, searchType }) => {
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, []); // eslint-disable-line
 
-  // Coordinates-anchored Google Maps search (opens exactly at user's area)
-  const gmapsSearch = `https://www.google.com/maps/search/${encodeURIComponent(label)}/@${center.lat},${center.lon},14z`;
+  // Coordinates-anchored links — include area name for maximum specificity
+  const gmapsUrl = (term) => {
+    const q = areaName ? `${term} ${areaName}` : term;
+    return `https://www.google.com/maps/search/${encodeURIComponent(q)}/@${center.lat},${center.lon},14z`;
+  };
+  const gmapsSearch = gmapsUrl(label);
   const mapsLink = (p) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}`;
 
   return (
     <div className="dra-loc-card">
       <div className="dra-loc-header">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span className="dra-loc-label">{label}</span>
+        <span className="dra-loc-label">{label}{locationHint}</span>
         {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
+
+      {/* Map — shows exact GPS pin */}
       <div ref={mapDivRef} className="dra-loc-map" />
 
-      {/* Always show Google Maps button at top — it's the most reliable source */}
-      <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-primary-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        Search on Google Maps (most results)
-      </a>
-
-      {places.length > 0 ? (
-        <div className="dra-loc-list">
-          {places.map((place, i) => (
-            <div key={i} className="dra-loc-item">
-              <div className="dra-loc-num">{i+1}</div>
-              <div className="dra-loc-info">
-                <div className="dra-loc-name-row">
-                  <h4>{place.name}</h4>
-                  {place.distKm != null && (
-                    <span className={`dra-dist-badge ${place.distKm < 3 ? 'near' : place.distKm < 7 ? 'mid' : 'far'}`}>
-                      {place.distKm < 1
-                        ? `${Math.round(place.distKm * 1000)} m`
-                        : `${place.distKm.toFixed(1)} km`}
-                    </span>
-                  )}
-                </div>
-                {place.address && <p>📍 {place.address}</p>}
-                {place.phone && <p>📞 {place.phone}</p>}
-              </div>
-              <a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" className="dra-dir-btn">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-                Go
-              </a>
-            </div>
+      {/* Google Maps quick-search grid — always shown, uses area name + coords */}
+      <div className="dra-gmaps-section">
+        <p className="dra-gmaps-section-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Search on Google Maps{areaName ? ` · ${areaName}` : ''}
+        </p>
+        <div className="dra-gmaps-grid">
+          {GMAPS_CATEGORIES.map(cat => (
+            <a
+              key={cat.key}
+              href={gmapsUrl(cat.label)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dra-gmaps-chip"
+            >
+              <span>{cat.emoji}</span>
+              <span>{cat.label}</span>
+            </a>
           ))}
         </div>
-      ) : (
-        <div className="dra-loc-empty">
-          <p>No results found in open map databases for this area.</p>
-          <p className="dra-loc-empty-sub">Google Maps has the most complete data — click the button above to search.</p>
-        </div>
+      </div>
+
+      {/* OSM results (supplementary) */}
+      {places.length > 0 && (
+        <>
+          <div className="dra-osm-label">Also found in OpenStreetMap:</div>
+          <div className="dra-loc-list">
+            {places.map((place, i) => (
+              <div key={i} className="dra-loc-item">
+                <div className="dra-loc-num">{i+1}</div>
+                <div className="dra-loc-info">
+                  <div className="dra-loc-name-row">
+                    <h4>{place.name}</h4>
+                    {place.distKm != null && (
+                      <span className={`dra-dist-badge ${place.distKm < 3 ? 'near' : place.distKm < 7 ? 'mid' : 'far'}`}>
+                        {place.distKm < 1
+                          ? `${Math.round(place.distKm * 1000)} m`
+                          : `${place.distKm.toFixed(1)} km`}
+                      </span>
+                    )}
+                  </div>
+                  {place.address && <p>📍 {place.address}</p>}
+                  {place.phone && <p>📞 {place.phone}</p>}
+                </div>
+                <a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" className="dra-dir-btn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                  Go
+                </a>
+              </div>
+            ))}
+          </div>
+        </>
       )}
+
       <div className="dra-loc-footer">
-        <span>© OpenStreetMap contributors</span>
+        <span>© OpenStreetMap · Google Maps</span>
         <a href={gmapsSearch} target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>
       </div>
     </div>
@@ -358,7 +406,7 @@ const DrAvatar = () => {
   };
   const stopListening = () => { if (recognitionRef.current && isListening) { recognitionRef.current.stop(); setIsListening(false); } };
 
-  // ── Location handler with caching + retry + fallback ──────────────────────
+  // ── Location handler with caching + reverse geocode + retry ──────────────
   const handleLocationQuery = async (locationInfo) => {
     try {
       let coords;
@@ -371,18 +419,18 @@ const DrAvatar = () => {
         cachedCoordsRef.current = coords;
       }
 
-      let places = [];
-      try {
-        places = await fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType);
-      } catch {
-        // retry once
-        try { places = await fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType); }
-        catch { places = []; }
-      }
+      // Run places fetch + reverse geocode in parallel
+      const [placesResult, areaName] = await Promise.allSettled([
+        fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType),
+        reverseGeocode(coords.lat, coords.lon),
+      ]);
+
+      const places = placesResult.status === 'fulfilled' ? placesResult.value : [];
+      const area   = areaName.status  === 'fulfilled' ? areaName.value  : '';
 
       setMessages(prev => [...prev, {
         id: Date.now(), type: 'location', sender: 'bot', timestamp: new Date(),
-        locationData: { places, center: coords, searchType: locationInfo.searchType },
+        locationData: { places, center: coords, searchType: locationInfo.searchType, areaName: area },
       }]);
     } catch (err) {
       const label = TYPE_LABELS[locationInfo.searchType] || 'Medical Centers';
@@ -604,7 +652,7 @@ const DrAvatar = () => {
                   )}
                   <div className="dra-msg-body">
                     {msg.type === 'location' ? (
-                      <LocationResultCard places={msg.locationData.places} center={msg.locationData.center} searchType={msg.locationData.searchType} />
+                      <LocationResultCard places={msg.locationData.places} center={msg.locationData.center} searchType={msg.locationData.searchType} areaName={msg.locationData.areaName || ''} />
                     ) : msg.type === 'location-fallback' ? (
                       <div className="dra-bubble">
                         <p>📍 I couldn't access your location automatically.</p>
