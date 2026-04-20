@@ -194,8 +194,7 @@
   flex: 1;
   display: flex;
   justify-content: flex-end;
-  padding: 2rem;
-  padding-right: 2rem;
+  padding: 4rem 2rem 2rem 2rem;
   overflow: hidden;
 }
 
@@ -231,6 +230,7 @@
   font-weight: 700;
   color: white;
   margin-bottom: 0.5rem;
+  letter-spacing: -0.5px;
   font-family: 'Playfair Display', Georgia, serif;
 }
 
