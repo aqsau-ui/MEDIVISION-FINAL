@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import PatientLayout from '../components/PatientLayout';
 import './DrAvatar.css';
 
-// ─── Location helpers ────────────────────────────────────────────────────────
+// ─── Location helpers ─────────────────────────────────────────────────────────
 
 const CITY_COORDS = {
   islamabad:  { lat: 33.6844, lon: 73.0479 },
@@ -18,17 +18,23 @@ const CITY_COORDS = {
   hyderabad:  { lat: 25.3960, lon: 68.3578 },
 };
 
+const TYPE_LABELS = {
+  radiology:  'Radiology & X-Ray Centers',
+  hospital:   'Hospitals & Clinics',
+  laboratory: 'Diagnostic Laboratories',
+  medical:    'Medical Facilities',
+};
+
 const detectLocationQuery = (text) => {
   const lower = text.toLowerCase();
-  const medicalKw = ['radiol', 'x-ray', 'xray', 'x ray', 'hospital', 'diagnostic', ' lab ', 'laboratory', 'clinic', 'medical center', 'medical centre', 'scan center', 'scan centre', 'imaging center', 'imaging centre', 'mri', 'ct scan', 'ultrasound'];
-  const locationKw = ['near me', 'nearby', 'near by', 'close by', 'around me', 'in my area', 'find', 'near', 'close to', 'locate', 'show me', 'where'];
+  const medicalKw = ['radiol','x-ray','xray','x ray','hospital','diagnostic',' lab ','laboratory','clinic','medical center','medical centre','scan center','scan centre','imaging','mri','ct scan','ultrasound'];
+  const locationKw = ['near me','nearby','near by','close by','around me','in my area','find','near','close to','locate','show me','where'];
 
   const hasMedical = medicalKw.some(k => lower.includes(k));
   if (!hasMedical) return null;
 
   const cityKey = Object.keys(CITY_COORDS).find(c => lower.includes(c));
   const hasLocationKw = locationKw.some(k => lower.includes(k));
-
   if (!cityKey && !hasLocationKw) return null;
 
   let searchType = 'medical';
@@ -48,7 +54,7 @@ const getUserCoords = () =>
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
       (err) => reject(err),
-      { timeout: 10000, maximumAge: 60000 }
+      { timeout: 10000, maximumAge: 300000 }
     );
   });
 
@@ -86,174 +92,126 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
   }
 
   const query = `[out:json][timeout:25];(${filters});out center 10;`;
-  const res = await fetch(
-    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`
-  );
-  if (!res.ok) throw new Error('Overpass API error');
-  const data = await res.json();
-
-  const seen = new Set();
-  return data.elements
-    .filter(el => el.tags && el.tags.name && !seen.has(el.tags.name) && seen.add(el.tags.name))
-    .map(el => ({
-      name: el.tags.name,
-      address: [el.tags['addr:street'], el.tags['addr:housenumber'], el.tags['addr:city']]
-        .filter(Boolean).join(', ') || el.tags['addr:full'] || '',
-      phone: el.tags.phone || el.tags['contact:phone'] || '',
-      website: el.tags.website || el.tags['contact:website'] || '',
-      lat: el.lat ?? el.center?.lat,
-      lon: el.lon ?? el.center?.lon,
-    }))
-    .filter(p => p.lat && p.lon)
-    .slice(0, 8);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(
+      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error('Overpass error');
+    const data = await res.json();
+    const seen = new Set();
+    return data.elements
+      .filter(el => el.tags && el.tags.name && !seen.has(el.tags.name) && seen.add(el.tags.name))
+      .map(el => ({
+        name: el.tags.name,
+        address: [el.tags['addr:street'], el.tags['addr:housenumber'], el.tags['addr:city']].filter(Boolean).join(', ') || el.tags['addr:full'] || '',
+        phone: el.tags.phone || el.tags['contact:phone'] || '',
+        lat: el.lat ?? el.center?.lat,
+        lon: el.lon ?? el.center?.lon,
+      }))
+      .filter(p => p.lat && p.lon)
+      .slice(0, 8);
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
 };
 
-// ─── Leaflet map card ─────────────────────────────────────────────────────────
+// ─── Location Result Card (dark glass themed) ─────────────────────────────────
 
 const LocationResultCard = ({ places, center, searchType }) => {
   const mapDivRef = useRef(null);
   const mapRef = useRef(null);
-
-  const typeLabel = {
-    radiology:  'Radiology & X-Ray Centers',
-    hospital:   'Hospitals & Clinics',
-    laboratory: 'Diagnostic Labs',
-    medical:    'Medical Facilities',
-  }[searchType] || 'Medical Facilities';
+  const label = TYPE_LABELS[searchType] || 'Medical Facilities';
 
   useEffect(() => {
     if (!mapDivRef.current || mapRef.current) return;
-
     const initMap = () => {
       const L = window.L;
       if (!L || !mapDivRef.current) return;
-
       const map = L.map(mapDivRef.current, { zoomControl: true, scrollWheelZoom: false })
         .setView([center.lat, center.lon], 13);
       mapRef.current = map;
-
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 18,
+        attribution: '© OpenStreetMap', maxZoom: 18,
       }).addTo(map);
 
-      // User location dot
       const userIcon = L.divIcon({
-        html: '<div style="background:#38B2AC;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 8px rgba(56,178,172,0.8)"></div>',
-        iconSize: [14, 14],
-        iconAnchor: [7, 7],
-        className: '',
+        html: '<div style="background:#38B2AC;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(56,178,172,0.9)"></div>',
+        iconSize: [14,14], iconAnchor: [7,7], className: '',
       });
-      L.marker([center.lat, center.lon], { icon: userIcon })
-        .addTo(map)
-        .bindPopup('<b>📍 Your Location</b>');
+      L.marker([center.lat, center.lon], { icon: userIcon }).addTo(map).bindPopup('<b>📍 Your Location</b>');
 
-      // Place markers
       const bounds = [[center.lat, center.lon]];
       places.forEach((place, i) => {
         if (!place.lat || !place.lon) return;
         bounds.push([place.lat, place.lon]);
-        const placeIcon = L.divIcon({
-          html: `<div style="background:#e53e3e;color:white;width:22px;height:22px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold">${i + 1}</div>`,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
-          className: '',
+        const icon = L.divIcon({
+          html: `<div style="background:#e53e3e;color:white;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</div>`,
+          iconSize: [24,24], iconAnchor: [12,12], className: '',
         });
-        L.marker([place.lat, place.lon], { icon: placeIcon })
+        L.marker([place.lat, place.lon], { icon })
           .addTo(map)
-          .bindPopup(`<b>${place.name}</b>${place.address ? '<br><small>' + place.address + '</small>' : ''}`);
+          .bindPopup(`<b>${place.name}</b>${place.address ? '<br><small>'+place.address+'</small>' : ''}`);
       });
-
-      if (bounds.length > 1) {
-        map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
-      }
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [28,28], maxZoom: 14 });
     };
 
-    const loadLeaflet = () => {
-      if (!document.querySelector('link[href*="leaflet"]')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-      if (window.L) {
-        initMap();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLEo=';
-        script.crossOrigin = '';
-        script.onload = initMap;
-        document.head.appendChild(script);
-      }
-    };
+    if (window.L) { initMap(); return; }
+    if (!document.querySelector('link[href*="leaflet"]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = initMap;
+    document.head.appendChild(script);
 
-    loadLeaflet();
+    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
+  }, []); // eslint-disable-line
 
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const mapsLink = (place) =>
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + (place.address ? ' ' + place.address : ''))}`;
-
-  const googleMapsSearch = `https://www.google.com/maps/search/${encodeURIComponent(typeLabel + ' near ' + center.lat + ',' + center.lon)}`;
+  const gmapsSearch = `https://www.google.com/maps/search/${encodeURIComponent(label + ' near ' + center.lat + ',' + center.lon)}`;
+  const mapsLink = (p) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}`;
 
   return (
-    <div className="location-result-card">
-      <div className="location-result-header">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-          <circle cx="12" cy="10" r="3"/>
-        </svg>
-        <span className="location-label">{typeLabel} near you</span>
-        <span className="location-count">{places.length} found</span>
+    <div className="dra-loc-card">
+      <div className="dra-loc-header">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span className="dra-loc-label">{label}</span>
+        <span className="dra-loc-count">{places.length} found</span>
       </div>
-
-      <div ref={mapDivRef} className="location-map" />
-
+      <div ref={mapDivRef} className="dra-loc-map" />
       {places.length === 0 ? (
-        <div className="location-no-results">
-          <p>No facilities found in OpenStreetMap data for this area.</p>
-          <a href={googleMapsSearch} target="_blank" rel="noopener noreferrer" className="loc-gmaps-btn">
-            Search on Google Maps →
-          </a>
+        <div className="dra-loc-empty">
+          <p>No results in OpenStreetMap for this area.</p>
+          <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-btn">Search on Google Maps →</a>
         </div>
       ) : (
-        <div className="location-places-list">
+        <div className="dra-loc-list">
           {places.map((place, i) => (
-            <div key={i} className="location-place-item">
-              <div className="place-num">{i + 1}</div>
-              <div className="place-info">
-                <h4 className="place-name">{place.name}</h4>
-                {place.address && <p className="place-address">📍 {place.address}</p>}
-                {place.phone && <p className="place-phone">📞 {place.phone}</p>}
+            <div key={i} className="dra-loc-item">
+              <div className="dra-loc-num">{i+1}</div>
+              <div className="dra-loc-info">
+                <h4>{place.name}</h4>
+                {place.address && <p>📍 {place.address}</p>}
+                {place.phone && <p>📞 {place.phone}</p>}
               </div>
-              <a
-                href={mapsLink(place)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="place-directions-btn"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polygon points="3 11 22 2 13 21 11 13 3 11"/>
-                </svg>
-                Directions
+              <a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" className="dra-dir-btn">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                Go
               </a>
             </div>
           ))}
         </div>
       )}
-
-      <div className="location-footer">
+      <div className="dra-loc-footer">
         <span>© OpenStreetMap contributors</span>
-        <a href={googleMapsSearch} target="_blank" rel="noopener noreferrer">
-          Open in Google Maps
-        </a>
+        <a href={gmapsSearch} target="_blank" rel="noopener noreferrer">Open Google Maps</a>
       </div>
     </div>
   );
@@ -261,15 +219,20 @@ const LocationResultCard = ({ places, center, searchType }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
+const QUICK_CHIPS = [
+  { label: 'Pneumonia symptoms?', icon: '🫁' },
+  { label: 'How is pneumonia treated?', icon: '💊' },
+  { label: 'X-ray centers near me', icon: '📍' },
+  { label: 'Upload my report', icon: '📋' },
+];
+
 const DrAvatar = () => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hi! I'm Dr. Jarvis, your AI health assistant.\n\nI can help you with:\n\n• Understanding TB and Pneumonia\n• Explaining your X-ray or medical reports in simple words\n• Answering questions about symptoms and treatment\n• Breaking down AI findings from your chest X-rays\n• Finding nearby radiology centers, hospitals, or diagnostic labs\n\nImportant Reminder: I'm an AI assistant, not a real doctor. For any health concerns, always visit a real doctor or hospital for proper care.\n\nWhat would you like to know today?",
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState([{
+    id: 1,
+    text: "Hello! I'm Dr. Jarvis, your AI medical assistant.\n\nI specialize in Pneumonia — I can help you:\n\n• Understand Pneumonia symptoms, causes & stages\n• Explain your chest X-ray or medical report in simple language\n• Break down AI diagnosis findings\n• Find nearby radiology centers, hospitals, or diagnostic labs\n\n⚠️ I'm an AI assistant, not a licensed physician. Always consult a real doctor for diagnosis and treatment.\n\nHow can I assist you today?",
+    sender: 'bot',
+    timestamp: new Date(),
+  }]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -281,200 +244,150 @@ const DrAvatar = () => {
   const fileInputRef = useRef(null);
   const recognitionRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
+  const cachedCoordsRef = useRef(null); // cache geolocation for session
+
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      setVoiceEnabled(false);
-      return;
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) || !('speechSynthesis' in window)) {
+      setVoiceEnabled(false); return;
     }
-    if (!('speechSynthesis' in window)) {
-      setVoiceEnabled(false);
-      return;
-    }
-    if (synthRef.current.getVoices().length === 0) {
-      synthRef.current.addEventListener('voiceschanged', () => {});
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognitionRef.current = new SpeechRecognition();
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognitionRef.current = new SR();
     recognitionRef.current.continuous = false;
     recognitionRef.current.interimResults = false;
     recognitionRef.current.lang = 'en-US';
-
-    recognitionRef.current.onresult = (event) => {
-      setInputMessage(event.results[0][0].transcript);
-      setIsListening(false);
-    };
+    recognitionRef.current.onresult = (e) => { setInputMessage(e.results[0][0].transcript); setIsListening(false); };
     recognitionRef.current.onerror = () => setIsListening(false);
     recognitionRef.current.onend = () => setIsListening(false);
-
-    return () => {
-      recognitionRef.current?.stop();
-      synthRef.current?.cancel();
-    };
+    return () => { recognitionRef.current?.stop(); synthRef.current?.cancel(); };
   }, []);
-
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
   const speakText = (text) => {
     if (!voiceEnabled) return;
     synthRef.current.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1.2;
-    utterance.volume = 1;
+    const u = new SpeechSynthesisUtterance(text.replace(/[•\n*]/g, ' '));
+    u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
     const femaleVoice = synthRef.current.getVoices().find(v =>
-      ['female','woman','zira','susan','samantha','karen'].some(n => v.name.toLowerCase().includes(n))
-    );
-    if (femaleVoice) utterance.voice = femaleVoice;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    synthRef.current.speak(utterance);
+      ['female','woman','zira','susan','samantha','karen'].some(n => v.name.toLowerCase().includes(n)));
+    if (femaleVoice) u.voice = femaleVoice;
+    u.onstart = () => setIsSpeaking(true);
+    u.onend = () => setIsSpeaking(false);
+    u.onerror = () => setIsSpeaking(false);
+    synthRef.current.speak(u);
   };
 
   const stopSpeaking = () => { synthRef.current.cancel(); setIsSpeaking(false); };
 
   const startListening = () => {
     if (!recognitionRef.current) { alert('Voice input not supported. Try Chrome or Edge.'); return; }
-    if (!isListening) {
-      try { setIsListening(true); recognitionRef.current.start(); }
-      catch { setIsListening(false); }
-    }
+    if (!isListening) { try { setIsListening(true); recognitionRef.current.start(); } catch { setIsListening(false); } }
   };
+  const stopListening = () => { if (recognitionRef.current && isListening) { recognitionRef.current.stop(); setIsListening(false); } };
 
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) { recognitionRef.current.stop(); setIsListening(false); }
-  };
-
-  // ── Location query handler ──────────────────────────────────────────────────
+  // ── Location handler with caching + retry + fallback ──────────────────────
   const handleLocationQuery = async (locationInfo) => {
     try {
       let coords;
       if (locationInfo.cityKey) {
         coords = CITY_COORDS[locationInfo.cityKey];
+      } else if (cachedCoordsRef.current) {
+        coords = cachedCoordsRef.current;
       } else {
         coords = await getUserCoords();
+        cachedCoordsRef.current = coords;
       }
 
-      const places = await fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType);
+      let places = [];
+      try {
+        places = await fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType);
+      } catch {
+        // retry once
+        try { places = await fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType); }
+        catch { places = []; }
+      }
 
       setMessages(prev => [...prev, {
-        id: Date.now(),
-        type: 'location',
-        sender: 'bot',
-        timestamp: new Date(),
+        id: Date.now(), type: 'location', sender: 'bot', timestamp: new Date(),
         locationData: { places, center: coords, searchType: locationInfo.searchType },
       }]);
     } catch (err) {
-      let msg = "I couldn't retrieve nearby facilities. ";
-      if (err.code === 1)
-        msg += "Location access was denied. Please allow location access or specify a city (e.g. 'radiology centres in Islamabad').";
-      else if (err.message === 'NO_GEOLOCATION')
-        msg += "Your browser doesn't support location services. Try specifying a city name.";
-      else
-        msg += "Please try again or specify a city (e.g. 'hospitals in Karachi').";
-
-      setMessages(prev => [...prev, { id: Date.now(), text: msg, sender: 'bot', timestamp: new Date() }]);
+      const label = TYPE_LABELS[locationInfo.searchType] || 'Medical Centers';
+      const gmaps = `https://www.google.com/maps/search/${encodeURIComponent(label + ' near me')}`;
+      setMessages(prev => [...prev, {
+        id: Date.now(), type: 'location-fallback', sender: 'bot', timestamp: new Date(),
+        fallbackData: { label, gmaps },
+      }]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  // ── Main send handler ───────────────────────────────────────────────────────
+  // ── Send message ──────────────────────────────────────────────────────────
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    const text = inputMessage.trim();
+    if (!text) return;
 
-    const userText = inputMessage.trim();
-    setMessages(prev => [...prev, { id: Date.now(), text: userText, sender: 'user', timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: Date.now(), text, sender: 'user', timestamp: new Date() }]);
     setInputMessage('');
     setIsTyping(true);
 
-    // Intercept location queries
-    const locationInfo = detectLocationQuery(userText);
-    if (locationInfo) {
-      await handleLocationQuery(locationInfo);
-      return;
-    }
+    const locInfo = detectLocationQuery(text);
+    if (locInfo) { await handleLocationQuery(locInfo); return; }
 
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
-      const sessionId = userData.id || 'anonymous-' + Date.now();
-      const patientEmail = userData.email || null;
-
-      const response = await fetch('http://localhost:5000/api/chat/message', {
+      const res = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userText, sessionId, patientEmail }),
+        body: JSON.stringify({ message: text, sessionId: userData.id || 'anon-' + Date.now(), patientEmail: userData.email || null }),
       });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      const data = await response.json();
-
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now(), text: data.message, sender: 'bot', timestamp: new Date() }]);
-      if (voiceEnabled) setTimeout(() => speakText(data.message), 500);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: `Error: ${error.message}. Please check the console or try refreshing the page.`,
-        sender: 'bot',
-        timestamp: new Date()
-      }]);
+      if (voiceEnabled) setTimeout(() => speakText(data.message), 400);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), text: `Unable to reach AI service. Please check your connection and try again.`, sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const handleChipClick = (chip) => {
+    if (chip.label === 'Upload my report') { fileInputRef.current?.click(); return; }
+    setInputMessage(chip.label);
   };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      setMessages(prev => [...prev, {
-        id: Date.now(), text: "Please upload a valid medical report (JPG, PNG, or PDF only).",
-        sender: 'bot', timestamp: new Date()
-      }]);
+    const allowed = ['image/jpeg','image/jpg','image/png','application/pdf'];
+    if (!allowed.includes(file.type)) {
+      setMessages(prev => [...prev, { id: Date.now(), text: "Please upload a valid medical report (JPG, PNG, or PDF only).", sender: 'bot', timestamp: new Date() }]);
       return;
     }
-
-    setMessages(prev => [...prev, {
-      id: Date.now(), text: `📄 Uploading: ${file.name}...`,
-      sender: 'user', timestamp: new Date(), isFile: true
-    }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: `📄 Uploading: ${file.name}...`, sender: 'user', timestamp: new Date() }]);
     setIsTyping(true);
-
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
-      const sessionId = userData.id || 'anonymous-' + Date.now();
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('session_id', sessionId);
-      formData.append('patient_email', userData.email || '');
-
-      const response = await fetch('http://localhost:5000/api/medical-reports/upload', { method: 'POST', body: formData });
-      if (!response.ok) { const d = await response.json(); throw new Error(d.detail || 'Upload failed'); }
-      const data = await response.json();
-
-      setUploadedReport({ reportId: data.report_id, fileName: file.name, testType: data.test_type || 'Medical Report', extractedText: data.extracted_text || '', timestamp: new Date() });
-
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('session_id', userData.id || 'anon-' + Date.now());
+      fd.append('patient_email', userData.email || '');
+      const res = await fetch('http://localhost:5000/api/medical-reports/upload', { method: 'POST', body: fd });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Upload failed'); }
+      const data = await res.json();
+      setUploadedReport({ reportId: data.report_id, fileName: file.name, testType: data.test_type || 'Medical Report', timestamp: new Date() });
       setMessages(prev => [...prev, {
         id: Date.now(),
-        text: `✅ I've received and analyzed your ${data.test_type || 'medical report'}!\n\n📋 **What I can help you with:**\n• Explain the report findings in simple language\n• Clarify medical terms\n• Answer questions about the results\n• Provide general health information\n\n💬 **Try asking:**\n• "What does this report mean?"\n• "Is this serious?"\n• "What should I do next?"\n\n⚠️ **Important:** This is for information only. Always consult your doctor for medical advice.\n\nWhat would you like to know?`,
-        sender: 'bot', timestamp: new Date(), hasQuestions: true
+        text: `✅ Report received: ${data.test_type || 'Medical Report'}\n\nI've analyzed your document. You can now ask me:\n• What do the findings mean?\n• Is this result serious?\n• What should I do next?\n• Explain medical terms in the report\n\n⚠️ Always follow up with your physician for clinical decisions.`,
+        sender: 'bot', timestamp: new Date(), hasQuestions: true,
       }]);
       setShowQuestions(true);
-      if (voiceEnabled) setTimeout(() => speakText("I've received and analyzed your medical report. What would you like to know about it?"), 500);
-    } catch (error) {
-      setMessages(prev => [...prev, {
-        id: Date.now(), text: `❌ Upload failed: ${error.message}. Please ensure the file is clear and readable.`,
-        sender: 'bot', timestamp: new Date()
-      }]);
+      if (voiceEnabled) setTimeout(() => speakText("Report received. What would you like to know?"), 400);
+    } catch (err) {
+      setMessages(prev => [...prev, { id: Date.now(), text: `❌ Upload failed: ${err.message}`, sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
@@ -484,19 +397,18 @@ const DrAvatar = () => {
     setMessages(prev => [...prev, { id: Date.now(), text: question, sender: 'user', timestamp: new Date() }]);
     setIsTyping(true);
     setShowQuestions(false);
-
     try {
-      const response = await fetch('http://localhost:5000/api/chat/message', {
+      const res = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: question, reportContext: uploadedReport?.analysis || '' }),
       });
-      const data = await response.json();
+      const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now(), text: data.message, sender: 'bot', timestamp: new Date() }]);
-      if (voiceEnabled) setTimeout(() => speakText(data.message), 500);
-      setTimeout(() => setShowQuestions(true), 1000);
+      if (voiceEnabled) setTimeout(() => speakText(data.message), 400);
+      setTimeout(() => setShowQuestions(true), 800);
     } catch {
-      setMessages(prev => [...prev, { id: Date.now(), text: "I'm having trouble answering right now. Please try again.", sender: 'bot', timestamp: new Date() }]);
+      setMessages(prev => [...prev, { id: Date.now(), text: "Unable to process that right now. Please try again.", sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
@@ -504,133 +416,179 @@ const DrAvatar = () => {
 
   return (
     <PatientLayout>
-      <div className="dr-avatar-page-content">
-        <div className="chat-container">
-          {/* Chat Header */}
-          <div className="chat-header">
-            <div className="chat-header-content">
-              <h1 className="chat-title">Dr. Jarvis - Medical AI Assistant</h1>
-              <p className="chat-subtitle">Your AI Health Assistant • Available 24/7</p>
-            </div>
-          </div>
+      <div className="dra-page">
+        <div className="dra-layout">
 
-          {/* Chat Messages Area */}
-          <div className="chat-messages">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`message ${message.sender === 'bot' ? 'bot-message' : 'user-message'}`}
-              >
-                {message.type === 'location' ? (
-                  <LocationResultCard
-                    places={message.locationData.places}
-                    center={message.locationData.center}
-                    searchType={message.locationData.searchType}
-                  />
-                ) : (
-                  <div className="message-content">
-                    <p>{message.text}</p>
+          {/* ── Doctor Avatar Panel ─────────────────────────── */}
+          <aside className="dra-avatar-panel">
+            <div className="dra-avatar-ring">
+              <div className={`dra-avatar-wrap ${isSpeaking ? 'dra-speaking' : ''} ${isListening ? 'dra-listening' : ''}`}>
+                <img src="/images/doctoravatar.png" alt="Dr. Jarvis" className="dra-avatar-img" />
+              </div>
+              {(isSpeaking || isListening) && <div className="dra-avatar-pulse" />}
+            </div>
+
+            <div className="dra-doc-meta">
+              <h2 className="dra-doc-name">Dr. Jarvis</h2>
+              <p className="dra-doc-title">AI Medical Assistant</p>
+              <span className="dra-status-badge">
+                <span className="dra-status-dot" />
+                Online
+              </span>
+            </div>
+
+            <div className="dra-divider" />
+
+            <div className="dra-capabilities">
+              <p className="dra-cap-heading">Specializations</p>
+              {[
+                ['🫁','Pneumonia Analysis'],
+                ['📋','Report Interpretation'],
+                ['📍','Find Medical Centers'],
+                ['💊','Treatment Guidance'],
+                ['🔬','Symptom Assessment'],
+              ].map(([icon, text]) => (
+                <div key={text} className="dra-cap-item">
+                  <span className="dra-cap-icon">{icon}</span>
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="dra-divider" />
+
+            <div className="dra-quick-chips">
+              <p className="dra-cap-heading">Quick Ask</p>
+              {QUICK_CHIPS.map(chip => (
+                <button key={chip.label} className="dra-chip" onClick={() => handleChipClick(chip)}>
+                  {chip.icon} {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {isListening && <div className="dra-status-bar dra-listening-bar">🎤 Listening…</div>}
+            {isSpeaking && <div className="dra-status-bar dra-speaking-bar">🔊 Speaking…</div>}
+          </aside>
+
+          {/* ── Chat Panel ──────────────────────────────────── */}
+          <div className="dra-chat-panel">
+            <div className="dra-chat-header">
+              <div className="dra-chat-header-left">
+                <div className="dra-chat-header-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div>
+                  <h3>Medical AI Chat</h3>
+                  <span>Pneumonia Specialist · Available 24/7</span>
+                </div>
+              </div>
+              <div className="dra-chat-header-actions">
+                <button
+                  className={`dra-hdr-btn ${isListening ? 'active' : ''}`}
+                  onClick={isListening ? stopListening : startListening}
+                  title={isListening ? 'Stop listening' : 'Voice input'}
+                >
+                  {isListening
+                    ? <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.25"/><rect x="9" y="9" width="6" height="6"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  }
+                </button>
+                <button
+                  className={`dra-hdr-btn ${voiceEnabled ? 'active' : ''} ${isSpeaking ? 'speaking' : ''}`}
+                  onClick={() => { if (isSpeaking) stopSpeaking(); setVoiceEnabled(v => !v); }}
+                  title={voiceEnabled ? 'Voice output on' : 'Voice output off'}
+                >
+                  {voiceEnabled
+                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  }
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="dra-messages">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`dra-msg ${msg.sender === 'bot' ? 'dra-msg-bot' : 'dra-msg-user'}`}>
+                  {msg.sender === 'bot' && (
+                    <div className="dra-msg-avatar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    </div>
+                  )}
+                  <div className="dra-msg-body">
+                    {msg.type === 'location' ? (
+                      <LocationResultCard places={msg.locationData.places} center={msg.locationData.center} searchType={msg.locationData.searchType} />
+                    ) : msg.type === 'location-fallback' ? (
+                      <div className="dra-bubble">
+                        <p>📍 I couldn't access your location automatically.</p>
+                        <p>Search directly on Google Maps for <strong>{msg.fallbackData.label}</strong>:</p>
+                        <a href={msg.fallbackData.gmaps} target="_blank" rel="noopener noreferrer" className="dra-fallback-link">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                          Open Google Maps Search
+                        </a>
+                        <p className="dra-tip">💡 Tip: Try typing a city name, e.g. <em>"radiology centres in Islamabad"</em></p>
+                      </div>
+                    ) : (
+                      <div className="dra-bubble">
+                        <p>{msg.text}</p>
+                      </div>
+                    )}
+                    <span className="dra-msg-time">
+                      {msg.timestamp?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
-
-            {isTyping && (
-              <div className="message bot-message">
-                <div className="message-content typing-indicator">
-                  <span></span><span></span><span></span>
                 </div>
-              </div>
-            )}
+              ))}
 
-            {/* Quick Question Options */}
-            {showQuestions && uploadedReport && (
-              <div className="quick-questions">
-                <p className="questions-title">Quick Questions:</p>
-                <div className="question-buttons">
-                  {[
-                    "What does this report mean?",
-                    "Explain the AI findings in simple words",
-                    "What are these symptoms?",
-                    "What should I ask my doctor?",
-                    "What treatment options are available?",
-                    "Is this serious?"
-                  ].map(q => (
-                    <button key={q} className="question-btn" onClick={() => handleQuestionClick(q)}>{q}</button>
-                  ))}
+              {isTyping && (
+                <div className="dra-msg dra-msg-bot">
+                  <div className="dra-msg-avatar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  </div>
+                  <div className="dra-msg-body">
+                    <div className="dra-bubble dra-typing">
+                      <span /><span /><span />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div ref={messagesEndRef} />
-          </div>
+              {showQuestions && uploadedReport && (
+                <div className="dra-quick-q">
+                  <p>Quick questions about your report:</p>
+                  <div className="dra-quick-q-grid">
+                    {["What do the findings mean?","Is this result serious?","What should I do next?","Explain the medical terms","What are the treatment options?","What should I ask my doctor?"].map(q => (
+                      <button key={q} className="dra-q-btn" onClick={() => handleQuestionClick(q)}>{q}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* Chat Input Area */}
-          <div className="chat-input-container">
-            <div className="chat-input-info">
-              <span>Ask about TB/Pneumonia, upload reports, or find nearby radiology centers</span>
+              <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSendMessage} className="chat-input-form">
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png,.dcm" />
-
-              <button type="button" className="attach-btn" onClick={() => fileInputRef.current?.click()} title="Attach file">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              </button>
-
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask about your report, symptoms, or 'radiology centres near me'..."
-                className="message-input"
-              />
-
-              <button type="button" className={`voice-btn ${isListening ? 'listening' : ''}`} onClick={isListening ? stopListening : startListening} title={isListening ? "Stop listening" : "Voice input"}>
-                {isListening ? (
-                  <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.2" /><rect x="9" y="9" width="6" height="6" /></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>
-                )}
-              </button>
-
-              <button
-                type="button"
-                className={`voice-btn ${voiceEnabled ? 'active' : ''} ${isSpeaking ? 'speaking' : ''}`}
-                onClick={() => { if (isSpeaking) stopSpeaking(); setVoiceEnabled(!voiceEnabled); }}
-                title={voiceEnabled ? "Voice output enabled" : "Voice output disabled"}
-              >
-                {isSpeaking ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>
-                ) : voiceEnabled ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
-                )}
-              </button>
-
-              <button type="submit" className="send-btn" disabled={!inputMessage.trim()}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
-            </form>
-          </div>
-
-          {/* Doctor Avatar Image */}
-          <div className="floating-doctor">
-            <div className={`doctor-avatar-container ${isSpeaking ? 'speaking' : ''} ${isListening ? 'listening' : ''}`}>
-              <img src="/images/doctoravatar.png" alt="Dr. Jarvis" />
-              {isListening && <div className="listening-indicator">Listening...</div>}
-              {isSpeaking && <div className="speaking-indicator">Speaking...</div>}
-            </div>
-            <div className="avatar-message">
-              {isListening ? "Listening..." : isSpeaking ? "Dr. Jarvis is speaking..." : "Type or speak to Dr. Jarvis"}
+            {/* Input */}
+            <div className="dra-input-area">
+              <p className="dra-input-hint">Ask about Pneumonia, upload a report, or find nearby medical centers</p>
+              <form className="dra-input-form" onSubmit={handleSendMessage}>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" />
+                <button type="button" className="dra-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach report">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                </button>
+                <input
+                  type="text"
+                  className="dra-text-input"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder="Ask about Pneumonia symptoms, treatment, or 'radiology near me'…"
+                />
+                <button type="submit" className="dra-send-btn" disabled={!inputMessage.trim()}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+              </form>
             </div>
           </div>
+
         </div>
       </div>
     </PatientLayout>
