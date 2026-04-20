@@ -59,47 +59,48 @@ const getUserCoords = () =>
   });
 
 const fetchNearbyPlaces = async (lat, lon, searchType) => {
-  const r = 6000;
-  let filters;
-  if (searchType === 'radiology') {
-    filters = `
-      node["healthcare"="radiology"](around:${r},${lat},${lon});
-      node["amenity"="hospital"](around:${r},${lat},${lon});
-      way["amenity"="hospital"](around:${r},${lat},${lon});
-      node["healthcare"="laboratory"](around:${r},${lat},${lon});
-      node["name"~"radiol|x.ray|diagnostic|imaging|scan",i](around:${r},${lat},${lon});
-    `;
-  } else if (searchType === 'hospital') {
-    filters = `
-      node["amenity"="hospital"](around:${r},${lat},${lon});
-      way["amenity"="hospital"](around:${r},${lat},${lon});
-      node["amenity"="clinic"](around:${r},${lat},${lon});
-    `;
-  } else if (searchType === 'laboratory') {
-    filters = `
-      node["healthcare"="laboratory"](around:${r},${lat},${lon});
-      node["amenity"="hospital"](around:${r},${lat},${lon});
-      way["amenity"="hospital"](around:${r},${lat},${lon});
-      node["name"~"lab|diagnostic|patholog",i](around:${r},${lat},${lon});
-    `;
-  } else {
-    filters = `
-      node["amenity"="hospital"](around:${r},${lat},${lon});
-      way["amenity"="hospital"](around:${r},${lat},${lon});
-      node["amenity"="clinic"](around:${r},${lat},${lon});
-      node["healthcare"](around:${r},${lat},${lon});
-    `;
-  }
+  // 15 km radius — Pakistan OSM data is sparse so we cast wide
+  const r = 15000;
 
-  const query = `[out:json][timeout:25];(${filters});out center 10;`;
+  // Common broad filters (work well even with thin OSM data in Pakistan)
+  const broad = `
+    node["amenity"~"^(hospital|clinic|doctors|health_post)$"](around:${r},${lat},${lon});
+    way["amenity"~"^(hospital|clinic|doctors|health_post)$"](around:${r},${lat},${lon});
+    node["healthcare"](around:${r},${lat},${lon});
+    way["healthcare"](around:${r},${lat},${lon});
+    node["name"~"hospital|clinic|medical|health|shifa|shifakhana|centre|center",i](around:${r},${lat},${lon});
+    way["name"~"hospital|clinic|medical|health|shifa|shifakhana|centre|center",i](around:${r},${lat},${lon});
+  `;
+
+  // Type-specific extras
+  const specific = {
+    radiology: `
+      node["healthcare"~"radiology|laboratory"](around:${r},${lat},${lon});
+      node["name"~"radiol|x.ray|xray|diagnostic|imaging|scan|lab|idc|pims|pmrc",i](around:${r},${lat},${lon});
+      way["name"~"radiol|x.ray|xray|diagnostic|imaging|scan|lab|idc|pims|pmrc",i](around:${r},${lat},${lon});
+    `,
+    hospital: `
+      node["amenity"="hospital"](around:${r},${lat},${lon});
+      way["amenity"="hospital"](around:${r},${lat},${lon});
+    `,
+    laboratory: `
+      node["healthcare"~"laboratory|blood_bank"](around:${r},${lat},${lon});
+      node["name"~"lab|diagnostic|patholog|blood|test|idc|cpc",i](around:${r},${lat},${lon});
+      way["name"~"lab|diagnostic|patholog|blood|test|idc|cpc",i](around:${r},${lat},${lon});
+    `,
+  };
+
+  const filters = (specific[searchType] || '') + broad;
+  const query = `[out:json][timeout:30];(${filters});out center 15;`;
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const tid = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(
       `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
       { signal: controller.signal }
     );
-    clearTimeout(timeout);
+    clearTimeout(tid);
     if (!res.ok) throw new Error('Overpass error');
     const data = await res.json();
     const seen = new Set();
@@ -107,15 +108,16 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
       .filter(el => el.tags && el.tags.name && !seen.has(el.tags.name) && seen.add(el.tags.name))
       .map(el => ({
         name: el.tags.name,
-        address: [el.tags['addr:street'], el.tags['addr:housenumber'], el.tags['addr:city']].filter(Boolean).join(', ') || el.tags['addr:full'] || '',
+        address: [el.tags['addr:street'], el.tags['addr:housenumber'], el.tags['addr:city']]
+          .filter(Boolean).join(', ') || el.tags['addr:full'] || '',
         phone: el.tags.phone || el.tags['contact:phone'] || '',
         lat: el.lat ?? el.center?.lat,
         lon: el.lon ?? el.center?.lon,
       }))
       .filter(p => p.lat && p.lon)
-      .slice(0, 8);
+      .slice(0, 10);
   } catch (e) {
-    clearTimeout(timeout);
+    clearTimeout(tid);
     throw e;
   }
 };
@@ -175,7 +177,8 @@ const LocationResultCard = ({ places, center, searchType }) => {
     return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
   }, []); // eslint-disable-line
 
-  const gmapsSearch = `https://www.google.com/maps/search/${encodeURIComponent(label + ' near ' + center.lat + ',' + center.lon)}`;
+  // Coordinates-anchored Google Maps search (opens exactly at user's area)
+  const gmapsSearch = `https://www.google.com/maps/search/${encodeURIComponent(label)}/@${center.lat},${center.lon},14z`;
   const mapsLink = (p) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}`;
 
   return (
@@ -188,8 +191,12 @@ const LocationResultCard = ({ places, center, searchType }) => {
       <div ref={mapDivRef} className="dra-loc-map" />
       {places.length === 0 ? (
         <div className="dra-loc-empty">
-          <p>No results in OpenStreetMap for this area.</p>
-          <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-btn">Search on Google Maps →</a>
+          <p>OpenStreetMap has limited medical data for this area.</p>
+          <p className="dra-loc-empty-sub">Use Google Maps to find nearby centers — it will open centered on your location:</p>
+          <a href={gmapsSearch} target="_blank" rel="noopener noreferrer" className="dra-gmaps-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Open Google Maps → {label}
+          </a>
         </div>
       ) : (
         <div className="dra-loc-list">
@@ -323,6 +330,11 @@ const DrAvatar = () => {
     }
   };
 
+  // ── TB topic guard ─────────────────────────────────────────────────────────
+  const TB_REDIRECT = "I'm specialized in Pneumonia only and cannot answer questions about Tuberculosis (TB).\n\nFor TB-related concerns, please visit a pulmonologist or a government TB clinic.\n\nI can help you with:\n• Pneumonia symptoms, causes & stages\n• Understanding your chest X-ray\n• Finding nearby radiology or diagnostic centers\n• Pneumonia treatment & recovery\n\nWhat would you like to know about Pneumonia?";
+
+  const isTBQuery = (t) => /\b(tb|tuberculosis|tubercul)\b/i.test(t);
+
   // ── Send message ──────────────────────────────────────────────────────────
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -332,6 +344,15 @@ const DrAvatar = () => {
     setMessages(prev => [...prev, { id: Date.now(), text, sender: 'user', timestamp: new Date() }]);
     setInputMessage('');
     setIsTyping(true);
+
+    // TB guard — respond before hitting backend
+    if (isTBQuery(text)) {
+      setTimeout(() => {
+        setMessages(prev => [...prev, { id: Date.now(), text: TB_REDIRECT, sender: 'bot', timestamp: new Date() }]);
+        setIsTyping(false);
+      }, 600);
+      return;
+    }
 
     const locInfo = detectLocationQuery(text);
     if (locInfo) { await handleLocationQuery(locInfo); return; }

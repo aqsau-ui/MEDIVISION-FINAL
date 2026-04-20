@@ -735,8 +735,16 @@
   font-size: 0.82rem;
 }
 
+.dra-loc-empty-sub {
+  font-size: 0.73rem;
+  color: rgba(255,255,255,0.28);
+  margin: 4px 0 0;
+}
+
 .dra-gmaps-btn {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 10px;
   padding: 7px 16px;
   background: rgba(66,133,244,0.25);
