@@ -777,3 +777,173 @@
     padding: 1rem;
   }
 }
+
+/* ── Location Result Card ──────────────────────────────────────────────────── */
+
+.location-result-card {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.13);
+  width: 100%;
+  max-width: 520px;
+  font-size: 0.88rem;
+  border: 1px solid #e2e8f0;
+}
+
+.location-result-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #234E52, #2C7A7B);
+  color: #fff;
+}
+
+.location-result-header svg {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.location-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.location-count {
+  background: rgba(255,255,255,0.2);
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.location-map {
+  width: 100%;
+  height: 230px;
+  background: #e8f4f4;
+}
+
+.location-places-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.location-places-list::-webkit-scrollbar { width: 4px; }
+.location-places-list::-webkit-scrollbar-track { background: #f1f5f9; }
+.location-places-list::-webkit-scrollbar-thumb { background: #38B2AC; border-radius: 4px; }
+
+.location-place-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid #f0f4f8;
+  transition: background 0.15s;
+}
+
+.location-place-item:hover { background: #f7fffe; }
+.location-place-item:last-child { border-bottom: none; }
+
+.place-num {
+  background: #e53e3e;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.place-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-name {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: #1a202c;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-address,
+.place-phone {
+  font-size: 0.75rem;
+  color: #718096;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.place-directions-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #38B2AC;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.place-directions-btn:hover { background: #2C7A7B; color: #fff; }
+
+.location-no-results {
+  padding: 20px;
+  text-align: center;
+  color: #718096;
+}
+
+.loc-gmaps-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 7px 16px;
+  background: #4285F4;
+  color: white;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.loc-gmaps-btn:hover { background: #3367d6; color: #fff; }
+
+.location-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: #f7fafc;
+  border-top: 1px solid #e8edf2;
+  font-size: 0.72rem;
+  color: #a0aec0;
+}
+
+.location-footer a {
+  color: #4285F4;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.location-footer a:hover { text-decoration: underline; }
+
+/* Ensure bot-message with location card is full-width-ish */
+.bot-message .location-result-card {
+  margin: 0;
+}
