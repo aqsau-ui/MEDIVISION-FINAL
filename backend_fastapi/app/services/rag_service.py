@@ -29,26 +29,29 @@ class RAGService:
             "pneumonia": None
         }
         
-        self.system_prompt = """You are Dr. Jarvis — a friendly, casual AI buddy who specializes ONLY in pneumonia.
+        self.system_prompt = """You are Dr. Jarvis — a warm, casual AI doctor buddy who ONLY specializes in pneumonia.
 
 PERSONALITY:
-- Talk like a knowledgeable friend, never like a textbook
-- Start replies with casual openers: "Okay so here's the thing...", "Alright, so basically...", "Honestly?", "Good question!"
-- Use the patient's name when provided
-- Add natural fillers: "no worries", "totally normal to wonder", "real talk", "between us"
-- End with light engagement: "Does that make sense?", "Want me to dig deeper?", "You good?"
+- Talk like a knowledgeable friend texting you — never like a textbook
+- Start replies with casual openers: "Okay so here's the thing...", "Alright basically...", "Honestly?", "Good question!", "Real talk:"
+- Use the patient's name whenever you know it
+- Natural fillers: "no worries", "totally understandable", "between us", "real talk"
+- End with light engagement: "Make sense?", "Want me to dig deeper?", "You good?"
 
 SCOPE — PNEUMONIA ONLY:
-- ONLY answer questions about pneumonia, chest X-rays, breathing/lung issues, or finding medical facilities
-- If asked about tuberculosis, TB, or other diseases: "Ha, I'm a pneumonia-only specialist! For that you'd need a different doc. Anyway — any pneumonia questions I can help with?"
-- If asked something completely off-topic: answer briefly and warmly, then redirect: "Haha okay random but sure — [answer]. Anyway, back to you — any chest or breathing stuff on your mind?"
+- Answer questions about: pneumonia, chest X-rays, breathing/lung issues, report interpretation, finding medical facilities
+- If asked about TB or tuberculosis: "Oh ha, TB is outside my lane! I'm pneumonia-only. Try a government TB clinic for that. Any pneumonia questions?"
+- If asked about other diseases: "Oh that one's outside my zone! I only know pneumonia inside-out. Anything chest or breathing related I can help with?"
+- If asked casual chat (how are you, greetings, etc.): respond warmly in ONE sentence, then "Anyway — any pneumonia stuff on your mind?"
+- If asked about finding hospitals/clinics/labs: be helpful and encouraging, suggest they search on Google Maps or ask for location assistance
+- If asked about a report: analyze it in simple friendly language, explain findings, note what the doctor recommended
 
 RULES:
-- Keep it SHORT — 3-5 casual sentences max (unless more detail is requested)
-- NO medical jargon without explaining it simply right after
-- NEVER say "I'm an AI" or "consult a doctor" — just give useful info naturally
-- NEVER say someone definitely has a disease — use "sounds like it could be" or "might suggest"
-- Be warm, real, and helpful — like texting a doctor friend"""
+- SHORT — 2-4 casual sentences max (unless explaining something complex)
+- NO jargon without immediately explaining it simply
+- NEVER say "I'm an AI" or "consult a doctor" — give useful info naturally
+- NEVER diagnose definitively — "sounds like it could be" / "might suggest"
+- Be warm, real, helpful — like a knowledgeable friend"""
     
     async def initialize(self):
         """Load knowledge base files"""
@@ -177,26 +180,30 @@ RULES:
     def get_fallback_response(self, query: str) -> str:
         """Get fallback response when AI is unavailable"""
         query_lower = query.lower()
-        
-        # Greeting responses
-        greetings = ['hi', 'hello', 'hey', 'greetings']
+
+        greetings = ['hi', 'hello', 'hey', 'greetings', 'sup', 'yo']
         if any(g in query_lower for g in greetings):
-            return "Hello! I'm Dr. Jarvis, your AI health assistant. I can help you with questions about TB and pneumonia. What would you like to know?"
-        
-        # TB related
+            return "Hey! I'm Dr. Jarvis, your pneumonia buddy. Ask me anything about pneumonia, chest X-rays, or finding nearby clinics!"
+
+        casual = ['how are you', 'how r you', 'what are you', 'who are you', 'what day', 'what time', 'how old']
+        if any(c in query_lower for c in casual):
+            return "Ha, doing great thanks! I'm Dr. Jarvis — your pneumonia specialist AI. Anyway, any chest or breathing questions I can help with?"
+
         if 'tb' in query_lower or 'tuberculosis' in query_lower:
-            return "Tuberculosis (TB) is a bacterial infection that mainly affects the lungs. Common symptoms include persistent cough, fever, night sweats, and weight loss. It's treatable with antibiotics. Would you like to know more about specific symptoms or treatment?"
-        
-        # Pneumonia related
+            return "Oh, TB is outside my lane! I only specialise in pneumonia. For TB, try a government TB clinic. Any pneumonia questions I can help with?"
+
         if 'pneumonia' in query_lower:
-            return "Pneumonia is a lung infection that can be caused by bacteria, viruses, or fungi. Symptoms include cough, fever, chest pain, and difficulty breathing. Treatment depends on the cause. What specific aspect would you like to know about?"
-        
-        # Cancer question
-        if 'cancer' in query_lower:
-            return "I specialize in TB and pneumonia. For other health concerns like cancer, please consult your doctor."
-        
-        # Default
-        return "I can help with questions about TB and pneumonia. Could you please ask about these conditions or their symptoms, diagnosis, or treatment?"
+            return "Good question! Pneumonia is a lung infection — bacteria, viruses, or fungi can cause it. Main symptoms: cough, fever, chest pain, trouble breathing. What specifically would you like to know?"
+
+        hospital_kw = ['hospital', 'clinic', 'doctor', 'lab', 'diagnostic', 'radiol', 'medical center']
+        if any(k in query_lower for k in hospital_kw):
+            return "For finding nearby medical facilities, try searching on Google Maps — type the facility type + your city name. Or ask me 'hospitals near me' and I'll try to locate some for you!"
+
+        off_topic = ['cancer', 'diabetes', 'heart', 'blood pressure', 'sugar', 'kidney', 'liver', 'covid', 'flu', 'cold']
+        if any(k in query_lower for k in off_topic):
+            return "Oh, that's not really my specialty zone! I'm a pneumonia-only kind of doctor. For other conditions, a general physician would be much better. Any pneumonia questions?"
+
+        return "Alright, I'm all ears! I specialise in pneumonia — symptoms, chest X-rays, treatment, and finding nearby clinics. What would you like to know?"
 
 # Global RAG service instance
 rag_service = RAGService()

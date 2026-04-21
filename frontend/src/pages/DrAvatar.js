@@ -3,20 +3,117 @@ import PatientLayout from '../components/PatientLayout';
 import AnimatedDoctorAvatar from './DoctorAvatarSVG';
 import './DrAvatar.css';
 
-// ─── Location helpers ─────────────────────────────────────────────────────────
-
+// ─── Worldwide city coords ─────────────────────────────────────────────────────
 const CITY_COORDS = {
-  islamabad:  { lat: 33.6844, lon: 73.0479 },
-  isb:        { lat: 33.6844, lon: 73.0479 },
-  rawalpindi: { lat: 33.5651, lon: 73.0169 },
-  rwp:        { lat: 33.5651, lon: 73.0169 },
-  karachi:    { lat: 24.8607, lon: 67.0011 },
-  lahore:     { lat: 31.5204, lon: 74.3587 },
-  peshawar:   { lat: 34.0151, lon: 71.5249 },
-  quetta:     { lat: 30.1798, lon: 66.9750 },
-  multan:     { lat: 30.1575, lon: 71.5249 },
-  faisalabad: { lat: 31.4180, lon: 73.0790 },
-  hyderabad:  { lat: 25.3960, lon: 68.3578 },
+  // Pakistan
+  islamabad:   { lat: 33.6844, lon: 73.0479 },
+  isb:         { lat: 33.6844, lon: 73.0479 },
+  rawalpindi:  { lat: 33.5651, lon: 73.0169 },
+  rwp:         { lat: 33.5651, lon: 73.0169 },
+  karachi:     { lat: 24.8607, lon: 67.0011 },
+  lahore:      { lat: 31.5204, lon: 74.3587 },
+  peshawar:    { lat: 34.0151, lon: 71.5249 },
+  quetta:      { lat: 30.1798, lon: 66.9750 },
+  multan:      { lat: 30.1575, lon: 71.5249 },
+  faisalabad:  { lat: 31.4180, lon: 73.0790 },
+  sialkot:     { lat: 32.4945, lon: 74.5229 },
+  gujranwala:  { lat: 32.1877, lon: 74.1945 },
+  abbottabad:  { lat: 34.1558, lon: 73.2194 },
+  balochistan: { lat: 30.1798, lon: 66.9750 },
+  sindh:       { lat: 24.8607, lon: 67.0011 },
+  punjab:      { lat: 31.5204, lon: 74.3587 },
+  kpk:         { lat: 34.0151, lon: 71.5249 },
+  // India
+  delhi:       { lat: 28.7041, lon: 77.1025 },
+  'new delhi': { lat: 28.6139, lon: 77.2090 },
+  mumbai:      { lat: 19.0760, lon: 72.8777 },
+  bangalore:   { lat: 12.9716, lon: 77.5946 },
+  bengaluru:   { lat: 12.9716, lon: 77.5946 },
+  chennai:     { lat: 13.0827, lon: 80.2707 },
+  kolkata:     { lat: 22.5726, lon: 88.3639 },
+  pune:        { lat: 18.5204, lon: 73.8567 },
+  ahmedabad:   { lat: 23.0225, lon: 72.5714 },
+  jaipur:      { lat: 26.9124, lon: 75.7873 },
+  // UAE
+  dubai:       { lat: 25.2048, lon: 55.2708 },
+  'abu dhabi': { lat: 24.4539, lon: 54.3773 },
+  sharjah:     { lat: 25.3462, lon: 55.4211 },
+  // UK
+  london:      { lat: 51.5074, lon: -0.1278 },
+  manchester:  { lat: 53.4808, lon: -2.2426 },
+  birmingham:  { lat: 52.4862, lon: -1.8904 },
+  glasgow:     { lat: 55.8642, lon: -4.2518 },
+  edinburgh:   { lat: 55.9533, lon: -3.1883 },
+  leeds:       { lat: 53.8008, lon: -1.5491 },
+  liverpool:   { lat: 53.4084, lon: -2.9916 },
+  // USA
+  'new york':  { lat: 40.7128, lon: -74.0060 },
+  'los angeles':{ lat: 34.0522, lon: -118.2437 },
+  chicago:     { lat: 41.8781, lon: -87.6298 },
+  houston:     { lat: 29.7604, lon: -95.3698 },
+  phoenix:     { lat: 33.4484, lon: -112.0740 },
+  dallas:      { lat: 32.7767, lon: -96.7970 },
+  austin:      { lat: 30.2672, lon: -97.7431 },
+  boston:      { lat: 42.3601, lon: -71.0589 },
+  seattle:     { lat: 47.6062, lon: -122.3321 },
+  miami:       { lat: 25.7617, lon: -80.1918 },
+  atlanta:     { lat: 33.7490, lon: -84.3880 },
+  denver:      { lat: 39.7392, lon: -104.9903 },
+  virginia:    { lat: 37.4316, lon: -78.6569 },
+  california:  { lat: 36.7783, lon: -119.4179 },
+  texas:       { lat: 31.9686, lon: -99.9018 },
+  florida:     { lat: 27.6648, lon: -81.5158 },
+  // Canada
+  toronto:     { lat: 43.6532, lon: -79.3832 },
+  vancouver:   { lat: 49.2827, lon: -123.1207 },
+  montreal:    { lat: 45.5017, lon: -73.5673 },
+  calgary:     { lat: 51.0447, lon: -114.0719 },
+  // Australia
+  sydney:      { lat: -33.8688, lon: 151.2093 },
+  melbourne:   { lat: -37.8136, lon: 144.9631 },
+  brisbane:    { lat: -27.4698, lon: 153.0251 },
+  perth:       { lat: -31.9505, lon: 115.8605 },
+  // Saudi Arabia
+  riyadh:      { lat: 24.7136, lon: 46.6753 },
+  jeddah:      { lat: 21.5433, lon: 39.1728 },
+  mecca:       { lat: 21.3891, lon: 39.8579 },
+  medina:      { lat: 24.5247, lon: 39.5692 },
+  // Europe
+  paris:       { lat: 48.8566, lon: 2.3522 },
+  berlin:      { lat: 52.5200, lon: 13.4050 },
+  rome:        { lat: 41.9028, lon: 12.4964 },
+  madrid:      { lat: 40.4168, lon: -3.7038 },
+  amsterdam:   { lat: 52.3676, lon: 4.9041 },
+  vienna:      { lat: 48.2082, lon: 16.3738 },
+  istanbul:    { lat: 41.0082, lon: 28.9784 },
+  moscow:      { lat: 55.7558, lon: 37.6173 },
+  // Asia
+  tokyo:       { lat: 35.6762, lon: 139.6503 },
+  beijing:     { lat: 39.9042, lon: 116.4074 },
+  shanghai:    { lat: 31.2304, lon: 121.4737 },
+  singapore:   { lat: 1.3521,  lon: 103.8198 },
+  bangkok:     { lat: 13.7563, lon: 100.5018 },
+  'kuala lumpur':{ lat: 3.1390, lon: 101.6869 },
+  jakarta:     { lat: -6.2088, lon: 106.8456 },
+  manila:      { lat: 14.5995, lon: 120.9842 },
+  seoul:       { lat: 37.5665, lon: 126.9780 },
+  'hong kong': { lat: 22.3193, lon: 114.1694 },
+  dhaka:       { lat: 23.8103, lon: 90.4125 },
+  colombo:     { lat: 6.9271,  lon: 79.8612 },
+  tehran:      { lat: 35.6892, lon: 51.3890 },
+  doha:        { lat: 25.2854, lon: 51.5310 },
+  kuwait:      { lat: 29.3759, lon: 47.9774 },
+  // Africa
+  cairo:       { lat: 30.0444, lon: 31.2357 },
+  nairobi:     { lat: -1.2921, lon: 36.8219 },
+  lagos:       { lat: 6.5244,  lon: 3.3792 },
+  johannesburg:{ lat: -26.2041, lon: 28.0473 },
+  'cape town': { lat: -33.9249, lon: 18.4241 },
+  casablanca:  { lat: 33.5731, lon: -7.5898 },
+  // Americas
+  'mexico city':{ lat: 19.4326, lon: -99.1332 },
+  'sao paulo': { lat: -23.5505, lon: -46.6333 },
+  'buenos aires':{ lat: -34.6037, lon: -58.3816 },
 };
 
 const TYPE_LABELS = {
@@ -26,27 +123,50 @@ const TYPE_LABELS = {
   medical:    'Medical Facilities',
 };
 
+// ── Detect location query (supports "hospitals in [city]" worldwide) ──────────
 const detectLocationQuery = (text) => {
   const lower = text.toLowerCase();
-  const medicalKw = ['radiol','x-ray','xray','x ray','hospital','diagnostic',' lab ','laboratory','clinic','medical center','medical centre','scan center','scan centre','imaging','mri','ct scan','ultrasound'];
-  const locationKw = ['near me','nearby','near by','close by','around me','in my area','find','near','close to','locate','show me','where'];
+  const medicalKw = [
+    'radiol','x-ray','xray','x ray','hospital','diagnostic','lab ','laboratory',
+    'clinic','medical center','medical centre','scan center','scan centre','imaging',
+    'mri','ct scan','ultrasound','doctor','specialist','physician','dentist','pharmacy',
+    'health center','health centre',
+  ];
+  const nearMeKw = ['near me','nearby','near by','close by','around me','in my area','close to me'];
+  const inKw = ['near','in ','at ','around ','find ','show me'];
 
   const hasMedical = medicalKw.some(k => lower.includes(k));
   if (!hasMedical) return null;
 
   const cityKey = Object.keys(CITY_COORDS).find(c => lower.includes(c));
-  const hasLocationKw = locationKw.some(k => lower.includes(k));
-  if (!cityKey && !hasLocationKw) return null;
+  const hasNearMe = nearMeKw.some(k => lower.includes(k));
+  const hasIn = inKw.some(k => lower.includes(k));
+
+  if (!cityKey && !hasNearMe && !hasIn) return null;
+
+  // Extract unknown city name after "in/near/at" for geocoding
+  let inCity = null;
+  if (!cityKey && hasIn) {
+    const locMatch = /\b(?:in|near|at|around)\s+([A-Za-z][A-Za-z\s]{1,28}?)(?:\s*$|\s*[?.,!]|\s+(?:and|or|for|but|please))/i.exec(text);
+    if (locMatch) inCity = locMatch[1].trim();
+  }
 
   let searchType = 'medical';
-  if (lower.includes('radiol') || lower.includes('xray') || lower.includes('x-ray') || lower.includes('x ray') || lower.includes('imaging'))
+  if (lower.includes('radiol') || lower.includes('xray') || lower.includes('x-ray') || lower.includes('x ray') || lower.includes('imaging') || lower.includes('scan'))
     searchType = 'radiology';
   else if (lower.includes('hospital'))
     searchType = 'hospital';
-  else if (lower.includes('lab') || lower.includes('diagnostic'))
+  else if (lower.includes('lab') || lower.includes('diagnostic') || lower.includes('patholog'))
     searchType = 'laboratory';
+  else if (lower.includes('clinic') || lower.includes('doctor') || lower.includes('specialist') || lower.includes('physician'))
+    searchType = 'hospital';
 
-  return { searchType, cityKey: cityKey || null };
+  return {
+    searchType,
+    cityKey:      cityKey || null,
+    inCity:       !cityKey ? inCity : null,
+    showDistance: hasNearMe && !cityKey, // only GPS queries show distance
+  };
 };
 
 const getUserCoords = () =>
@@ -59,76 +179,91 @@ const getUserCoords = () =>
     );
   });
 
+// ── Geocode any place name via Nominatim ──────────────────────────────────────
+const geocodePlace = async (place) => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1&accept-language=en`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'MEDIVISION/1.0' } });
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!data[0]) return null;
+    return {
+      lat: parseFloat(data[0].lat),
+      lon: parseFloat(data[0].lon),
+      displayName: data[0].display_name.split(',')[0].trim(),
+    };
+  } catch { return null; }
+};
+
 // ── Overpass source ───────────────────────────────────────────────────────────
 const _overpass = async (lat, lon, searchType) => {
-  const r = 20000; // 20 km — cast very wide for Pakistan
-
-  // Broad catch-all: every amenity/healthcare element in area + name-based search
+  const r = 20000;
   const filters = `
     node["amenity"](around:${r},${lat},${lon});
     way["amenity"](around:${r},${lat},${lon});
     node["healthcare"](around:${r},${lat},${lon});
     way["healthcare"](around:${r},${lat},${lon});
-    node["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|shifa|doctor|centre|center|scan|imag|pims|idc|agha|liaquat|services|poly",i](around:${r},${lat},${lon});
-    way["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|shifa|doctor|centre|center|scan|imag|pims|idc|agha|liaquat|services|poly",i](around:${r},${lat},${lon});
+    node["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|doctor|centre|center|scan|imag",i](around:${r},${lat},${lon});
+    way["name"~"hospit|clinic|lab|diagnost|radiol|medical|health|pharma|doctor|centre|center|scan|imag",i](around:${r},${lat},${lon});
   `;
   const query = `[out:json][timeout:30];(${filters});out center 30;`;
-
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), 14000);
-  const res = await fetch(
-    `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
-    { signal: ctrl.signal }
-  );
-  clearTimeout(tid);
-  if (!res.ok) throw new Error('overpass');
-  const data = await res.json();
+  try {
+    const res = await fetch(
+      `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(tid);
+    if (!res.ok) throw new Error('overpass');
+    const data = await res.json();
+    const medAmenities = new Set(['hospital','clinic','doctors','health_post','dentist','pharmacy']);
+    const typeRe = {
+      radiology:  /radiol|xray|x.ray|diagnostic|imaging|scan|lab/i,
+      hospital:   /hospit|clinic|medical|health/i,
+      laboratory: /lab|diagnost|patholog|blood/i,
+      medical:    /hospit|clinic|medical|health/i,
+    }[searchType] || /hospit|clinic|medical|health/i;
 
-  const medAmenities = new Set(['hospital','clinic','doctors','health_post','dentist','pharmacy']);
-  const typeRe = {
-    radiology:  /radiol|xray|x.ray|diagnostic|imaging|scan|lab|idc|pims/i,
-    hospital:   /hospit|clinic|medical|health|shifa|poly|services/i,
-    laboratory: /lab|diagnost|patholog|blood|cpc|idc/i,
-    medical:    /hospit|clinic|medical|health|shifa/i,
-  }[searchType] || /hospit|clinic|medical|health/i;
-
-  const seen = new Set();
-  return data.elements
-    .filter(el => {
-      if (!el.tags?.name || seen.has(el.tags.name)) return false;
-      const a = el.tags.amenity || '', hc = el.tags.healthcare || '', n = el.tags.name;
-      const ok = medAmenities.has(a) || hc || typeRe.test(n);
-      if (ok) seen.add(n);
-      return ok;
-    })
-    .map(el => ({
-      name: el.tags.name,
-      address: [el.tags['addr:street'], el.tags['addr:city']].filter(Boolean).join(', ') || '',
-      phone: el.tags.phone || el.tags['contact:phone'] || '',
-      lat: el.lat ?? el.center?.lat,
-      lon: el.lon ?? el.center?.lon,
-    }))
-    .filter(p => p.lat && p.lon)
-    .slice(0, 10);
+    const seen = new Set();
+    return data.elements
+      .filter(el => {
+        if (!el.tags?.name || seen.has(el.tags.name)) return false;
+        const a = el.tags.amenity || '', hc = el.tags.healthcare || '';
+        const ok = medAmenities.has(a) || hc || typeRe.test(el.tags.name);
+        if (ok) seen.add(el.tags.name);
+        return ok;
+      })
+      .map(el => ({
+        name: el.tags.name,
+        address: [el.tags['addr:street'], el.tags['addr:city']].filter(Boolean).join(', ') || '',
+        phone: el.tags.phone || el.tags['contact:phone'] || '',
+        lat: el.lat ?? el.center?.lat,
+        lon: el.lon ?? el.center?.lon,
+      }))
+      .filter(p => p.lat && p.lon)
+      .slice(0, 10);
+  } catch { clearTimeout(tid); return []; }
 };
 
-// ── Nominatim source (fallback / supplement) ──────────────────────────────────
+// ── Nominatim source — worldwide, no country restriction ──────────────────────
 const _nominatim = async (lat, lon, searchType) => {
   const queries = {
-    radiology:  ['diagnostic center','radiology clinic','x-ray lab'],
-    hospital:   ['hospital','medical clinic'],
-    laboratory: ['diagnostic laboratory','blood test lab'],
-    medical:    ['hospital','medical center'],
+    radiology:  ['diagnostic center', 'radiology clinic', 'x-ray lab'],
+    hospital:   ['hospital', 'medical clinic'],
+    laboratory: ['diagnostic laboratory', 'blood test lab'],
+    medical:    ['hospital', 'medical center'],
   }[searchType] || ['hospital'];
 
-  const delta = 0.18; // ~20 km box
-  const vb = `${lon-delta},${lat+delta},${lon+delta},${lat-delta}`;
+  const delta = 0.18;
+  const vb = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
   const seen = new Set();
   const results = [];
 
   for (const q of queries.slice(0, 2)) {
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&bounded=1&viewbox=${vb}&countrycodes=pk&addressdetails=1&accept-language=en`;
+      // No countrycodes restriction — works worldwide
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=8&bounded=1&viewbox=${vb}&addressdetails=1&accept-language=en`;
       const r = await fetch(url, { headers: { 'User-Agent': 'MEDIVISION/1.0' } });
       if (!r.ok) continue;
       const data = await r.json();
@@ -138,7 +273,7 @@ const _nominatim = async (lat, lon, searchType) => {
         seen.add(name);
         results.push({
           name,
-          address: item.display_name.split(',').slice(1,3).join(', ').trim(),
+          address: item.display_name.split(',').slice(1, 3).join(', ').trim(),
           phone: '',
           lat: parseFloat(item.lat),
           lon: parseFloat(item.lon),
@@ -150,7 +285,7 @@ const _nominatim = async (lat, lon, searchType) => {
   return results.filter(p => p.lat && p.lon).slice(0, 8);
 };
 
-// ── Reverse geocode to get user's area name ───────────────────────────────────
+// ── Reverse geocode ───────────────────────────────────────────────────────────
 const reverseGeocode = async (lat, lon) => {
   try {
     const res = await fetch(
@@ -159,26 +294,23 @@ const reverseGeocode = async (lat, lon) => {
     );
     const data = await res.json();
     const a = data.address || {};
-    // Build a human-readable area name, e.g. "Bahria Town, Rawalpindi"
     const sub  = a.suburb || a.neighbourhood || a.quarter || '';
     const town = a.city || a.town || a.county || a.state_district || '';
     return [sub, town].filter(Boolean).join(', ') || '';
-  } catch {
-    return '';
-  }
+  } catch { return ''; }
 };
 
-// ── Haversine distance in km ──────────────────────────────────────────────────
+// ── Haversine ─────────────────────────────────────────────────────────────────
 const haversineKm = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2)**2
-    + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// ── Combined fetch: Overpass + Nominatim in parallel, sorted by distance ──────
+// ── Combined fetch ────────────────────────────────────────────────────────────
 const fetchNearbyPlaces = async (lat, lon, searchType) => {
   const [ovR, nomR] = await Promise.allSettled([
     _overpass(lat, lon, searchType),
@@ -186,17 +318,15 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
   ]);
   const ov  = ovR.status  === 'fulfilled' ? ovR.value  : [];
   const nom = nomR.status === 'fulfilled' ? nomR.value : [];
-
   const seen = new Set();
   return [...ov, ...nom]
     .filter(p => p.lat && p.lon && !seen.has(p.name) && seen.add(p.name))
     .map(p => ({ ...p, distKm: haversineKm(lat, lon, p.lat, p.lon) }))
-    .sort((a, b) => a.distKm - b.distKm)   // nearest first
+    .sort((a, b) => a.distKm - b.distKm)
     .slice(0, 10);
 };
 
-// ─── Location Result Card (dark glass themed) ─────────────────────────────────
-
+// ─── Location Result Card (no Leaflet — pure links) ───────────────────────────
 const GMAPS_CATEGORIES = [
   { key: 'hospital',   emoji: '🏥', label: 'Hospitals' },
   { key: 'clinic',     emoji: '🩺', label: 'Clinics' },
@@ -204,125 +334,68 @@ const GMAPS_CATEGORIES = [
   { key: 'diagnostic', emoji: '🔬', label: 'Diagnostic Labs' },
 ];
 
-const LocationResultCard = ({ places, center, searchType, areaName }) => {
-  const mapDivRef = useRef(null);
-  const mapRef = useRef(null);
+const LocationResultCard = ({ places, center, searchType, areaName, showDistance }) => {
   const label = TYPE_LABELS[searchType] || 'Medical Facilities';
   const locationHint = areaName ? ` near ${areaName}` : '';
 
-  useEffect(() => {
-    if (!mapDivRef.current || mapRef.current) return;
-    const initMap = () => {
-      const L = window.L;
-      if (!L || !mapDivRef.current) return;
-      const map = L.map(mapDivRef.current, { zoomControl: true, scrollWheelZoom: false })
-        .setView([center.lat, center.lon], 13);
-      mapRef.current = map;
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap', maxZoom: 18,
-      }).addTo(map);
-
-      const userIcon = L.divIcon({
-        html: '<div style="background:#38B2AC;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(56,178,172,0.9)"></div>',
-        iconSize: [14,14], iconAnchor: [7,7], className: '',
-      });
-      L.marker([center.lat, center.lon], { icon: userIcon }).addTo(map).bindPopup('<b>📍 Your Location</b>');
-
-      const bounds = [[center.lat, center.lon]];
-      places.forEach((place, i) => {
-        if (!place.lat || !place.lon) return;
-        bounds.push([place.lat, place.lon]);
-        const icon = L.divIcon({
-          html: `<div style="background:#e53e3e;color:white;width:24px;height:24px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${i+1}</div>`,
-          iconSize: [24,24], iconAnchor: [12,12], className: '',
-        });
-        L.marker([place.lat, place.lon], { icon })
-          .addTo(map)
-          .bindPopup(`<b>${place.name}</b>${place.address ? '<br><small>'+place.address+'</small>' : ''}`);
-      });
-      if (bounds.length > 1) map.fitBounds(bounds, { padding: [28,28], maxZoom: 14 });
-    };
-
-    if (window.L) { initMap(); return; }
-    if (!document.querySelector('link[href*="leaflet"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = initMap;
-    document.head.appendChild(script);
-
-    return () => { if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; } };
-  }, []); // eslint-disable-line
-
-  // Coordinates-anchored links — include area name for maximum specificity
   const gmapsUrl = (term) => {
     const q = areaName ? `${term} ${areaName}` : term;
     return `https://www.google.com/maps/search/${encodeURIComponent(q)}/@${center.lat},${center.lon},14z`;
   };
-  const gmapsSearch = gmapsUrl(label);
-  const mapsLink = (p) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}`;
+  const mapsLink = (p) =>
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}`;
 
   return (
     <div className="dra-loc-card">
       <div className="dra-loc-header">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
         <span className="dra-loc-label">{label}{locationHint}</span>
         {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
 
-      {/* Map — shows exact GPS pin */}
-      <div ref={mapDivRef} className="dra-loc-map" />
-
-      {/* Google Maps quick-search grid — always shown, uses area name + coords */}
+      {/* Google Maps quick-search grid */}
       <div className="dra-gmaps-section">
         <p className="dra-gmaps-section-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
           Search on Google Maps{areaName ? ` · ${areaName}` : ''}
         </p>
         <div className="dra-gmaps-grid">
           {GMAPS_CATEGORIES.map(cat => (
-            <a
-              key={cat.key}
-              href={gmapsUrl(cat.label)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="dra-gmaps-chip"
-            >
-              <span>{cat.emoji}</span>
-              <span>{cat.label}</span>
+            <a key={cat.key} href={gmapsUrl(cat.label)} target="_blank" rel="noopener noreferrer" className="dra-gmaps-chip">
+              <span>{cat.emoji}</span><span>{cat.label}</span>
             </a>
           ))}
         </div>
       </div>
 
-      {/* OSM results (supplementary) */}
+      {/* OSM results list */}
       {places.length > 0 && (
         <>
-          <div className="dra-osm-label">Also found in OpenStreetMap:</div>
+          <div className="dra-osm-label">Also found nearby:</div>
           <div className="dra-loc-list">
             {places.map((place, i) => (
               <div key={i} className="dra-loc-item">
-                <div className="dra-loc-num">{i+1}</div>
+                <div className="dra-loc-num">{i + 1}</div>
                 <div className="dra-loc-info">
                   <div className="dra-loc-name-row">
                     <h4>{place.name}</h4>
-                    {place.distKm != null && (
+                    {showDistance && place.distKm != null && (
                       <span className={`dra-dist-badge ${place.distKm < 3 ? 'near' : place.distKm < 7 ? 'mid' : 'far'}`}>
-                        {place.distKm < 1
-                          ? `${Math.round(place.distKm * 1000)} m`
-                          : `${place.distKm.toFixed(1)} km`}
+                        {place.distKm < 1 ? `${Math.round(place.distKm * 1000)} m` : `${place.distKm.toFixed(1)} km`}
                       </span>
                     )}
                   </div>
                   {place.address && <p>📍 {place.address}</p>}
-                  {place.phone && <p>📞 {place.phone}</p>}
+                  {place.phone   && <p>📞 {place.phone}</p>}
                 </div>
                 <a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" className="dra-dir-btn">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                  </svg>
                   Go
                 </a>
               </div>
@@ -333,7 +406,7 @@ const LocationResultCard = ({ places, center, searchType, areaName }) => {
 
       <div className="dra-loc-footer">
         <span>© OpenStreetMap · Google Maps</span>
-        <a href={gmapsSearch} target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>
+        <a href={gmapsUrl(label)} target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>
       </div>
     </div>
   );
@@ -341,14 +414,6 @@ const LocationResultCard = ({ places, center, searchType, areaName }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const QUICK_CHIPS = [
-  { label: 'Pneumonia symptoms?', icon: '🫁' },
-  { label: 'How is pneumonia treated?', icon: '💊' },
-  { label: 'X-ray centers near me', icon: '📍' },
-  { label: 'Upload my report', icon: '📋' },
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const getPatientName = () => {
   try {
     const d = JSON.parse(localStorage.getItem('patientData') || '{}');
@@ -357,9 +422,9 @@ const getPatientName = () => {
 };
 
 const detectGesture = (text) => {
-  if (/upload|reading|check|review|analyz|report|x.ray|file|look at/i.test(text))  return 'read';
-  if (/think|wonder|consider|actually|hmm|well |you know/i.test(text))              return 'think';
-  if (/great|perfect|good|excellent|wonder|congrat|well done|sure|exactly|absolut/i.test(text)) return 'thumbsup';
+  if (/upload|reading|check|review|analyz|report|x.ray|file|look at/i.test(text)) return 'read';
+  if (/think|wonder|consider|actually|hmm|well |you know/i.test(text))             return 'think';
+  if (/great|perfect|good|excellent|congrat|well done|sure|exactly|absolut/i.test(text)) return 'thumbsup';
   if (/explain|means|basically|here.s|understand|important|because|symptom|treatment/i.test(text)) return 'explain';
   return 'idle';
 };
@@ -384,16 +449,16 @@ const DrAvatar = () => {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  // ── Speech recognition setup ──────────────────────────────────────────────
+  // ── Speech recognition ────────────────────────────────────────────────────
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) || !('speechSynthesis' in window)) {
       setVoiceEnabled(false); return;
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SR();
-    recognitionRef.current.continuous    = false;
+    recognitionRef.current.continuous     = false;
     recognitionRef.current.interimResults = false;
-    recognitionRef.current.lang          = 'en-US';
+    recognitionRef.current.lang           = 'en-US';
     recognitionRef.current.onresult = (e) => { setInputMessage(e.results[0][0].transcript); setIsListening(false); };
     recognitionRef.current.onerror  = () => setIsListening(false);
     recognitionRef.current.onend    = () => setIsListening(false);
@@ -409,11 +474,8 @@ const DrAvatar = () => {
     u.rate   = 0.95;
     u.volume = 1.0;
     const voices    = synthRef.current.getVoices();
-    const maleVoice = voices.find(v =>
-      /david|mark|james|daniel|google us english male/i.test(v.name)
-    ) || voices.find(v =>
-      v.lang === 'en-US' && !/samantha|zira|susan|karen|victoria|female|woman/i.test(v.name)
-    );
+    const maleVoice = voices.find(v => /david|mark|james|daniel|google us english male/i.test(v.name))
+      || voices.find(v => v.lang === 'en-US' && !/samantha|zira|susan|karen|victoria|female|woman/i.test(v.name));
     if (maleVoice) u.voice = maleVoice;
     u.onstart = () => setIsSpeaking(true);
     u.onend   = () => setIsSpeaking(false);
@@ -421,18 +483,12 @@ const DrAvatar = () => {
     synthRef.current.speak(u);
   };
 
-  // ── Entrance animation sequence ───────────────────────────────────────────
-  // Uses `cancelled` pattern so React StrictMode double-invoke works correctly:
-  // first effect's cleanup cancels its timers; second effect runs unimpeded.
+  // ── Entrance animation — cancelled pattern works with React StrictMode ────
   useEffect(() => {
     let cancelled = false;
     const name = getPatientName();
 
-    const t1 = setTimeout(() => {
-      if (cancelled) return;
-      setEntranceState('walking');
-    }, 300);
-
+    const t1 = setTimeout(() => { if (!cancelled) setEntranceState('walking'); }, 300);
     const t2 = setTimeout(() => {
       if (cancelled) return;
       setEntranceState('waving');
@@ -441,33 +497,43 @@ const DrAvatar = () => {
       setMessages([{ id: Date.now(), text: greeting, sender: 'bot', timestamp: new Date() }]);
       setTimeout(() => { if (!cancelled) speakText(greeting); }, 400);
     }, 1200);
+    const t3 = setTimeout(() => { if (!cancelled) { setEntranceState('complete'); setGesture('idle'); } }, 4500);
 
-    const t3 = setTimeout(() => {
-      if (cancelled) return;
-      setEntranceState('complete');
-      setGesture('idle');
-    }, 4500);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
-    };
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, []); // eslint-disable-line
 
-  const stopSpeaking = () => { synthRef.current.cancel(); setIsSpeaking(false); };
-
+  const stopSpeaking  = () => { synthRef.current.cancel(); setIsSpeaking(false); };
   const startListening = () => {
-    if (!recognitionRef.current) { alert('Voice input not supported. Try Chrome or Edge.'); return; }
+    if (!recognitionRef.current) { alert('Voice input not supported in this browser. Try Chrome.'); return; }
     if (!isListening) { try { setIsListening(true); recognitionRef.current.start(); } catch { setIsListening(false); } }
   };
   const stopListening = () => { if (recognitionRef.current && isListening) { recognitionRef.current.stop(); setIsListening(false); } };
 
-  // ── Location handler with caching + reverse geocode + retry ──────────────
+  // ── Location handler ──────────────────────────────────────────────────────
   const handleLocationQuery = async (locationInfo) => {
     try {
       let coords;
+      let areaLabel = '';
+
       if (locationInfo.cityKey) {
-        coords = CITY_COORDS[locationInfo.cityKey];
+        coords     = CITY_COORDS[locationInfo.cityKey];
+        areaLabel  = locationInfo.cityKey.charAt(0).toUpperCase() + locationInfo.cityKey.slice(1);
+      } else if (locationInfo.inCity) {
+        // Try CITY_COORDS first (already normalised lowercase)
+        const normed = locationInfo.inCity.toLowerCase();
+        if (CITY_COORDS[normed]) {
+          coords    = CITY_COORDS[normed];
+          areaLabel = locationInfo.inCity;
+        } else {
+          // Geocode unknown city
+          const geo = await geocodePlace(locationInfo.inCity);
+          if (geo) {
+            coords    = { lat: geo.lat, lon: geo.lon };
+            areaLabel = geo.displayName || locationInfo.inCity;
+          } else {
+            throw new Error('GEOCODE_FAILED');
+          }
+        }
       } else if (cachedCoordsRef.current) {
         coords = cachedCoordsRef.current;
       } else {
@@ -475,34 +541,38 @@ const DrAvatar = () => {
         cachedCoordsRef.current = coords;
       }
 
-      // Run places fetch + reverse geocode in parallel
-      const [placesResult, areaName] = await Promise.allSettled([
+      const [placesResult, areaResult] = await Promise.allSettled([
         fetchNearbyPlaces(coords.lat, coords.lon, locationInfo.searchType),
-        reverseGeocode(coords.lat, coords.lon),
+        !areaLabel ? reverseGeocode(coords.lat, coords.lon) : Promise.resolve(areaLabel),
       ]);
 
-      const places = placesResult.status === 'fulfilled' ? placesResult.value : [];
-      const area   = areaName.status  === 'fulfilled' ? areaName.value  : '';
+      const places   = placesResult.status === 'fulfilled' ? placesResult.value : [];
+      const finalArea = areaResult.status  === 'fulfilled' ? areaResult.value   : areaLabel;
 
       setMessages(prev => [...prev, {
         id: Date.now(), type: 'location', sender: 'bot', timestamp: new Date(),
-        locationData: { places, center: coords, searchType: locationInfo.searchType, areaName: area },
+        locationData: {
+          places, center: coords,
+          searchType: locationInfo.searchType,
+          areaName:   finalArea,
+          showDistance: locationInfo.showDistance,
+        },
       }]);
-    } catch (err) {
-      const label = TYPE_LABELS[locationInfo.searchType] || 'Medical Centers';
-      const gmaps = `https://www.google.com/maps/search/${encodeURIComponent(label + ' near me')}`;
+    } catch {
+      const label     = TYPE_LABELS[locationInfo.searchType] || 'Medical Centers';
+      const cityHint  = locationInfo.inCity || locationInfo.cityKey || '';
+      const gmaps     = `https://www.google.com/maps/search/${encodeURIComponent(label + (cityHint ? ' in ' + cityHint : ' near me'))}`;
       setMessages(prev => [...prev, {
         id: Date.now(), type: 'location-fallback', sender: 'bot', timestamp: new Date(),
-        fallbackData: { label, gmaps },
+        fallbackData: { label, gmaps, cityName: cityHint },
       }]);
     } finally {
       setIsTyping(false);
     }
   };
 
-  // ── TB topic guard ─────────────────────────────────────────────────────────
-  const TB_REDIRECT = "I'm specialized in Pneumonia only and cannot answer questions about Tuberculosis (TB).\n\nFor TB-related concerns, please visit a pulmonologist or a government TB clinic.\n\nI can help you with:\n• Pneumonia symptoms, causes & stages\n• Understanding your chest X-ray\n• Finding nearby radiology or diagnostic centers\n• Pneumonia treatment & recovery\n\nWhat would you like to know about Pneumonia?";
-
+  // ── TB guard ──────────────────────────────────────────────────────────────
+  const TB_REDIRECT = "Oh ha, TB is totally outside my lane! I'm a pneumonia-only specialist.\n\nFor TB concerns, try a government TB clinic or pulmonologist — they'll take great care of you.\n\nI can help with:\n• Pneumonia symptoms, causes & stages\n• Understanding your chest X-ray\n• Finding nearby clinics & hospitals\n• Pneumonia treatment & recovery\n\nAnything pneumonia-related on your mind?";
   const isTBQuery = (t) => /\b(tb|tuberculosis|tubercul)\b/i.test(t);
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -515,7 +585,6 @@ const DrAvatar = () => {
     setInputMessage('');
     setIsTyping(true);
 
-    // TB guard — respond before hitting backend
     if (isTBQuery(text)) {
       setTimeout(() => {
         setMessages(prev => [...prev, { id: Date.now(), text: TB_REDIRECT, sender: 'bot', timestamp: new Date() }]);
@@ -537,18 +606,25 @@ const DrAvatar = () => {
           sessionId:    userData.id || 'anon-' + Date.now(),
           patientEmail: userData.email || null,
           patientName:  getPatientName(),
+          reportId:     uploadedReport?.reportId || null,
+          reportContext: uploadedReport
+            ? `Report type: ${uploadedReport.testType}. Analysis: ${JSON.stringify(uploadedReport.analysis || {})}`
+            : '',
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now(), text: data.message, sender: 'bot', timestamp: new Date() }]);
-      // Gesture + voice
       const g = detectGesture(data.message);
       setGesture(g);
       setTimeout(() => setGesture('idle'), 3500);
       if (voiceEnabled) setTimeout(() => speakText(data.message), 400);
-    } catch (err) {
-      setMessages(prev => [...prev, { id: Date.now(), text: `Hmm, I can't reach my brain right now. Check the connection and try again?`, sender: 'bot', timestamp: new Date() }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: "Hmm, I can't reach my brain right now. Check the connection and try again?",
+        sender: 'bot', timestamp: new Date(),
+      }]);
     } finally {
       setIsTyping(false);
     }
@@ -559,37 +635,63 @@ const DrAvatar = () => {
     setInputMessage(chip.label);
   };
 
+  // ── File upload ───────────────────────────────────────────────────────────
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const allowed = ['image/jpeg','image/jpg','image/png','application/pdf'];
+    e.target.value = '';
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!allowed.includes(file.type)) {
-      setMessages(prev => [...prev, { id: Date.now(), text: "Please upload a valid medical report (JPG, PNG, or PDF only).", sender: 'bot', timestamp: new Date() }]);
+      setMessages(prev => [...prev, { id: Date.now(), text: "Please upload a valid file — JPG, PNG, or PDF only.", sender: 'bot', timestamp: new Date() }]);
       return;
     }
-    setMessages(prev => [...prev, { id: Date.now(), text: `📄 Uploading: ${file.name}...`, sender: 'user', timestamp: new Date() }]);
+    if (file.size > 15 * 1024 * 1024) {
+      setMessages(prev => [...prev, { id: Date.now(), text: "That file is too large (max 15 MB). Try compressing or cropping it first.", sender: 'bot', timestamp: new Date() }]);
+      return;
+    }
+
+    setMessages(prev => [...prev, { id: Date.now(), text: `📄 Uploading: ${file.name}…`, sender: 'user', timestamp: new Date() }]);
     setIsTyping(true);
-    setGesture('read'); // avatar reads file
+    setGesture('read');
+
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const fd = new FormData();
       fd.append('file', file);
       fd.append('session_id', userData.id || 'anon-' + Date.now());
       fd.append('patient_email', userData.email || '');
+
       const res = await fetch('http://localhost:5000/api/medical-reports/upload', { method: 'POST', body: fd });
       if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Upload failed'); }
       const data = await res.json();
-      setUploadedReport({ reportId: data.report_id, fileName: file.name, testType: data.test_type || 'Medical Report', timestamp: new Date() });
-      const readMsg = `Alright, let me take a look at this...\n\nGot your ${data.test_type || 'Medical Report'}! You can ask me:\n• What do the findings mean?\n• Is this result serious?\n• What should I do next?\n• Explain the medical terms`;
+
+      setUploadedReport({
+        reportId:  data.report_id,
+        fileName:  file.name,
+        testType:  data.test_type || 'Medical Report',
+        analysis:  data.analysis  || data.results || {},
+        timestamp: new Date(),
+      });
+
+      const prediction = data.analysis?.prediction || data.results?.prediction || '';
+      const confidence = data.analysis?.confidence ? ` (${Math.round(data.analysis.confidence * 100)}% confidence)` : '';
+      const diagLine   = prediction ? `\nDetected: **${prediction}**${confidence}` : '';
+
+      const readMsg = `Alright, got your ${data.test_type || 'Medical Report'}! Let me read through it…${diagLine}\n\nAsk me anything about it:`;
       setMessages(prev => [...prev, {
         id: Date.now(), text: readMsg, sender: 'bot', timestamp: new Date(), hasQuestions: true,
       }]);
       setShowQuestions(true);
-      if (voiceEnabled) setTimeout(() => speakText("Alright, let me take a look at this..."), 400);
-      setTimeout(() => setGesture('explain'), 3000);
+      if (voiceEnabled) setTimeout(() => speakText('Alright, got your report! Let me read through it.'), 400);
+      setTimeout(() => setGesture('explain'), 2800);
     } catch (err) {
       setGesture('idle');
-      setMessages(prev => [...prev, { id: Date.now(), text: `Hmm, upload didn't work: ${err.message}. Try again?`, sender: 'bot', timestamp: new Date() }]);
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        text: `Hmm, upload didn't work: ${err.message}. Try again?`,
+        sender: 'bot', timestamp: new Date(),
+      }]);
     } finally {
       setIsTyping(false);
     }
@@ -600,17 +702,26 @@ const DrAvatar = () => {
     setIsTyping(true);
     setShowQuestions(false);
     try {
+      const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const res = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: question, reportContext: uploadedReport?.analysis || '' }),
+        body: JSON.stringify({
+          message:      question,
+          sessionId:    userData.id || 'anon',
+          patientName:  getPatientName(),
+          reportId:     uploadedReport?.reportId || null,
+          reportContext: uploadedReport
+            ? `Report type: ${uploadedReport.testType}. Analysis: ${JSON.stringify(uploadedReport.analysis || {})}`
+            : '',
+        }),
       });
       const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now(), text: data.message, sender: 'bot', timestamp: new Date() }]);
       if (voiceEnabled) setTimeout(() => speakText(data.message), 400);
       setTimeout(() => setShowQuestions(true), 800);
     } catch {
-      setMessages(prev => [...prev, { id: Date.now(), text: "Unable to process that right now. Please try again.", sender: 'bot', timestamp: new Date() }]);
+      setMessages(prev => [...prev, { id: Date.now(), text: "Unable to process that right now. Try again.", sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
@@ -621,7 +732,7 @@ const DrAvatar = () => {
       <div className="dra-page">
         <div className="dra-layout">
 
-          {/* ── Floating Doctor Avatar (left, no background box) ── */}
+          {/* ── Doctor Avatar (left) ─────────────────────── */}
           <aside className="dra-avatar-panel">
             <AnimatedDoctorAvatar
               isSpeaking={isSpeaking}
@@ -631,41 +742,23 @@ const DrAvatar = () => {
             />
           </aside>
 
-          {/* ── Chat Panel (right) ──────────────────────────── */}
+          {/* ── Chat Panel (right) ───────────────────────── */}
           <div className="dra-chat-panel">
             <div className="dra-chat-header">
               <div className="dra-chat-header-left">
                 <div className="dra-chat-header-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
                 </div>
                 <div>
-                  <h3>Medical AI Chat</h3>
-                  <span>Pneumonia Specialist · Available 24/7</span>
-                  {isSpeaking  && <small className="dra-hdr-status speaking">Speaking…</small>}
-                  {isListening && <small className="dra-hdr-status listening">Listening…</small>}
+                  <h3>Dr. Jarvis</h3>
+                  <span>
+                    Pneumonia Specialist · 24/7
+                    {isSpeaking  && <small className="dra-hdr-status speaking"> Speaking…</small>}
+                    {isListening && <small className="dra-hdr-status listening"> Listening…</small>}
+                  </span>
                 </div>
-              </div>
-              <div className="dra-chat-header-actions">
-                <button
-                  className={`dra-hdr-btn ${isListening ? 'active' : ''}`}
-                  onClick={isListening ? stopListening : startListening}
-                  title={isListening ? 'Stop listening' : 'Voice input'}
-                >
-                  {isListening
-                    ? <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.25"/><rect x="9" y="9" width="6" height="6"/></svg>
-                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                  }
-                </button>
-                <button
-                  className={`dra-hdr-btn ${voiceEnabled ? 'active' : ''} ${isSpeaking ? 'speaking' : ''}`}
-                  onClick={() => { if (isSpeaking) stopSpeaking(); setVoiceEnabled(v => !v); }}
-                  title={voiceEnabled ? 'Voice output on' : 'Voice output off'}
-                >
-                  {voiceEnabled
-                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-                  }
-                </button>
               </div>
             </div>
 
@@ -675,21 +768,31 @@ const DrAvatar = () => {
                 <div key={msg.id} className={`dra-msg ${msg.sender === 'bot' ? 'dra-msg-bot' : 'dra-msg-user'}`}>
                   {msg.sender === 'bot' && (
                     <div className="dra-msg-avatar">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                      </svg>
                     </div>
                   )}
                   <div className="dra-msg-body">
                     {msg.type === 'location' ? (
-                      <LocationResultCard places={msg.locationData.places} center={msg.locationData.center} searchType={msg.locationData.searchType} areaName={msg.locationData.areaName || ''} />
+                      <LocationResultCard
+                        places={msg.locationData.places}
+                        center={msg.locationData.center}
+                        searchType={msg.locationData.searchType}
+                        areaName={msg.locationData.areaName || ''}
+                        showDistance={msg.locationData.showDistance}
+                      />
                     ) : msg.type === 'location-fallback' ? (
                       <div className="dra-bubble">
-                        <p>📍 I couldn't access your location automatically.</p>
-                        <p>Search directly on Google Maps for <strong>{msg.fallbackData.label}</strong>:</p>
+                        <p>📍 Couldn't pinpoint that location automatically.</p>
+                        <p>Search <strong>{msg.fallbackData.label}</strong> directly on Google Maps:</p>
                         <a href={msg.fallbackData.gmaps} target="_blank" rel="noopener noreferrer" className="dra-fallback-link">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                          </svg>
                           Open Google Maps Search
                         </a>
-                        <p className="dra-tip">💡 Tip: Try typing a city name, e.g. <em>"radiology centres in Islamabad"</em></p>
+                        <p className="dra-tip">💡 Try: <em>"{msg.fallbackData.cityName ? 'hospitals in ' + msg.fallbackData.cityName : 'hospitals near me'}"</em></p>
                       </div>
                     ) : (
                       <div className="dra-bubble">
@@ -706,7 +809,9 @@ const DrAvatar = () => {
               {isTyping && (
                 <div className="dra-msg dra-msg-bot">
                   <div className="dra-msg-avatar">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
                   </div>
                   <div className="dra-msg-body">
                     <div className="dra-bubble dra-typing">
@@ -718,9 +823,16 @@ const DrAvatar = () => {
 
               {showQuestions && uploadedReport && (
                 <div className="dra-quick-q">
-                  <p>Quick questions about your report:</p>
+                  <p>Questions about your report:</p>
                   <div className="dra-quick-q-grid">
-                    {["What do the findings mean?","Is this result serious?","What should I do next?","Explain the medical terms","What are the treatment options?","What should I ask my doctor?"].map(q => (
+                    {[
+                      "What disease is detected in my report?",
+                      "Explain this report in simple words",
+                      "What has the doctor recommended?",
+                      "Is this result serious?",
+                      "What should I do next?",
+                      "What are the treatment options?",
+                    ].map(q => (
                       <button key={q} className="dra-q-btn" onClick={() => handleQuestionClick(q)}>{q}</button>
                     ))}
                   </div>
@@ -730,13 +842,15 @@ const DrAvatar = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input */}
+            {/* Input — mic & speaker moved here */}
             <div className="dra-input-area">
-              <p className="dra-input-hint">Ask me about pneumonia, upload a chest X-ray or report, or find nearby medical centers</p>
+              <p className="dra-input-hint">Ask about pneumonia, upload a chest X-ray or report, or find nearby clinics</p>
               <form className="dra-input-form" onSubmit={handleSendMessage}>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" />
                 <button type="button" className="dra-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach report">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                  </svg>
                 </button>
                 <input
                   type="text"
@@ -744,9 +858,39 @@ const DrAvatar = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Hey Dr. Jarvis, what's up?"
+                  spellCheck={true}
+                  autoComplete="on"
+                  autoCorrect="on"
+                  autoCapitalize="sentences"
                 />
+                {/* Microphone */}
+                <button
+                  type="button"
+                  className={`dra-icon-btn ${isListening ? 'active' : ''}`}
+                  onClick={isListening ? stopListening : startListening}
+                  title={isListening ? 'Stop listening' : 'Voice input'}
+                >
+                  {isListening
+                    ? <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" opacity="0.22"/><rect x="9" y="9" width="6" height="6"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                  }
+                </button>
+                {/* Speaker toggle */}
+                <button
+                  type="button"
+                  className={`dra-icon-btn ${voiceEnabled ? 'active' : ''}`}
+                  onClick={() => { if (isSpeaking) stopSpeaking(); setVoiceEnabled(v => !v); }}
+                  title={voiceEnabled ? 'Voice on' : 'Voice off'}
+                >
+                  {voiceEnabled
+                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                  }
+                </button>
                 <button type="submit" className="dra-send-btn" disabled={!inputMessage.trim()}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
                 </button>
               </form>
             </div>

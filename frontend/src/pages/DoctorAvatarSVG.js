@@ -240,15 +240,12 @@ const AnimatedDoctorAvatar = ({ isSpeaking, isListening, gesture = 'idle', entra
         <circle cx="130" cy="272" r="13"  fill="none" stroke="#4A5568" strokeWidth="1.2"/>
 
         {/* ══ LEFT ARM (static) ══════════════════════════ */}
-        <path d="M38,208 Q10,264 6,320 Q4,345 11,363 L42,361 Q47,344 48,320 Q52,262 68,213Z" fill="url(#avCt)"/>
-        <path d="M38,208 L44,211 Q60,264 57,320 Q56,344 47,361 L42,361 Q47,344 48,320 Q52,262 68,213Z" fill="#B0C8E8" opacity="0.32"/>
+        <path d="M68,212 Q46,258 40,312 Q38,336 44,352 L68,350 Q72,335 73,311 Q78,257 90,214Z" fill="url(#avCt)"/>
+        <path d="M68,212 L74,215 Q82,257 80,311 Q79,335 73,350 L68,350 Q72,335 73,311 Q78,257 90,214Z" fill="#B0C8E8" opacity="0.30"/>
         {/* Left hand */}
-        <ellipse cx="26" cy="365" rx="21" ry="14" fill="url(#avSkD)" transform="rotate(-12,26,365)"/>
-        <path d="M13,358 Q8,348 10,341"  stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-        <path d="M21,355 Q16,344 18,337" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-        <path d="M30,352 Q28,341 30,334" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-        <path d="M38,355 Q40,344 42,338" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-        <path d="M14,362 Q22,358 28,357" stroke="#C07838" strokeWidth="1"  fill="none" opacity="0.45"/>
+        <ellipse cx="56" cy="355" rx="17" ry="13" fill="url(#avSk)"/>
+        <ellipse cx="40" cy="349" rx="9" ry="7" fill="url(#avSk)" transform="rotate(-22,40,349)"/>
+        <path d="M46,351 Q56,355 66,351" stroke="#C07840" strokeWidth="1.2" fill="none" opacity="0.35"/>
 
         {/* ══ RIGHT ARM (gesture-animated) ═══════════════ */}
         <g
@@ -259,18 +256,15 @@ const AnimatedDoctorAvatar = ({ isSpeaking, isListening, gesture = 'idle', entra
             transition:      gesture !== 'wave' ? 'transform 0.36s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
           }}
         >
-          <path d="M202,208 Q230,264 234,320 Q236,345 229,363 L198,361 Q193,344 192,320 Q188,262 172,213Z" fill="url(#avCt)"/>
-          <path d="M202,208 L196,211 Q180,264 184,320 Q185,344 193,361 L198,361 Q193,344 192,320 Q188,262 172,213Z" fill="#B0C8E8" opacity="0.32"/>
+          <path d="M172,212 Q194,258 200,312 Q202,336 196,352 L172,350 Q168,335 167,311 Q162,257 150,214Z" fill="url(#avCt)"/>
+          <path d="M172,212 L166,215 Q158,257 160,311 Q161,335 167,350 L172,350 Q168,335 167,311 Q162,257 150,214Z" fill="#B0C8E8" opacity="0.30"/>
           {/* Right hand */}
-          <ellipse cx="214" cy="365" rx="21" ry="14" fill="url(#avSkD)" transform="rotate(12,214,365)"/>
-          <path d="M227,358 Q232,348 230,341" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M219,355 Q224,344 222,337" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M210,352 Q212,341 210,334" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M202,355 Q200,344 198,338" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
-          <path d="M226,362 Q218,358 212,357" stroke="#C07838" strokeWidth="1"  fill="none" opacity="0.45"/>
-          {/* Thumbs-up hand shape (only when gesture=thumbsup) */}
+          <ellipse cx="184" cy="355" rx="17" ry="13" fill="url(#avSk)"/>
+          <ellipse cx="200" cy="349" rx="9" ry="7" fill="url(#avSk)" transform="rotate(22,200,349)"/>
+          <path d="M174,351 Q184,355 194,351" stroke="#C07840" strokeWidth="1.2" fill="none" opacity="0.35"/>
+          {/* Thumbs-up overlay */}
           {gesture === 'thumbsup' && (
-            <path d="M232,354 Q238,350 238,340 Q238,330 230,330 L224,330 L222,310 Q222,304 216,304 Q210,304 210,312 L208,330 L202,330 L202,362 L224,362Z" fill="url(#avSkD)"/>
+            <path d="M204,348 Q210,342 210,332 Q210,322 202,322 L196,322 L194,304 Q194,298 188,298 Q182,298 182,306 L180,322 L174,322 L174,354 L196,354Z" fill="url(#avSk)"/>
           )}
         </g>
 

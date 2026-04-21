@@ -220,27 +220,7 @@
 .dra-hdr-status.speaking  { background: rgba(255,255,255,0.20); color: #b2f5ea; }
 .dra-hdr-status.listening { background: rgba(252,129,129,0.30); color: #fca5a5; }
 
-.dra-chat-header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.dra-hdr-btn {
-  width: 36px;
-  height: 36px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: rgba(255, 255, 255, 0.72);
-}
-.dra-hdr-btn svg { width: 16px; height: 16px; stroke: currentColor; }
-.dra-hdr-btn:hover  { background: rgba(255, 255, 255, 0.22); color: #fff; }
-.dra-hdr-btn.active { background: rgba(255, 255, 255, 0.26); border-color: rgba(255, 255, 255, 0.48); color: #fff; }
+/* header actions removed — buttons now live in the input bar */
 
 /* ── Messages area ────────────────────────────────────────── */
 .dra-messages {
