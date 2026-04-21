@@ -381,7 +381,6 @@ const DrAvatar = () => {
   const recognitionRef  = useRef(null);
   const synthRef        = useRef(window.speechSynthesis);
   const cachedCoordsRef = useRef(null);
-  const entranceDone    = useRef(false);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -422,24 +421,37 @@ const DrAvatar = () => {
     synthRef.current.speak(u);
   };
 
-  // ── Entrance animation sequence (runs once) ───────────────────────────────
+  // ── Entrance animation sequence ───────────────────────────────────────────
+  // Uses `cancelled` pattern so React StrictMode double-invoke works correctly:
+  // first effect's cleanup cancels its timers; second effect runs unimpeded.
   useEffect(() => {
-    if (entranceDone.current) return;
-    entranceDone.current = true;
+    let cancelled = false;
     const name = getPatientName();
 
-    const t1 = setTimeout(() => setEntranceState('walking'), 400);
+    const t1 = setTimeout(() => {
+      if (cancelled) return;
+      setEntranceState('walking');
+    }, 300);
+
     const t2 = setTimeout(() => {
+      if (cancelled) return;
       setEntranceState('waving');
       setGesture('wave');
       const greeting = `Hey ${name}! I'm Dr. Jarvis — your personal pneumonia buddy. Let's figure this out together!`;
       setMessages([{ id: Date.now(), text: greeting, sender: 'bot', timestamp: new Date() }]);
-      // slight delay so voices are loaded
-      setTimeout(() => speakText(greeting), 300);
-    }, 2400);
-    const t3 = setTimeout(() => { setEntranceState('complete'); setGesture('idle'); }, 5800);
+      setTimeout(() => { if (!cancelled) speakText(greeting); }, 400);
+    }, 1200);
 
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t3 = setTimeout(() => {
+      if (cancelled) return;
+      setEntranceState('complete');
+      setGesture('idle');
+    }, 4500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+    };
   }, []); // eslint-disable-line
 
   const stopSpeaking = () => { synthRef.current.cancel(); setIsSpeaking(false); };
