@@ -1,283 +1,290 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Mouth shape paths — 4 states: closed, slightly open, medium open, wide open
+// 4 lip-sync mouth shapes — mapped to face proportions (center y≈136)
 const MOUTH = [
-  { d: 'M90,122 Q110,119 130,122 Q110,127 90,122Z', teeth: false },
-  { d: 'M90,121 Q110,117 130,121 L129,127 Q110,131 91,127Z', teeth: false },
-  { d: 'M88,119 Q110,114 132,119 L130,129 Q110,135 90,129Z', teeth: true },
-  { d: 'M87,116 Q110,110 133,116 L131,132 Q110,140 89,132Z', teeth: true },
+  { d: 'M90,137 Q120,134 150,137 Q120,142 90,137Z',          teeth: false }, // closed smile
+  { d: 'M90,136 Q120,132 150,136 L149,143 Q120,148 91,143Z', teeth: false }, // slight
+  { d: 'M88,134 Q120,128 152,134 L150,146 Q120,153 90,146Z', teeth: true  }, // medium
+  { d: 'M87,131 Q120,124 153,131 L151,149 Q120,157 89,149Z', teeth: true  }, // wide
 ];
+const SPEAK_SEQ = [0,1,2,1,3,2,1,0,1,2,3,2,1,0,1,3,2,1,2,0,1,0];
 
-// Randomized speaking sequence that sounds natural
-const SPEAK_SEQ = [0,1,2,1,3,2,1,0,1,2,3,2,1,0,1,3,2,1,2,0];
-
-const AnimatedDoctorAvatar = ({ isSpeaking, isListening }) => {
-  const [mouthIdx, setMouthIdx] = useState(0);
-  const [blinking, setBlinking]  = useState(false);
-  const [armLift, setArmLift]    = useState(false);
+const AnimatedDoctorAvatar = ({ isSpeaking, isListening, gesture = 'idle', entranceState = 'complete' }) => {
+  const [mouthIdx,  setMouthIdx]  = useState(0);
+  const [blinking,  setBlinking]  = useState(false);
   const seqRef = useRef(0);
 
-  // ── Lip-sync + arm gesture ────────────────────────────────────
+  // ── Lip sync ─────────────────────────────────────────────
   useEffect(() => {
-    if (!isSpeaking) { setMouthIdx(0); setArmLift(false); return; }
+    if (!isSpeaking) { setMouthIdx(0); return; }
     const id = setInterval(() => {
       seqRef.current = (seqRef.current + 1) % SPEAK_SEQ.length;
       setMouthIdx(SPEAK_SEQ[seqRef.current]);
-      setArmLift(seqRef.current % 8 < 4);
     }, 115);
     return () => clearInterval(id);
   }, [isSpeaking]);
 
-  // ── Random blinking ───────────────────────────────────────────
+  // ── Random blinking ───────────────────────────────────────
   useEffect(() => {
     let t;
     const blink = () => {
       setBlinking(true);
       t = setTimeout(() => {
         setBlinking(false);
-        t = setTimeout(blink, 2200 + Math.random() * 3200);
+        t = setTimeout(blink, 2000 + Math.random() * 3500);
       }, 155);
     };
-    t = setTimeout(blink, 1800);
+    t = setTimeout(blink, 2200);
     return () => clearTimeout(t);
   }, []);
 
-  const m = MOUTH[mouthIdx];
-  const lidScale = blinking ? 1 : 0.10;
+  const m        = MOUTH[mouthIdx];
+  const lidScale = blinking ? 1 : 0.09;
+
+  // Right-arm gesture transforms (origin at shoulder ≈ 196,202)
+  const armStyle = {
+    idle:     'rotate(0deg)  translateY(0px)',
+    wave:     undefined, // handled by CSS animation class
+    explain:  'rotate(-18deg) translateY(-8px)',
+    think:    'rotate(-62deg) translateY(-20px)',
+    read:     'rotate(-78deg) translateY(-36px)',
+    thumbsup: 'rotate(-28deg) translateY(-12px)',
+  }[gesture];
+
   const status = isSpeaking ? 'speaking' : isListening ? 'listening' : 'idle';
 
   return (
-    <div className={`dra-live-avatar dra-av-${status}`}>
+    <div className={`dra-live-avatar dra-av-${status} dra-entrance-${entranceState}`}>
       <svg
-        viewBox="0 0 220 350"
+        viewBox="0 0 240 410"
         xmlns="http://www.w3.org/2000/svg"
         className="dra-av-svg"
-        aria-label="Dr. Jarvis animated avatar"
+        aria-label="Dr. Jarvis"
       >
         <defs>
-          <radialGradient id="avSkin" cx="45%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#FDDBB4"/>
-            <stop offset="100%" stopColor="#F0A878"/>
+          <radialGradient id="avSk" cx="42%" cy="30%" r="65%">
+            <stop offset="0%"   stopColor="#FCD5A8"/>
+            <stop offset="60%"  stopColor="#F4A86A"/>
+            <stop offset="100%" stopColor="#E07B3A"/>
           </radialGradient>
-          <radialGradient id="avSkinD" cx="45%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#F4BE90"/>
-            <stop offset="100%" stopColor="#D87840"/>
+          <radialGradient id="avSkD" cx="42%" cy="30%" r="65%">
+            <stop offset="0%"   stopColor="#EFB880"/>
+            <stop offset="100%" stopColor="#C86028"/>
           </radialGradient>
-          <linearGradient id="avCoat" x1="10%" y1="0%" x2="90%" y2="100%">
-            <stop offset="0%" stopColor="#FFFFFF"/>
-            <stop offset="100%" stopColor="#DDE8F8"/>
+          <linearGradient id="avCt" x1="8%" y1="0%" x2="92%" y2="100%">
+            <stop offset="0%"   stopColor="#FFFFFF"/>
+            <stop offset="100%" stopColor="#D8E8F8"/>
           </linearGradient>
-          <linearGradient id="avLapel" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#D4E2F8"/>
-            <stop offset="100%" stopColor="#C0D4F0"/>
+          <linearGradient id="avLp" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%"   stopColor="#C4D8F0"/>
+            <stop offset="100%" stopColor="#B0C8E8"/>
           </linearGradient>
-          <radialGradient id="avSteth" cx="38%" cy="28%" r="72%">
-            <stop offset="0%" stopColor="#4A5568"/>
+          <radialGradient id="avSt" cx="38%" cy="28%" r="72%">
+            <stop offset="0%"   stopColor="#4A5568"/>
             <stop offset="100%" stopColor="#1A202C"/>
           </radialGradient>
-          <radialGradient id="avStetCenter" cx="40%" cy="35%" r="65%">
-            <stop offset="0%" stopColor="#636E80"/>
-            <stop offset="100%" stopColor="#2D3748"/>
-          </radialGradient>
+          <filter id="avGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
         </defs>
 
-        {/* ── HAIR (behind face) ─────────────────────────── */}
-        <ellipse cx="110" cy="52" rx="56" ry="50" fill="#241408"/>
-        <path d="M56,52 Q68,14 110,8 Q152,14 164,52 Q154,28 110,24 Q66,28 56,52Z" fill="#241408"/>
-        {/* Hair highlight */}
-        <path d="M75,22 Q110,12 145,22" stroke="#3D2215" strokeWidth="3" fill="none" opacity="0.6"/>
+        {/* ══ HAIR — curly clusters ════════════════════════ */}
+        {/* Base hair mass */}
+        <path d="M54,100 C54,26 84,0 120,0 C156,0 186,26 186,100 C186,74 174,56 160,52 C150,34 138,46 126,42 C120,38 114,38 108,42 C96,46 84,34 74,52 C60,56 54,74 54,100Z" fill="#5A2E14"/>
+        {/* Curl clusters (circles give curly texture) */}
+        <circle cx="78"  cy="38" r="14" fill="#5A2E14"/>
+        <circle cx="93"  cy="26" r="15" fill="#5A2E14"/>
+        <circle cx="108" cy="18" r="16" fill="#5A2E14"/>
+        <circle cx="122" cy="14" r="17" fill="#5A2E14"/>
+        <circle cx="137" cy="18" r="16" fill="#5A2E14"/>
+        <circle cx="151" cy="26" r="14" fill="#5A2E14"/>
+        <circle cx="163" cy="40" r="12" fill="#5A2E14"/>
+        {/* Lighter highlights for depth */}
+        <circle cx="84"  cy="28" r="8"  fill="#6E3C1A"/>
+        <circle cx="99"  cy="16" r="9"  fill="#6E3C1A"/>
+        <circle cx="114" cy="8"  r="10" fill="#6E3C1A"/>
+        <circle cx="126" cy="5"  r="11" fill="#6E3C1A"/>
+        <circle cx="139" cy="10" r="9"  fill="#6E3C1A"/>
+        <circle cx="152" cy="20" r="7"  fill="#6E3C1A"/>
+        {/* Bright highlight tips */}
+        <circle cx="108" cy="10" r="4"  fill="#8A5030" opacity="0.7"/>
+        <circle cx="120" cy="5"  r="5"  fill="#8A5030" opacity="0.7"/>
+        <circle cx="132" cy="8"  r="4"  fill="#8A5030" opacity="0.7"/>
+        <circle cx="147" cy="17" r="3"  fill="#8A5030" opacity="0.6"/>
 
-        {/* ── EARS ───────────────────────────────────────── */}
-        <ellipse cx="56" cy="97" rx="12" ry="16" fill="url(#avSkin)"/>
-        <path d="M60,89 Q65,97 60,106" stroke="#D0845A" strokeWidth="2" fill="none"/>
-        <ellipse cx="164" cy="97" rx="12" ry="16" fill="url(#avSkin)"/>
-        <path d="M160,89 Q155,97 160,106" stroke="#D0845A" strokeWidth="2" fill="none"/>
+        {/* ══ EARS ════════════════════════════════════════ */}
+        <ellipse cx="53"  cy="103" rx="12" ry="18" fill="url(#avSk)"/>
+        <path d="M58,93 Q64,103 58,114"  stroke="#C87840" strokeWidth="2" fill="none"/>
+        <ellipse cx="187" cy="103" rx="12" ry="18" fill="url(#avSk)"/>
+        <path d="M182,93 Q176,103 182,114" stroke="#C87840" strokeWidth="2" fill="none"/>
 
-        {/* ── FACE ───────────────────────────────────────── */}
-        <ellipse cx="110" cy="97" rx="54" ry="64" fill="url(#avSkin)"/>
+        {/* ══ FACE ════════════════════════════════════════ */}
+        <ellipse cx="120" cy="100" rx="68" ry="76" fill="url(#avSk)"/>
         {/* Cheek blush */}
-        <ellipse cx="78"  cy="108" rx="12" ry="7" fill="#F8A090" opacity="0.18"/>
-        <ellipse cx="142" cy="108" rx="12" ry="7" fill="#F8A090" opacity="0.18"/>
+        <ellipse cx="76"  cy="120" rx="16" ry="10" fill="#F09080" opacity="0.20"/>
+        <ellipse cx="164" cy="120" rx="16" ry="10" fill="#F09080" opacity="0.20"/>
 
-        {/* ── EYEBROWS ───────────────────────────────────── */}
-        <path d="M79,69 Q90,62 100,65"  stroke="#241408" strokeWidth="3.4" fill="none" strokeLinecap="round"/>
-        <path d="M120,65 Q130,62 141,69" stroke="#241408" strokeWidth="3.4" fill="none" strokeLinecap="round"/>
+        {/* ══ EYEBROWS ════════════════════════════════════ */}
+        <path d="M77,78  Q90,70  102,73"  stroke="#3A1C0A" strokeWidth="4.2" fill="none" strokeLinecap="round"/>
+        <path d="M138,73 Q150,70 163,78"  stroke="#3A1C0A" strokeWidth="4.2" fill="none" strokeLinecap="round"/>
 
-        {/* ── LEFT EYE ───────────────────────────────────── */}
-        <ellipse cx="89" cy="83" rx="14" ry="10" fill="white"/>
-        {/* Iris */}
-        <circle cx="89" cy="83" r="7" fill="#3B2A1E"/>
-        <circle cx="89" cy="83" r="5.5" fill="#2A1A10"/>
-        {/* Shine */}
-        <circle cx="91.5" cy="80.5" r="2.2" fill="white"/>
-        <circle cx="87"   cy="85.5" r="1"   fill="white" opacity="0.6"/>
-        {/* Eyelid (for blinking) */}
-        <ellipse cx="89" cy="75" rx="14" ry="10" fill="url(#avSkin)"
-          style={{
-            transform: `scaleY(${lidScale})`,
-            transformOrigin: '89px 75px',
-            transition: 'transform 0.1s ease',
-          }}
-        />
-        {/* Lower eyelash shadow */}
-        <path d="M76,89 Q89,92 102,89" stroke="#D0845A" strokeWidth="0.8" fill="none" opacity="0.35"/>
+        {/* ══ LEFT EYE ════════════════════════════════════ */}
+        <ellipse cx="91"  cy="93" rx="19" ry="15" fill="white"/>
+        <circle  cx="91"  cy="93" r="12"  fill="#5A3518"/>
+        <circle  cx="91"  cy="93" r="9"   fill="#3A2010"/>
+        <circle  cx="91"  cy="93" r="6.5" fill="#1C0C00"/>
+        <circle  cx="95"  cy="87" r="4"   fill="white"/>
+        <circle  cx="87"  cy="97" r="1.8" fill="white" opacity="0.65"/>
+        <path d="M72,85 Q91,79 110,85" stroke="#2A1408" strokeWidth="2.8" fill="none"/>
+        {/* Eyelid (blink) */}
+        <ellipse cx="91" cy="83" rx="19" ry="15" fill="url(#avSk)"
+          style={{ transform: `scaleY(${lidScale})`, transformOrigin: '91px 83px', transition: 'transform 0.1s ease' }}/>
 
-        {/* ── RIGHT EYE ──────────────────────────────────── */}
-        <ellipse cx="131" cy="83" rx="14" ry="10" fill="white"/>
-        <circle cx="131" cy="83" r="7"   fill="#3B2A1E"/>
-        <circle cx="131" cy="83" r="5.5" fill="#2A1A10"/>
-        <circle cx="133.5" cy="80.5" r="2.2" fill="white"/>
-        <circle cx="129"   cy="85.5" r="1"   fill="white" opacity="0.6"/>
-        <ellipse cx="131" cy="75" rx="14" ry="10" fill="url(#avSkin)"
-          style={{
-            transform: `scaleY(${lidScale})`,
-            transformOrigin: '131px 75px',
-            transition: 'transform 0.1s ease',
-          }}
-        />
-        <path d="M118,89 Q131,92 144,89" stroke="#D0845A" strokeWidth="0.8" fill="none" opacity="0.35"/>
+        {/* ══ RIGHT EYE ═══════════════════════════════════ */}
+        <ellipse cx="149" cy="93" rx="19" ry="15" fill="white"/>
+        <circle  cx="149" cy="93" r="12"  fill="#5A3518"/>
+        <circle  cx="149" cy="93" r="9"   fill="#3A2010"/>
+        <circle  cx="149" cy="93" r="6.5" fill="#1C0C00"/>
+        <circle  cx="153" cy="87" r="4"   fill="white"/>
+        <circle  cx="145" cy="97" r="1.8" fill="white" opacity="0.65"/>
+        <path d="M130,85 Q149,79 168,85" stroke="#2A1408" strokeWidth="2.8" fill="none"/>
+        <ellipse cx="149" cy="83" rx="19" ry="15" fill="url(#avSk)"
+          style={{ transform: `scaleY(${lidScale})`, transformOrigin: '149px 83px', transition: 'transform 0.1s ease' }}/>
 
-        {/* ── NOSE ───────────────────────────────────────── */}
-        <path d="M107,104 Q110,116 113,104" stroke="#D08060" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-        <ellipse cx="105" cy="114" rx="5"   ry="3" fill="#D08060" opacity="0.30"/>
-        <ellipse cx="115" cy="114" rx="5"   ry="3" fill="#D08060" opacity="0.30"/>
+        {/* ══ NOSE ════════════════════════════════════════ */}
+        <path d="M115,118 Q120,130 125,118" stroke="#C07840" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+        <ellipse cx="113" cy="128" rx="6"   ry="3.5" fill="#C07840" opacity="0.28"/>
+        <ellipse cx="127" cy="128" rx="6"   ry="3.5" fill="#C07840" opacity="0.28"/>
 
-        {/* ── MOUTH (lip-synced) ──────────────────────────── */}
+        {/* ══ MOUTH (animated lip-sync) ═══════════════════ */}
         {m.teeth && (
           <>
-            {/* Mouth cavity */}
-            <path d={m.d} fill="#7A1A1A"/>
-            {/* Upper teeth */}
+            <path d={m.d} fill="#8A1818"/>
             <clipPath id="avTcl"><path d={m.d}/></clipPath>
-            <rect x="93" y="118" width="34" height="11" rx="2" fill="#FFFEF5" clipPath="url(#avTcl)"/>
-            <line x1="101" y1="118" x2="101" y2="129" stroke="#E0E0D0" strokeWidth="0.8" clipPath="url(#avTcl)"/>
-            <line x1="110" y1="118" x2="110" y2="129" stroke="#E0E0D0" strokeWidth="0.8" clipPath="url(#avTcl)"/>
-            <line x1="119" y1="118" x2="119" y2="129" stroke="#E0E0D0" strokeWidth="0.8" clipPath="url(#avTcl)"/>
-            {/* Lower teeth hint */}
-            <rect x="95" y="127" width="30" height="7" rx="2" fill="#F5F5E8" clipPath="url(#avTcl)"/>
+            <rect x="96"  y="133" width="48" height="13" rx="2.5" fill="#FFFEF8" clipPath="url(#avTcl)"/>
+            <line x1="108" y1="133" x2="108" y2="146" stroke="#E0E0D0" strokeWidth="1" clipPath="url(#avTcl)"/>
+            <line x1="120" y1="133" x2="120" y2="146" stroke="#E0E0D0" strokeWidth="1" clipPath="url(#avTcl)"/>
+            <line x1="132" y1="133" x2="132" y2="146" stroke="#E0E0D0" strokeWidth="1" clipPath="url(#avTcl)"/>
+            <rect x="99"  y="143" width="42" height="8"  rx="2"   fill="#F5F5EC" clipPath="url(#avTcl)"/>
           </>
         )}
-        {/* Lips */}
-        <path d={m.d} fill="#CC5050" fillOpacity={m.teeth ? 0.65 : 1}/>
-        {/* Upper lip bow */}
-        <path d="M90,120 Q100,117 110,119 Q120,117 130,120" stroke="#B03030" strokeWidth="1.2" fill="none"/>
-        {/* Smile line (closed only) */}
+        <path d={m.d} fill="#D05050" fillOpacity={m.teeth ? 0.55 : 1}/>
+        <path d="M90,136 Q106,133 120,135 Q134,133 150,136" stroke="#A83030" strokeWidth="1.5" fill="none"/>
         {mouthIdx === 0 && (
-          <path d="M91,123 Q110,127 129,123" stroke="#A83030" strokeWidth="1.2" fill="none"/>
+          <path d="M92,139 Q120,145 148,139" stroke="#A83030" strokeWidth="1.5" fill="none"/>
         )}
 
-        {/* ── NECK ───────────────────────────────────────── */}
-        <rect x="98" y="160" width="24" height="24" rx="3" fill="url(#avSkin)"/>
+        {/* ══ NECK ════════════════════════════════════════ */}
+        <rect x="107" y="174" width="26" height="24" rx="3" fill="url(#avSk)"/>
 
-        {/* ── SHIRT & TIE ────────────────────────────────── */}
-        {/* Shirt collar area */}
-        <path d="M82,188 L98,162 L110,176 L122,162 L138,188Z" fill="#EEF4FF"/>
-        {/* Collar points */}
-        <path d="M82,188 L95,170 L98,162 L104,172Z" fill="#DDE8F8"/>
-        <path d="M138,188 L125,170 L122,162 L116,172Z" fill="#DDE8F8"/>
-        {/* Tie */}
-        <path d="M105,172 L110,177 L115,172 L112,214 L110,218 L108,214Z" fill="#2B4C8C"/>
-        {/* Tie knot */}
-        <path d="M106,173 L110,168 L114,173 L110,177Z" fill="#1A3A7A"/>
-        {/* Tie pattern lines */}
-        <line x1="109" y1="182" x2="111" y2="182" stroke="#3A5CA0" strokeWidth="1" opacity="0.5"/>
-        <line x1="108" y1="190" x2="112" y2="190" stroke="#3A5CA0" strokeWidth="1" opacity="0.5"/>
-        <line x1="108" y1="198" x2="112" y2="198" stroke="#3A5CA0" strokeWidth="1" opacity="0.5"/>
-        <line x1="109" y1="206" x2="111" y2="206" stroke="#3A5CA0" strokeWidth="1" opacity="0.5"/>
+        {/* ══ SHIRT COLLAR (light blue) ═══════════════════ */}
+        <path d="M80,198 L107,174 L120,188 L133,174 L160,198Z"  fill="#5A9AD4"/>
+        <path d="M80,198 L96,178 L107,174 L112,183Z"  fill="#4A88C2"/>
+        <path d="M160,198 L144,178 L133,174 L128,183Z" fill="#4A88C2"/>
 
-        {/* ── WHITE COAT BODY ─────────────────────────────── */}
+        {/* ══ TIE (navy) ══════════════════════════════════ */}
+        <path d="M114,185 L120,190 L126,185 L123,224 L120,229 L117,224Z" fill="#1C3460"/>
+        <path d="M115,185 L120,180 L125,185 L120,190Z"  fill="#142850"/>
+        {[198,210,222].map(y => (
+          <line key={y} x1="118" y1={y} x2="122" y2={y} stroke="#2A4878" strokeWidth="1.2" opacity="0.6"/>
+        ))}
+
+        {/* ══ WHITE COAT ══════════════════════════════════ */}
         {/* Left panel */}
-        <path d="M18,192 L82,185 L93,204 L78,316 L12,324Z" fill="url(#avCoat)"/>
+        <path d="M12,204 L80,196 L94,216 L78,330 L8,338Z"   fill="url(#avCt)"/>
         {/* Right panel */}
-        <path d="M202,192 L138,185 L127,204 L142,316 L208,324Z" fill="url(#avCoat)"/>
-        {/* Center front strip */}
-        <path d="M93,204 L127,204 L133,324 L87,324Z" fill="url(#avCoat)"/>
+        <path d="M228,204 L160,196 L146,216 L162,330 L232,338Z" fill="url(#avCt)"/>
+        {/* Center strip */}
+        <path d="M94,216 L146,216 L152,338 L88,338Z"        fill="url(#avCt)"/>
         {/* Left lapel */}
-        <path d="M82,185 L98,162 L110,176 L93,204Z" fill="url(#avLapel)"/>
+        <path d="M80,196 L107,174 L120,188 L94,216Z"  fill="url(#avLp)"/>
         {/* Right lapel */}
-        <path d="M138,185 L122,162 L110,176 L127,204Z" fill="url(#avLapel)"/>
-        {/* Left coat edge shadow */}
-        <path d="M18,192 L24,194 L80,318 L78,316 L93,204 L82,185Z" fill="#C8D8F0" opacity="0.45"/>
-        {/* Right coat edge shadow */}
-        <path d="M202,192 L196,194 L140,318 L142,316 L127,204 L138,185Z" fill="#C8D8F0" opacity="0.45"/>
-        {/* Center button strip */}
-        <line x1="110" y1="210" x2="110" y2="320" stroke="#B8CCE4" strokeWidth="1.5"/>
+        <path d="M160,196 L133,174 L120,188 L146,216Z" fill="url(#avLp)"/>
+        {/* Edge shadows */}
+        <path d="M12,204 L20,207 L82,333 L78,330 L94,216 L80,196Z"  fill="#B0C8E8" opacity="0.38"/>
+        <path d="M228,204 L220,207 L158,333 L162,330 L146,216 L160,196Z" fill="#B0C8E8" opacity="0.38"/>
+        {/* Center button line */}
+        <line x1="120" y1="222" x2="120" y2="335" stroke="#A8C0DC" strokeWidth="1.8"/>
         {/* Buttons */}
-        <circle cx="110" cy="225" r="4"   fill="#A8BEDD" stroke="#98B0D0" strokeWidth="0.8"/>
-        <circle cx="110" cy="248" r="4"   fill="#A8BEDD" stroke="#98B0D0" strokeWidth="0.8"/>
-        <circle cx="110" cy="271" r="4"   fill="#A8BEDD" stroke="#98B0D0" strokeWidth="0.8"/>
-        {/* Chest pocket (right side) */}
-        <rect x="142" y="214" width="32" height="36" rx="4" fill="none" stroke="#B8CCDF" strokeWidth="1.5"/>
-        <path d="M142,224 L174,224" stroke="#B8CCDF" strokeWidth="1.5"/>
-        {/* Pens in pocket */}
-        <rect x="150" y="206" width="4.5" height="18" rx="2.2" fill="#2B7CB4"/>
-        <circle cx="152.3" cy="205"  r="3.2" fill="#1A5A8C"/>
-        <rect x="157" y="208" width="4.5" height="16" rx="2.2" fill="#38A169"/>
-        <circle cx="159.3" cy="207"  r="3.2" fill="#276749"/>
-        {/* Left chest pocket (ID badge) */}
-        <rect x="36" y="236" width="60" height="38" rx="4" fill="white" stroke="#B8CCDF" strokeWidth="1.5"/>
-        <rect x="36" y="236" width="60" height="12" rx="4" fill="#2C7A7B"/>
-        <rect x="36" y="244" width="60" height="4"  fill="#2C7A7B"/>
-        <text x="66" y="261" fontFamily="Arial, sans-serif" fontSize="7.5" fontWeight="bold" fill="#1A3A4A" textAnchor="middle">Dr. Jarvis</text>
-        <text x="66" y="270" fontFamily="Arial, sans-serif" fontSize="5.5" fill="#718096" textAnchor="middle">AI Specialist</text>
+        {[236, 260, 284, 308].map(y => (
+          <circle key={y} cx="120" cy={y} r="4.5" fill="#98B4D4" stroke="#88A4C4" strokeWidth="0.8"/>
+        ))}
+        {/* Chest pocket */}
+        <rect x="150" y="222" width="36" height="40" rx="4" fill="none" stroke="#A0B8D4" strokeWidth="1.6"/>
+        <path d="M150,233 L186,233" stroke="#A0B8D4" strokeWidth="1.4"/>
+        {/* Pens */}
+        <rect x="158" y="212" width="5"   height="21" rx="2.5" fill="#2B6CB4"/>
+        <circle cx="160.5" cy="211" r="3.5" fill="#1A4E8A"/>
+        <rect x="166" y="214" width="5"   height="19" rx="2.5" fill="#38A169"/>
+        <circle cx="168.5" cy="213" r="3.5" fill="#276749"/>
+        {/* ID badge */}
+        <rect x="36" y="252" width="66" height="42" rx="5" fill="white" stroke="#A0B8D4" strokeWidth="1.5"/>
+        <rect x="36" y="252" width="66" height="13" rx="5" fill="#2C7A7B"/>
+        <rect x="36" y="261" width="66" height="4"  fill="#2C7A7B"/>
+        <text x="69" y="278" fontFamily="Arial,sans-serif" fontSize="8.5" fontWeight="bold" fill="#1A3A4A" textAnchor="middle">Dr. Jarvis</text>
+        <text x="69" y="288" fontFamily="Arial,sans-serif" fontSize="6"   fill="#718096"   textAnchor="middle">AI Specialist</text>
 
-        {/* ── STETHOSCOPE ─────────────────────────────────── */}
-        {/* Left tube to ear */}
-        <path d="M110,168 Q93,163 81,157 Q75,153 73,147" stroke="#1A202C" strokeWidth="3.2" fill="none" strokeLinecap="round"/>
-        <circle cx="71" cy="145" r="6" fill="#1A202C"/>
-        <circle cx="71" cy="145" r="3.5" fill="#2D3748"/>
-        {/* Right tube to ear */}
-        <path d="M110,168 Q127,163 139,157 Q145,153 147,147" stroke="#1A202C" strokeWidth="3.2" fill="none" strokeLinecap="round"/>
-        <circle cx="149" cy="145" r="6" fill="#1A202C"/>
-        <circle cx="149" cy="145" r="3.5" fill="#2D3748"/>
-        {/* Main tube going down to chest piece */}
-        <path d="M110,168 Q108,194 107,218 Q106,240 120,255" stroke="#2D3748" strokeWidth="4.8" fill="none" strokeLinecap="round"/>
-        {/* Chest piece */}
-        <circle cx="120" cy="259" r="14"  fill="url(#avSteth)"/>
-        <circle cx="120" cy="259" r="10"  fill="#2D3748"/>
-        <circle cx="120" cy="259" r="5.5" fill="url(#avStetCenter)"/>
-        <circle cx="118" cy="257" r="2"   fill="#718096"/>
-        {/* Membrane ring detail */}
-        <circle cx="120" cy="259" r="12" fill="none" stroke="#4A5568" strokeWidth="1"/>
+        {/* ══ STETHOSCOPE ════════════════════════════════ */}
+        <path d="M120,180 Q102,174 89,167 Q82,163 80,156" stroke="#1A202C" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+        <circle cx="78" cy="154" r="7" fill="#1A202C"/>
+        <circle cx="78" cy="154" r="4" fill="#2D3748"/>
+        <path d="M120,180 Q138,174 151,167 Q158,163 160,156" stroke="#1A202C" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+        <circle cx="162" cy="154" r="7" fill="#1A202C"/>
+        <circle cx="162" cy="154" r="4" fill="#2D3748"/>
+        <path d="M120,180 Q118,204 116,230 Q115,252 130,268" stroke="#2D3748" strokeWidth="5.5" fill="none" strokeLinecap="round"/>
+        <circle cx="130" cy="272" r="15"  fill="url(#avSt)"/>
+        <circle cx="130" cy="272" r="11"  fill="#2D3748"/>
+        <circle cx="130" cy="272" r="6.5" fill="#4A5568"/>
+        <circle cx="128" cy="270" r="2.2" fill="#718096"/>
+        <circle cx="130" cy="272" r="13"  fill="none" stroke="#4A5568" strokeWidth="1.2"/>
 
-        {/* ── LEFT ARM + HAND ─────────────────────────────── */}
-        {/* Left sleeve */}
-        <path d="M44,198 Q18,252 14,304 Q12,328 18,346 L46,344 Q50,326 51,304 Q55,250 70,203Z" fill="url(#avCoat)"/>
-        {/* Left coat edge on sleeve */}
-        <path d="M44,198 L48,200 Q62,252 58,304 Q57,326 51,344 L46,344 Q50,326 51,304 Q55,250 70,203Z" fill="#C8D8F0" opacity="0.4"/>
+        {/* ══ LEFT ARM (static) ══════════════════════════ */}
+        <path d="M38,208 Q10,264 6,320 Q4,345 11,363 L42,361 Q47,344 48,320 Q52,262 68,213Z" fill="url(#avCt)"/>
+        <path d="M38,208 L44,211 Q60,264 57,320 Q56,344 47,361 L42,361 Q47,344 48,320 Q52,262 68,213Z" fill="#B0C8E8" opacity="0.32"/>
         {/* Left hand */}
-        <ellipse cx="32" cy="348" rx="18" ry="12" fill="url(#avSkinD)" transform="rotate(-14,32,348)"/>
-        {/* Finger hints */}
-        <path d="M22,342 Q18,334 20,328" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-        <path d="M28,339 Q25,330 27,324" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-        <path d="M35,337 Q34,328 36,322" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-        <path d="M42,339 Q43,330 44,325" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-        {/* Knuckle lines */}
-        <path d="M21,344 Q28,341 34,340" stroke="#C07845" strokeWidth="0.8" fill="none" opacity="0.5"/>
+        <ellipse cx="26" cy="365" rx="21" ry="14" fill="url(#avSkD)" transform="rotate(-12,26,365)"/>
+        <path d="M13,358 Q8,348 10,341"  stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+        <path d="M21,355 Q16,344 18,337" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+        <path d="M30,352 Q28,341 30,334" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+        <path d="M38,355 Q40,344 42,338" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+        <path d="M14,362 Q22,358 28,357" stroke="#C07838" strokeWidth="1"  fill="none" opacity="0.45"/>
 
-        {/* ── RIGHT ARM + HAND (animates during speech) ────── */}
-        <g style={{
-          transform: armLift
-            ? 'translateY(-16px) rotate(-16deg)'
-            : 'translateY(0) rotate(0)',
-          transformOrigin: '190px 198px',
-          transition: 'transform 0.32s cubic-bezier(0.34,1.56,0.64,1)',
-        }}>
-          {/* Right sleeve */}
-          <path d="M176,198 Q202,252 206,304 Q208,328 202,346 L174,344 Q170,326 169,304 Q165,250 150,203Z" fill="url(#avCoat)"/>
-          <path d="M176,198 L172,200 Q158,252 162,304 Q163,326 169,344 L174,344 Q170,326 169,304 Q165,250 150,203Z" fill="#C8D8F0" opacity="0.4"/>
+        {/* ══ RIGHT ARM (gesture-animated) ═══════════════ */}
+        <g
+          className={`dra-right-arm${gesture === 'wave' ? ' dra-arm-wave' : ''}`}
+          style={{
+            transform:       gesture !== 'wave' ? armStyle : undefined,
+            transformOrigin: '196px 204px',
+            transition:      gesture !== 'wave' ? 'transform 0.36s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+          }}
+        >
+          <path d="M202,208 Q230,264 234,320 Q236,345 229,363 L198,361 Q193,344 192,320 Q188,262 172,213Z" fill="url(#avCt)"/>
+          <path d="M202,208 L196,211 Q180,264 184,320 Q185,344 193,361 L198,361 Q193,344 192,320 Q188,262 172,213Z" fill="#B0C8E8" opacity="0.32"/>
           {/* Right hand */}
-          <ellipse cx="188" cy="348" rx="18" ry="12" fill="url(#avSkinD)" transform="rotate(14,188,348)"/>
-          {/* Finger hints */}
-          <path d="M198,342 Q202,334 200,328" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-          <path d="M192,339 Q195,330 193,324" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-          <path d="M185,337 Q186,328 184,322" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-          <path d="M178,339 Q177,330 176,325" stroke="url(#avSkinD)" strokeWidth="8" fill="none" strokeLinecap="round"/>
-          <path d="M199,344 Q192,341 186,340" stroke="#C07845" strokeWidth="0.8" fill="none" opacity="0.5"/>
+          <ellipse cx="214" cy="365" rx="21" ry="14" fill="url(#avSkD)" transform="rotate(12,214,365)"/>
+          <path d="M227,358 Q232,348 230,341" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M219,355 Q224,344 222,337" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M210,352 Q212,341 210,334" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M202,355 Q200,344 198,338" stroke="url(#avSkD)" strokeWidth="10" fill="none" strokeLinecap="round"/>
+          <path d="M226,362 Q218,358 212,357" stroke="#C07838" strokeWidth="1"  fill="none" opacity="0.45"/>
+          {/* Thumbs-up hand shape (only when gesture=thumbsup) */}
+          {gesture === 'thumbsup' && (
+            <path d="M232,354 Q238,350 238,340 Q238,330 230,330 L224,330 L222,310 Q222,304 216,304 Q210,304 210,312 L208,330 L202,330 L202,362 L224,362Z" fill="url(#avSkD)"/>
+          )}
         </g>
+
+        {/* ══ LEGS (visible during tiny walk-in entrance) ═ */}
+        <path d="M88,338 Q82,368 80,392 Q79,402 82,410 L108,410 Q108,402 108,392 Q110,368 112,338Z" fill="#2D3748"/>
+        <path d="M152,338 Q158,368 160,392 Q161,402 158,410 L132,410 Q132,402 132,392 Q130,368 128,338Z" fill="#2D3748"/>
+        {/* Shoes */}
+        <path d="M74,406 Q94,398 112,406 L112,414 Q94,418 74,414Z" fill="#1A202C"/>
+        <ellipse cx="93" cy="410" rx="20" ry="7" fill="#1A202C"/>
+        <path d="M128,406 Q148,398 166,406 L166,414 Q148,418 128,414Z" fill="#1A202C"/>
+        <ellipse cx="147" cy="410" rx="20" ry="7" fill="#1A202C"/>
       </svg>
 
-      {/* ── Audio wave indicator (speaking) ──────────────── */}
+      {/* Audio wave bars (speaking) */}
       {isSpeaking && (
         <div className="dra-av-waves">
           {[0,1,2,3,4].map(i => (
@@ -285,9 +292,8 @@ const AnimatedDoctorAvatar = ({ isSpeaking, isListening }) => {
           ))}
         </div>
       )}
-
-      {/* ── Listening pulse ───────────────────────────────── */}
-      {isListening && (
+      {/* Listening pulse rings */}
+      {isListening && !isSpeaking && (
         <div className="dra-av-listen">
           <div className="dra-av-listen-ring"/>
           <div className="dra-av-listen-ring" style={{ animationDelay: '0.45s' }}/>

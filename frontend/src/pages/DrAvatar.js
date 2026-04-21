@@ -348,56 +348,99 @@ const QUICK_CHIPS = [
   { label: 'Upload my report', icon: '📋' },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const getPatientName = () => {
+  try {
+    const d = JSON.parse(localStorage.getItem('patientData') || '{}');
+    return d.name || d.firstName || d.fullName?.split(' ')[0] || 'there';
+  } catch { return 'there'; }
+};
+
+const detectGesture = (text) => {
+  if (/upload|reading|check|review|analyz|report|x.ray|file|look at/i.test(text))  return 'read';
+  if (/think|wonder|consider|actually|hmm|well |you know/i.test(text))              return 'think';
+  if (/great|perfect|good|excellent|wonder|congrat|well done|sure|exactly|absolut/i.test(text)) return 'thumbsup';
+  if (/explain|means|basically|here.s|understand|important|because|symptom|treatment/i.test(text)) return 'explain';
+  return 'idle';
+};
+
 const DrAvatar = () => {
-  const [messages, setMessages] = useState([{
-    id: 1,
-    text: "Hello! I'm Dr. Jarvis, your AI medical assistant.\n\nI specialize in Pneumonia — I can help you:\n\n• Understand Pneumonia symptoms, causes & stages\n• Explain your chest X-ray or medical report in simple language\n• Break down AI diagnosis findings\n• Find nearby radiology centers, hospitals, or diagnostic labs\n\n⚠️ I'm an AI assistant, not a licensed physician. Always consult a real doctor for diagnosis and treatment.\n\nHow can I assist you today?",
-    sender: 'bot',
-    timestamp: new Date(),
-  }]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [messages,       setMessages]       = useState([]);
+  const [inputMessage,   setInputMessage]   = useState('');
+  const [isTyping,       setIsTyping]       = useState(false);
+  const [isSpeaking,     setIsSpeaking]     = useState(false);
+  const [isListening,    setIsListening]    = useState(false);
+  const [voiceEnabled,   setVoiceEnabled]   = useState(true);
   const [uploadedReport, setUploadedReport] = useState(null);
-  const [showQuestions, setShowQuestions] = useState(false);
-  const messagesEndRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const recognitionRef = useRef(null);
-  const synthRef = useRef(window.speechSynthesis);
-  const cachedCoordsRef = useRef(null); // cache geolocation for session
+  const [showQuestions,  setShowQuestions]  = useState(false);
+  const [entranceState,  setEntranceState]  = useState('waiting');
+  const [gesture,        setGesture]        = useState('idle');
+
+  const messagesEndRef  = useRef(null);
+  const fileInputRef    = useRef(null);
+  const recognitionRef  = useRef(null);
+  const synthRef        = useRef(window.speechSynthesis);
+  const cachedCoordsRef = useRef(null);
+  const entranceDone    = useRef(false);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+  // ── Speech recognition setup ──────────────────────────────────────────────
   useEffect(() => {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) || !('speechSynthesis' in window)) {
       setVoiceEnabled(false); return;
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SR();
-    recognitionRef.current.continuous = false;
+    recognitionRef.current.continuous    = false;
     recognitionRef.current.interimResults = false;
-    recognitionRef.current.lang = 'en-US';
+    recognitionRef.current.lang          = 'en-US';
     recognitionRef.current.onresult = (e) => { setInputMessage(e.results[0][0].transcript); setIsListening(false); };
-    recognitionRef.current.onerror = () => setIsListening(false);
-    recognitionRef.current.onend = () => setIsListening(false);
+    recognitionRef.current.onerror  = () => setIsListening(false);
+    recognitionRef.current.onend    = () => setIsListening(false);
     return () => { recognitionRef.current?.stop(); synthRef.current?.cancel(); };
   }, []);
 
+  // ── Male voice TTS ────────────────────────────────────────────────────────
   const speakText = (text) => {
     if (!voiceEnabled) return;
     synthRef.current.cancel();
     const u = new SpeechSynthesisUtterance(text.replace(/[•\n*]/g, ' '));
-    u.rate = 0.9; u.pitch = 1.1; u.volume = 1;
-    const femaleVoice = synthRef.current.getVoices().find(v =>
-      ['female','woman','zira','susan','samantha','karen'].some(n => v.name.toLowerCase().includes(n)));
-    if (femaleVoice) u.voice = femaleVoice;
+    u.pitch  = 0.9;
+    u.rate   = 0.95;
+    u.volume = 1.0;
+    const voices    = synthRef.current.getVoices();
+    const maleVoice = voices.find(v =>
+      /david|mark|james|daniel|google us english male/i.test(v.name)
+    ) || voices.find(v =>
+      v.lang === 'en-US' && !/samantha|zira|susan|karen|victoria|female|woman/i.test(v.name)
+    );
+    if (maleVoice) u.voice = maleVoice;
     u.onstart = () => setIsSpeaking(true);
-    u.onend = () => setIsSpeaking(false);
+    u.onend   = () => setIsSpeaking(false);
     u.onerror = () => setIsSpeaking(false);
     synthRef.current.speak(u);
   };
+
+  // ── Entrance animation sequence (runs once) ───────────────────────────────
+  useEffect(() => {
+    if (entranceDone.current) return;
+    entranceDone.current = true;
+    const name = getPatientName();
+
+    const t1 = setTimeout(() => setEntranceState('walking'), 400);
+    const t2 = setTimeout(() => {
+      setEntranceState('waving');
+      setGesture('wave');
+      const greeting = `Hey ${name}! I'm Dr. Jarvis — your personal pneumonia buddy. Let's figure this out together!`;
+      setMessages([{ id: Date.now(), text: greeting, sender: 'bot', timestamp: new Date() }]);
+      // slight delay so voices are loaded
+      setTimeout(() => speakText(greeting), 300);
+    }, 2400);
+    const t3 = setTimeout(() => { setEntranceState('complete'); setGesture('idle'); }, 5800);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, []); // eslint-disable-line
 
   const stopSpeaking = () => { synthRef.current.cancel(); setIsSpeaking(false); };
 
@@ -477,14 +520,23 @@ const DrAvatar = () => {
       const res = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, sessionId: userData.id || 'anon-' + Date.now(), patientEmail: userData.email || null }),
+        body: JSON.stringify({
+          message:      text,
+          sessionId:    userData.id || 'anon-' + Date.now(),
+          patientEmail: userData.email || null,
+          patientName:  getPatientName(),
+        }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMessages(prev => [...prev, { id: Date.now(), text: data.message, sender: 'bot', timestamp: new Date() }]);
+      // Gesture + voice
+      const g = detectGesture(data.message);
+      setGesture(g);
+      setTimeout(() => setGesture('idle'), 3500);
       if (voiceEnabled) setTimeout(() => speakText(data.message), 400);
     } catch (err) {
-      setMessages(prev => [...prev, { id: Date.now(), text: `Unable to reach AI service. Please check your connection and try again.`, sender: 'bot', timestamp: new Date() }]);
+      setMessages(prev => [...prev, { id: Date.now(), text: `Hmm, I can't reach my brain right now. Check the connection and try again?`, sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
@@ -505,6 +557,7 @@ const DrAvatar = () => {
     }
     setMessages(prev => [...prev, { id: Date.now(), text: `📄 Uploading: ${file.name}...`, sender: 'user', timestamp: new Date() }]);
     setIsTyping(true);
+    setGesture('read'); // avatar reads file
     try {
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const fd = new FormData();
@@ -515,15 +568,16 @@ const DrAvatar = () => {
       if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Upload failed'); }
       const data = await res.json();
       setUploadedReport({ reportId: data.report_id, fileName: file.name, testType: data.test_type || 'Medical Report', timestamp: new Date() });
+      const readMsg = `Alright, let me take a look at this...\n\nGot your ${data.test_type || 'Medical Report'}! You can ask me:\n• What do the findings mean?\n• Is this result serious?\n• What should I do next?\n• Explain the medical terms`;
       setMessages(prev => [...prev, {
-        id: Date.now(),
-        text: `✅ Report received: ${data.test_type || 'Medical Report'}\n\nI've analyzed your document. You can now ask me:\n• What do the findings mean?\n• Is this result serious?\n• What should I do next?\n• Explain medical terms in the report\n\n⚠️ Always follow up with your physician for clinical decisions.`,
-        sender: 'bot', timestamp: new Date(), hasQuestions: true,
+        id: Date.now(), text: readMsg, sender: 'bot', timestamp: new Date(), hasQuestions: true,
       }]);
       setShowQuestions(true);
-      if (voiceEnabled) setTimeout(() => speakText("Report received. What would you like to know?"), 400);
+      if (voiceEnabled) setTimeout(() => speakText("Alright, let me take a look at this..."), 400);
+      setTimeout(() => setGesture('explain'), 3000);
     } catch (err) {
-      setMessages(prev => [...prev, { id: Date.now(), text: `❌ Upload failed: ${err.message}`, sender: 'bot', timestamp: new Date() }]);
+      setGesture('idle');
+      setMessages(prev => [...prev, { id: Date.now(), text: `Hmm, upload didn't work: ${err.message}. Try again?`, sender: 'bot', timestamp: new Date() }]);
     } finally {
       setIsTyping(false);
     }
@@ -555,17 +609,14 @@ const DrAvatar = () => {
       <div className="dra-page">
         <div className="dra-layout">
 
-          {/* ── Animated Doctor Avatar Panel (left) ─────────── */}
+          {/* ── Floating Doctor Avatar (left, no background box) ── */}
           <aside className="dra-avatar-panel">
-            <AnimatedDoctorAvatar isSpeaking={isSpeaking} isListening={isListening} />
-            <div className="dra-doc-info">
-              <h2 className="dra-doc-name">Dr. Jarvis</h2>
-              <p className="dra-doc-title">AI Medical Assistant</p>
-              <span className="dra-status-badge">
-                <span className={`dra-status-dot${isSpeaking ? ' dot-speaking' : isListening ? ' dot-listening' : ''}`}/>
-                {isSpeaking ? 'Speaking…' : isListening ? 'Listening…' : 'Online'}
-              </span>
-            </div>
+            <AnimatedDoctorAvatar
+              isSpeaking={isSpeaking}
+              isListening={isListening}
+              gesture={gesture}
+              entranceState={entranceState}
+            />
           </aside>
 
           {/* ── Chat Panel (right) ──────────────────────────── */}
@@ -578,6 +629,8 @@ const DrAvatar = () => {
                 <div>
                   <h3>Medical AI Chat</h3>
                   <span>Pneumonia Specialist · Available 24/7</span>
+                  {isSpeaking  && <small className="dra-hdr-status speaking">Speaking…</small>}
+                  {isListening && <small className="dra-hdr-status listening">Listening…</small>}
                 </div>
               </div>
               <div className="dra-chat-header-actions">
@@ -667,7 +720,7 @@ const DrAvatar = () => {
 
             {/* Input */}
             <div className="dra-input-area">
-              <p className="dra-input-hint">Ask about Pneumonia, upload a report, or find nearby medical centers</p>
+              <p className="dra-input-hint">Ask me about pneumonia, upload a chest X-ray or report, or find nearby medical centers</p>
               <form className="dra-input-form" onSubmit={handleSendMessage}>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" />
                 <button type="button" className="dra-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach report">
@@ -678,7 +731,7 @@ const DrAvatar = () => {
                   className="dra-text-input"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask about Pneumonia symptoms, treatment, or 'radiology near me'…"
+                  placeholder="Hey Dr. Jarvis, what's up?"
                 />
                 <button type="submit" className="dra-send-btn" disabled={!inputMessage.trim()}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
