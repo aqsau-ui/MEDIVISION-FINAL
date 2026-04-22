@@ -40,9 +40,6 @@ function DoctorDashboard() {
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const previousCountRef = useRef(0);
   
-  // Chat inbox toggle
-  const [showChatInbox, setShowChatInbox] = useState(false);
-
   // Prescription states
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showPrescriptionReport, setShowPrescriptionReport] = useState(false);
@@ -1321,13 +1318,6 @@ function DoctorDashboard() {
             )}
           </div>
         </div>
-      )}
-      {/* Doctor Chat Inbox modal */}
-      {showChatInbox && doctor && (
-        <DoctorChatInbox
-          doctorId={String(doctor.id)}
-          onClose={() => setShowChatInbox(false)}
-        />
       )}
     </div>
   );
