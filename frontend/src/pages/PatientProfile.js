@@ -813,24 +813,23 @@ const PatientProfile = () => {
         }));
         setSelectedDoctor(null);
         console.log(`✅ Report sent successfully to Dr. ${result.doctorName}!`);
+        setShowDoctorModal(false);
+        setSelectedDoctor(null);
+        setDoctorSearch('');
+        // Reset the analysis so the report overlay closes and page refreshes view
+        window.location.reload();
       } else {
         throw new Error('Report sending failed');
       }
     } catch (error) {
       console.error('Error sending report:', error);
-      console.error('Error type:', error.constructor.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      
       let errorMessage = 'Error sending report. Please try again.';
-      
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         errorMessage = 'Cannot connect to server. Please ensure the backend is running on port 5000.';
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
-      console.error('❌', errorMessage);
+      alert(errorMessage);
     } finally {
       setIsSending(false);
     }
@@ -1474,10 +1473,42 @@ const PatientProfile = () => {
                     )}
 
 
-                    {/* Professional Medical Report */}
+                    {/* Professional Medical Report — shown as full-page overlay */}
                     {analysisResult && (
-                      <div style={{ marginTop: '30px' }}>
-                        <div id="medical-report">
+                      <div style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.82)',
+                        zIndex: 3000,
+                        overflowY: 'auto',
+                        padding: '24px 16px'
+                      }}>
+                        <div style={{ maxWidth: '880px', margin: '0 auto', position: 'relative' }}>
+                          {/* Close button */}
+                          <button
+                            onClick={() => setAnalysisResult(null)}
+                            style={{
+                              position: 'sticky',
+                              top: 0,
+                              float: 'right',
+                              zIndex: 10,
+                              backgroundColor: '#e53e3e',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '50%',
+                              width: '36px',
+                              height: '36px',
+                              fontSize: '20px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginBottom: '-36px',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                            }}
+                            title="Close report"
+                          >×</button>
+                        <div id="medical-report" style={{ clear: 'both' }}>
                           <MedicalReport
                             reportData={{
                               date: Date.now(),
@@ -1605,7 +1636,8 @@ const PatientProfile = () => {
                             Send to Doctor
                           </button>
                         </div>
-                      </div>
+                        </div>{/* end inner max-width container */}
+                      </div>{/* end modal overlay */}
                     )}
                   </div>
                 </div>

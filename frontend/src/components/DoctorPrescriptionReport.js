@@ -47,12 +47,6 @@ const DoctorPrescriptionReport = ({ prescription, patientReport, onDownloadPDF, 
 
   return (
     <div className="prescription-container">
-      <div className="prescription-actions no-print">
-        <button onClick={() => onDownloadPDF(reportRef)} className="btn-download-pdf">
-          Download Prescription (PDF)
-        </button>
-      </div>
-
       <div className="prescription-report" ref={reportRef}>
         {/* Header */}
         <div className="prescription-header">
@@ -258,6 +252,13 @@ const DoctorPrescriptionReport = ({ prescription, patientReport, onDownloadPDF, 
             Report ID: {prescription.report_id} | Generated: {formatDate(prescription.created_at)}
           </p>
         </div>
+      </div>
+
+      {/* Download button at bottom */}
+      <div className="prescription-actions no-print" style={{ padding: '0 20px 20px', textAlign: 'center' }}>
+        <button onClick={() => onDownloadPDF(reportRef)} className="btn-download-pdf">
+          Download Prescription (PDF)
+        </button>
       </div>
     </div>
   );

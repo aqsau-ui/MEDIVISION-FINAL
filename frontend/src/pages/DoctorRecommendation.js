@@ -216,18 +216,6 @@ const DoctorRecommendation = () => {
               >
                 ×
               </button>
-              {/* Chat button inside modal */}
-              {selectedPrescription && (
-                <div style={{ padding: '12px 20px 0', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    className="cp-chat-btn"
-                    onClick={() => handleOpenChat(selectedPrescription)}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    Chat with Dr. {selectedPrescription.doctor_name}
-                  </button>
-                </div>
-              )}
               {loadingReport ? (
                 <div style={{ padding: '40px', textAlign: 'center' }}>
                   <p>Loading prescription details...</p>
@@ -280,6 +268,34 @@ const DoctorRecommendation = () => {
                   }}
                   onDownloadPDF={handleDownloadPDF}
                 />
+              )}
+
+              {/* Action buttons at bottom of prescription modal */}
+              {!loadingReport && selectedPrescription && (
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  justifyContent: 'center',
+                  padding: '20px',
+                  borderTop: '1px solid #e2e8f0',
+                  backgroundColor: '#f7fafc'
+                }}>
+                  <button
+                    className="cp-chat-btn"
+                    onClick={() => handleOpenChat(selectedPrescription)}
+                    style={{
+                      padding: '12px 24px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Chat with Dr. {selectedPrescription.doctor_name}
+                  </button>
+                </div>
               )}
             </div>
           </div>

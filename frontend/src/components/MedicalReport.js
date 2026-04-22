@@ -13,14 +13,15 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
 
   return (
     <div id="medical-report" style={{
-      padding: '30px',
+      padding: '24px 28px',
       backgroundColor: '#fff',
       borderRadius: '8px',
       border: '1px solid #e2e8f0',
       boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      maxWidth: '900px',
-      margin: '20px auto',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      maxWidth: '860px',
+      margin: '0 auto',
+      fontFamily: '"Times New Roman", Georgia, serif',
+      fontSize: '13px'
     }}>
       {/* TOP HEADER SECTION */}
       <div style={{
@@ -63,7 +64,7 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
       </div>
 
       {/* SECTION 1 - PATIENT INFORMATION */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '14px' }}>
         <h2 style={{
           fontSize: '13px',
           fontWeight: '700',
@@ -171,7 +172,7 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
       </div>
 
       {/* SECTION 2 - AI ANALYSIS */}
-      <div style={{ marginBottom: '30px' }}>
+      <div style={{ marginBottom: '14px' }}>
         <h2 style={{
           fontSize: '14px',
           fontWeight: '700',
@@ -288,7 +289,7 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
       </div>
 
       {/* SECTION 3 - CLINICAL IMPRESSION */}
-      <div style={{ marginBottom: '30px' }}>
+      <div style={{ marginBottom: '14px' }}>
         <h2 style={{
           fontSize: '14px',
           fontWeight: '700',
@@ -324,74 +325,119 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
       </div>
 
       {/* SECTION 4 - RADIOLOGICAL IMAGES */}
-      <div style={{ marginBottom: '30px' }}>
+      <div style={{ marginBottom: '20px' }}>
         <h2 style={{
-          fontSize: '14px',
+          fontSize: '13px',
           fontWeight: '700',
           color: '#2d3748',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
-          marginBottom: '15px',
-          paddingBottom: '8px',
+          marginBottom: '12px',
+          paddingBottom: '6px',
           borderBottom: '2px solid #38B2AC'
         }}>RADIOLOGICAL IMAGES</h2>
-        
+
         <div style={{
           display: 'flex',
-          justifyContent: 'center'
+          gap: '16px',
+          justifyContent: (reportData.analysis?.prediction !== 'Normal' && reportData.images?.heatmap) ? 'center' : 'center',
+          flexWrap: 'wrap'
         }}>
-          {/* Original X-ray - Centered */}
+          {/* Original X-ray */}
           <div style={{
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
             borderRadius: '6px',
-            padding: '15px',
+            padding: '10px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            maxWidth: '500px',
-            width: '100%'
+            width: '260px',
+            flexShrink: 0
           }}>
             <div style={{
-              fontSize: '12px',
+              fontSize: '11px',
               fontWeight: '600',
               color: '#4a5568',
-              marginBottom: '12px',
+              marginBottom: '8px',
               textAlign: 'center',
               textTransform: 'uppercase',
               letterSpacing: '0.5px'
-            }}>Figure 1: Original Chest X-ray</div>
+            }}>Figure 1: Original Chest X-Ray</div>
             <div style={{
-              position: 'relative',
-              width: '100%',
-              paddingBottom: '100%',
-              backgroundColor: '#f7fafc',
+              width: '240px',
+              height: '240px',
+              backgroundColor: '#0a0a0a',
               borderRadius: '4px',
               overflow: 'hidden',
-              border: '2px solid #cbd5e0'
+              border: '1px solid #cbd5e0',
+              margin: '0 auto'
             }}>
-              <img 
-                src={reportData.images?.original || filePreview} 
-                alt="Original Chest X-ray" 
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain'
-                }}
+              <img
+                src={reportData.images?.original || filePreview}
+                alt="Original Chest X-ray"
+                style={{ width: '100%', height: '100%', objectFit: 'contain' }}
               />
             </div>
           </div>
+
+          {/* Heatmap — only for abnormal findings */}
+          {reportData.analysis?.prediction !== 'Normal' && reportData.images?.heatmap && (
+            <div style={{
+              backgroundColor: '#fff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              padding: '10px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+              width: '260px',
+              flexShrink: 0
+            }}>
+              <div style={{
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#4a5568',
+                marginBottom: '8px',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>Figure 2: AI Heatmap (Grad-CAM)</div>
+              <div style={{
+                width: '240px',
+                height: '240px',
+                backgroundColor: '#0a0a0a',
+                borderRadius: '4px',
+                overflow: 'hidden',
+                border: '1px solid #cbd5e0',
+                margin: '0 auto'
+              }}>
+                <img
+                  src={reportData.images.heatmap}
+                  alt="AI Heatmap"
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
+
+        {reportData.analysis?.prediction !== 'Normal' && reportData.images?.heatmap && (
+          <p style={{
+            fontSize: '11px',
+            color: '#718096',
+            textAlign: 'center',
+            marginTop: '8px',
+            fontStyle: 'italic'
+          }}>
+            Grad-CAM heatmap highlights regions influencing the AI prediction. Red/yellow areas indicate high activation.
+          </p>
+        )}
       </div>
 
       {/* SECTION 5 - MEDICAL DISCLAIMER */}
       <div style={{
         backgroundColor: '#fffbeb',
-        border: '2px solid #fbbf24',
+        border: '1px solid #fbbf24',
         borderRadius: '6px',
-        padding: '18px',
-        marginBottom: '30px'
+        padding: '12px 16px',
+        marginBottom: '16px'
       }}>
         <h3 style={{
           fontSize: '13px',
