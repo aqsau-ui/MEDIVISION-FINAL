@@ -2,7 +2,7 @@
    ChatModule.css — Patient Chat Panel + Doctor Chat Inbox
    ============================================================ */
 
-/* ── Patient Chat Panel ─────────────────────────────────────── */
+/* -- Patient Chat Panel --------------------------------------- */
 
 .cp-panel {
   position: fixed;
@@ -332,7 +332,7 @@
 
 .cp-chat-btn:hover { background: #38B2AC; }
 
-/* ── Report Viewer Modal (Patient) ──────────────────────────── */
+/* -- Report Viewer Modal (Patient) ---------------------------- */
 
 .cp-report-overlay {
   position: fixed;
@@ -428,7 +428,7 @@
   font-weight: 600;
 }
 
-/* ── Doctor Chat Inbox — Dark Theme ─────────────────────────── */
+/* -- Doctor Chat Inbox — Dark Theme --------------------------- */
 
 .dci-overlay {
   position: fixed;
@@ -880,7 +880,7 @@
   padding: 0 4px;
 }
 
-/* ── Consultation Hours Modal ────────────────────────────────── */
+/* -- Consultation Hours Modal ---------------------------------- */
 
 .dci-hours-overlay {
   position: fixed;

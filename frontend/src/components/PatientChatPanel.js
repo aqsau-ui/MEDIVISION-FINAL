@@ -5,7 +5,7 @@ const API     = 'http://localhost:5000/api/patient-chat';
 const WS_BASE = 'ws://localhost:5000/api/patient-chat/ws';
 const DAYS    = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
-// ── Professional inline SVG icons ────────────────────────────────────────────
+// -- Professional inline SVG icons --------------------------------------------
 const Ic = {
   chat:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   clock:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
@@ -58,7 +58,7 @@ function formatHoursDisplay(hours) {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 export default function PatientChatPanel({ doctorId, doctorName, reportData, onClose }) {
   const [expanded,      setExpanded]      = useState(true);
   const [maximized,     setMaximized]     = useState(false);
@@ -93,7 +93,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
   // Keep ref in sync
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
 
-  // ── Load consultation hours ───────────────────────────────────────────────
+  // -- Load consultation hours -----------------------------------------------
   useEffect(() => {
     if (!doctorIdNum) return;
     fetch(`${API}/doctor/${doctorIdNum}/hours`)
@@ -102,7 +102,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
       .catch(() => {});
   }, [doctorIdNum]);
 
-  // ── Init / reuse session ──────────────────────────────────────────────────
+  // -- Init / reuse session --------------------------------------------------
   useEffect(() => {
     if (!patientEmail || !doctorIdNum) return;
     (async () => {
@@ -123,7 +123,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     })();
   }, [patientEmail, doctorIdNum, doctorName]);
 
-  // ── Load messages + status ────────────────────────────────────────────────
+  // -- Load messages + status ------------------------------------------------
   useEffect(() => {
     if (!sessionId) return;
     (async () => {
@@ -143,7 +143,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     })();
   }, [sessionId]);
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
+  // -- WebSocket -------------------------------------------------------------
   const connectWS = useCallback(() => {
     if (!sessionId) return;
     if (wsRef.current && wsRef.current.readyState < 2) return;
@@ -201,7 +201,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     }).catch(() => {});
   }, [sessionId, expanded, messages.length]);
 
-  // ── Ensure session exists, return sid ────────────────────────────────────
+  // -- Ensure session exists, return sid ------------------------------------
   const ensureSession = async () => {
     if (sessionRef.current) return sessionRef.current;
     const res  = await fetch(`${API}/sessions`, {
@@ -220,7 +220,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     throw new Error('Failed to create session');
   };
 
-  // ── Send text ─────────────────────────────────────────────────────────────
+  // -- Send text -------------------------------------------------------------
   const sendText = async (overrideText) => {
     const text = (overrideText !== undefined ? overrideText : inputText).trim();
     if (!text) return;
@@ -250,7 +250,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
 
   const sendStarter = () => sendText(STARTER_MESSAGE);
 
-  // ── Send file / image ─────────────────────────────────────────────────────
+  // -- Send file / image -----------------------------------------------------
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -289,7 +289,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     reader.readAsDataURL(file);
   };
 
-  // ── Voice recording ───────────────────────────────────────────────────────
+  // -- Voice recording -------------------------------------------------------
   const startRecording = async () => {
     if (!canChat) return;
     try {
@@ -341,7 +341,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     if (mediaRecRef.current && recording) { mediaRecRef.current.stop(); setRecording(false); }
   };
 
-  // ── Report viewer ─────────────────────────────────────────────────────────
+  // -- Report viewer ---------------------------------------------------------
   const openReport = async (type) => {
     setShowReport(type);
     if (patientDocs) return;
@@ -360,7 +360,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     setLoadingDocs(false);
   };
 
-  // ── Render message content ────────────────────────────────────────────────
+  // -- Render message content ------------------------------------------------
   const renderMsg = (msg) => {
     if (msg.message_type === 'voice') {
       const src = msg.local_url || (msg.audio_base64 ? `data:audio/webm;base64,${msg.audio_base64}` : null);
@@ -395,7 +395,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     return <span>{msg.content}</span>;
   };
 
-  // ── Status helpers ────────────────────────────────────────────────────────
+  // -- Status helpers --------------------------------------------------------
   const statusLabel = sessionStatus === 'open'  ? 'Live'
     : sessionStatus === 'closed'                ? 'Closed'
     : isOnline                                  ? 'Available'
@@ -420,7 +420,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
   const getSeverity  = d => d?.analysis?.severity || d?.severity || '—';
   const getDate      = d => d?.created_at ? new Date(d.created_at).toLocaleDateString() : '—';
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // -- Render ----------------------------------------------------------------
   return (
     <>
     <div className={`cp-panel${expanded ? '' : ' cp-collapsed'}${maximized ? ' cp-maximized' : ''}`}>

@@ -6,7 +6,7 @@ const WS_BASE = 'ws://localhost:5000/api/patient-chat/ws';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
-// ── Professional inline SVG icons ────────────────────────────────────────────
+// -- Professional inline SVG icons --------------------------------------------
 const Ic = {
   chat:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   clock:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
@@ -61,7 +61,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
 
   const doctorIdNum = parseInt(doctorId, 10) || doctorId;
 
-  // ── Load consultation hours ───────────────────────────────────────────────
+  // -- Load consultation hours -----------------------------------------------
   useEffect(() => {
     if (!doctorIdNum) return;
     fetch(`${API}/doctor/${doctorIdNum}/hours`)
@@ -70,7 +70,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
       .catch(() => {});
   }, [doctorIdNum]);
 
-  // ── Load sessions ─────────────────────────────────────────────────────────
+  // -- Load sessions ---------------------------------------------------------
   const loadSessions = useCallback(async () => {
     if (!doctorIdNum) return;
     try {
@@ -86,7 +86,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     return () => clearInterval(iv);
   }, [loadSessions]);
 
-  // ── Load messages + session detail when session selected ──────────────────
+  // -- Load messages + session detail when session selected ------------------
   useEffect(() => {
     if (!activeSessionId) return;
     (async () => {
@@ -112,7 +112,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
       .finally(() => setLoadingContext(false));
   }, [activeSessionId]);
 
-  // ── Mark read ─────────────────────────────────────────────────────────────
+  // -- Mark read -------------------------------------------------------------
   useEffect(() => {
     if (!activeSessionId) return;
     fetch(`${API}/sessions/${activeSessionId}/messages/read`, {
@@ -124,7 +124,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
       .catch(() => {});
   }, [activeSessionId, messages.length]);
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
+  // -- WebSocket -------------------------------------------------------------
   useEffect(() => {
     if (!activeSessionId) return;
     if (wsRef.current) { wsRef.current.close(); clearInterval(pingTimer.current); }
@@ -181,7 +181,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  // ── Toggle session ────────────────────────────────────────────────────────
+  // -- Toggle session --------------------------------------------------------
   const toggleSession = async () => {
     if (!activeSession) return;
     const newStatus = activeSession.status === 'open' ? 'closed' : 'open';
@@ -194,7 +194,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, status: newStatus } : s));
   };
 
-  // ── Send text (REST-first, no duplicate) ─────────────────────────────────
+  // -- Send text (REST-first, no duplicate) ---------------------------------
   const sendText = async () => {
     const text = inputText.trim();
     if (!text || activeSession?.status !== 'open') return;
@@ -221,7 +221,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     } catch (e) { console.error('send error', e); }
   };
 
-  // ── Send file / image ─────────────────────────────────────────────────────
+  // -- Send file / image -----------------------------------------------------
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !activeSessionId || activeSession?.status !== 'open') return;
@@ -257,7 +257,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     reader.readAsDataURL(file);
   };
 
-  // ── Voice recording ───────────────────────────────────────────────────────
+  // -- Voice recording -------------------------------------------------------
   const startRecording = async () => {
     if (activeSession?.status !== 'open') return;
     try {
@@ -309,7 +309,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     if (mediaRecRef.current && recording) { mediaRecRef.current.stop(); setRecording(false); }
   };
 
-  // ── Save consultation hours ───────────────────────────────────────────────
+  // -- Save consultation hours -----------------------------------------------
   const saveHours = async () => {
     setHoursSaving(true);
     try {
@@ -325,7 +325,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     setHoursSaving(false);
   };
 
-  // ── Render message content ────────────────────────────────────────────────
+  // -- Render message content ------------------------------------------------
   const renderMsg = (msg) => {
     if (msg.message_type === 'voice') {
       const src = msg.local_url || (msg.audio_base64 ? `data:audio/webm;base64,${msg.audio_base64}` : null);
@@ -356,7 +356,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
     return <span>{msg.content}</span>;
   };
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // -- Helpers ---------------------------------------------------------------
   const statusDot = s => s === 'open' ? '#22c55e' : s === 'closed' ? '#ef4444' : '#f59e0b';
   const fmtTime   = ts => {
     if (!ts) return '';
@@ -369,7 +369,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
   const ai  = reportContext?.ai_report;
   const rx  = reportContext?.prescription;
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // -- Render ----------------------------------------------------------------
   return (
     <div className="dci-overlay" onClick={e => e.target === e.currentTarget && onClose?.()}>
       <div className={`dci-modal${fullscreen ? ' dci-fullscreen' : ''}`}>
@@ -395,7 +395,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
         {/* 3-column body */}
         <div className="dci-body">
 
-          {/* ─ Column 1: Session list ─ */}
+          {/* - Column 1: Session list - */}
           <div className="dci-col-sessions">
             <p className="dci-col-head">
               Patient Messages
@@ -440,7 +440,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
             ))}
           </div>
 
-          {/* ─ Column 2: Chat ─ */}
+          {/* - Column 2: Chat - */}
           <div className="dci-col-chat">
             {!activeSessionId ? (
               <div className="dci-no-chat">
@@ -525,7 +525,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
             )}
           </div>
 
-          {/* ─ Column 3: Medical context ─ */}
+          {/* - Column 3: Medical context - */}
           <div className="dci-col-context">
             <p className="dci-col-head">Patient Medical Context</p>
 
