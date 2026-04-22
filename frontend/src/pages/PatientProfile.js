@@ -1636,8 +1636,8 @@ const PatientProfile = () => {
                             Send to Doctor
                           </button>
                         </div>
-                        </div>{/* end inner max-width container */}
-                      </div>{/* end modal overlay */}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
