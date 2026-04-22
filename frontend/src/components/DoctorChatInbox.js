@@ -551,7 +551,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                     opacity: ai ? 1 : 0.5, width: '100%', textAlign: 'left'
                   }}
                 >
-                  <span style={{ fontSize: 20 }}>🩻</span>
+                  {Ic.fileDoc}
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>AI Medical Report</div>
                     {ai ? (
@@ -577,7 +577,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                     opacity: rx ? 1 : 0.5, width: '100%', textAlign: 'left'
                   }}
                 >
-                  <span style={{ fontSize: 20 }}>📋</span>
+                  {Ic.pill}
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>Doctor Prescription</div>
                     {rx ? (
@@ -678,7 +678,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
               borderRadius: '12px 12px 0 0'
             }}>
               <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>
-                {reportModal === 'ai' ? '🩻 AI Medical Report' : '📋 Doctor Prescription'}
+                {reportModal === 'ai' ? 'AI Medical Report' : 'Doctor Prescription'}
               </span>
               <button
                 onClick={() => setReportModal(null)}

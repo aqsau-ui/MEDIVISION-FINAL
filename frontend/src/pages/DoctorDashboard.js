@@ -19,6 +19,7 @@ function DoctorDashboard() {
   const [diseaseFilter, setDiseaseFilter] = useState('all');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showChatInbox, setShowChatInbox] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -176,6 +177,25 @@ function DoctorDashboard() {
     const interval = setInterval(fetchTrendNotifications, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Poll unread chat message count every 30s
+  useEffect(() => {
+    if (!doctor?.id) return;
+    const fetchUnread = () => {
+      fetch(`http://localhost:5000/api/patient-chat/sessions/doctor/${doctor.id}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.success) {
+            const total = (d.sessions || []).reduce((sum, s) => sum + (s.unread_count || 0), 0);
+            setUnreadChatCount(total);
+          }
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [doctor?.id]);
 
   const fetchTrendNotifications = async () => {
     try {
@@ -551,10 +571,15 @@ function DoctorDashboard() {
             <Logo />
           </div>
           <div className="navbar-right">
-            <button className="notification-btn" title="Patient Chat" onClick={() => setShowChatInbox(true)} style={{ marginRight: '4px' }}>
+            <button className="notification-btn" title="Patient Chat" onClick={() => { setShowChatInbox(true); setUnreadChatCount(0); }} style={{ marginRight: '4px', position: 'relative' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
+              {unreadChatCount > 0 && (
+                <span className="notification-badge" style={{ backgroundColor: '#e53e3e' }}>
+                  {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                </span>
+              )}
             </button>
             <button className="notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -565,15 +590,6 @@ function DoctorDashboard() {
                 <span className="notification-badge">{notificationCount}</span>
               )}
             </button>
-            {doctor && (
-              <button
-                className="dci-nav-btn"
-                onClick={() => setShowChatInbox(true)}
-                title="Patient Consultations"
-              >
-                💬
-              </button>
-            )}
             <div className="profile-dropdown">
               <button className="profile-btn" onClick={() => setShowProfileMenu(!showProfileMenu)}>
                 <div className="profile-avatar">
