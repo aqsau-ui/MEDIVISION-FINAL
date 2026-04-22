@@ -7,7 +7,6 @@ import DoctorReviewPanel from '../components/DoctorReviewPanel';
 import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
 import DoctorChatInbox from '../components/DoctorChatInbox';
 import SignatureCanvas from 'react-signature-canvas';
-import DoctorChatInbox from '../components/DoctorChatInbox';
 import './DoctorDashboard.css';
 
 function DoctorDashboard() {
