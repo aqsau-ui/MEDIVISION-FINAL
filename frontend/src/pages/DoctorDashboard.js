@@ -27,7 +27,8 @@ function DoctorDashboard() {
   const signaturePadRef = useRef(null);
   const [editFormData, setEditFormData] = useState({
     medicalDegrees: [],
-    specialization: '',
+    specializations: [],
+    countryOfSpecialization: '',
     experience: '',
     workplace: '',
     city: ''
@@ -67,6 +68,11 @@ function DoctorDashboard() {
         if (savedProfile && savedProfile !== 'undefined') {
           try {
             const profile = JSON.parse(savedProfile);
+            // Migrate old single-value specialization to array
+            if (profile.specialization && !profile.specializations) {
+              profile.specializations = profile.specialization ? [profile.specialization] : [];
+            }
+            if (!profile.specializations) profile.specializations = [];
             setEditFormData(profile);
             setProfilePhoto(profile.profilePhoto || null);
             setSignaturePreview(profile.signature || null);
@@ -278,10 +284,12 @@ function DoctorDashboard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profilePhoto: profilePhoto,
-          education: editFormData.education || editFormData.specialization || '',
+          education: editFormData.medicalDegrees.join(', '),
+          specialization: editFormData.specializations.join(', '),
+          countryOfSpecialization: editFormData.countryOfSpecialization || '',
           experience: editFormData.experience || '',
-          workplace: editFormData.workplace || editFormData.hospital || '',
-          city_name: editFormData.city || ''
+          workplace: editFormData.workplace || '',
+          city: editFormData.city || '',
         })
       });
     } catch (_) {}
@@ -509,8 +517,30 @@ function DoctorDashboard() {
   const normalPercentage = totalDiseases > 0 ? (normalCount / totalDiseases * 100).toFixed(1) : 0;
 
   const medicalDegreeOptions = ['MBBS', 'BDS', 'FCPS', 'MD', 'MS', 'DO', 'FRCS'];
-  const specializationOptions = ['Pulmonologist', 'Cardiologist', 'Dermatologist', 'Gynecologist', 'General Physician', 'Neurologist', 'Pediatrician', 'Orthopedic', 'Psychiatrist'];
+  const specializationOptions = [
+    'General Physician', 'Pulmonologist', 'Cardiologist', 'Radiologist',
+    'Medical Specialist', 'Dermatologist', 'Gynecologist', 'Neurologist',
+    'Pediatrician', 'Orthopedic', 'Psychiatrist', 'Oncologist',
+    'Gastroenterologist', 'Endocrinologist', 'Nephrologist', 'Urologist',
+    'Ophthalmologist', 'ENT Specialist', 'Anesthesiologist', 'Surgeon',
+  ];
   const experienceOptions = ['0-2 Years', '3-5 Years', '6-10 Years', '10+ Years'];
+  const allCountries = [
+    'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia',
+    'Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Bolivia','Bosnia',
+    'Brazil','Bulgaria','Canada','Chile','China','Colombia','Croatia','Cuba','Cyprus',
+    'Czech Republic','Denmark','Ecuador','Egypt','Estonia','Ethiopia','Finland','France',
+    'Georgia','Germany','Ghana','Greece','Guatemala','Hungary','India','Indonesia','Iran',
+    'Iraq','Ireland','Israel','Italy','Japan','Jordan','Kazakhstan','Kenya','Kuwait',
+    'Latvia','Lebanon','Libya','Lithuania','Luxembourg','Malaysia','Maldives','Malta',
+    'Mauritius','Mexico','Moldova','Morocco','Myanmar','Nepal','Netherlands','New Zealand',
+    'Nigeria','Norway','Oman','Pakistan','Palestine','Panama','Peru','Philippines','Poland',
+    'Portugal','Qatar','Romania','Russia','Saudi Arabia','Senegal','Serbia','Singapore',
+    'Slovakia','South Africa','South Korea','Spain','Sri Lanka','Sudan','Sweden',
+    'Switzerland','Syria','Taiwan','Tanzania','Thailand','Tunisia','Turkey','Uganda',
+    'Ukraine','United Arab Emirates','United Kingdom','United States','Uzbekistan',
+    'Venezuela','Vietnam','Yemen','Zimbabwe',
+  ];
 
   return (
     <div className="doctor-dashboard-container">
@@ -635,10 +665,10 @@ function DoctorDashboard() {
                   <span className="detail-value">{editFormData.medicalDegrees.join(', ')}</span>
                 </div>
               )}
-              {editFormData.specialization && (
+              {(editFormData.specializations || []).length > 0 && (
                 <div className="detail-item">
                   <span className="detail-label">Specialization</span>
-                  <span className="detail-value">{editFormData.specialization}</span>
+                  <span className="detail-value">{(editFormData.specializations || []).join(', ')}</span>
                 </div>
               )}
               {editFormData.experience && (
@@ -890,16 +920,38 @@ function DoctorDashboard() {
               </div>
 
               <div className="form-group">
-                <label>Specialization</label>
+                <label>Specialization(s) <span style={{fontWeight:400,fontSize:'12px',color:'#718096'}}>(select all that apply)</span></label>
+                <div className="checkbox-group">
+                  {specializationOptions.map(spec => (
+                    <label key={spec} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={(editFormData.specializations || []).includes(spec)}
+                        onChange={() => {
+                          const prev = editFormData.specializations || [];
+                          const next = prev.includes(spec)
+                            ? prev.filter(s => s !== spec)
+                            : [...prev, spec];
+                          setEditFormData(d => ({ ...d, specializations: next }));
+                        }}
+                      />
+                      <span>{spec}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Country of Specialization / Training</label>
                 <select
-                  name="specialization"
-                  value={editFormData.specialization}
+                  name="countryOfSpecialization"
+                  value={editFormData.countryOfSpecialization || ''}
                   onChange={handleEditFormChange}
                   className="modal-select"
                 >
-                  <option value="">Select Specialization</option>
-                  {specializationOptions.map(spec => (
-                    <option key={spec} value={spec}>{spec}</option>
+                  <option value="">Select Country</option>
+                  {allCountries.map(c => (
+                    <option key={c} value={c}>{c}</option>
                   ))}
                 </select>
               </div>
@@ -1220,7 +1272,7 @@ function DoctorDashboard() {
                     return name;
                   })(),
                   qualifications: editFormData.medicalDegrees?.join(', ') || 'MBBS',
-                  specialization: editFormData.specialization || 'General Physician',
+                  specialization: (editFormData.specializations || []).join(', ') || 'General Physician',
                   license: doctor.pmdcNumber || 'N/A',
                   signature: doctor.signature || signaturePreview || null
                 }}

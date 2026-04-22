@@ -1729,7 +1729,7 @@ const PatientProfile = () => {
                                 Dr. {doctor.fullName}
                               </h4>
                               {doctor.education && (
-                                <p style={{ fontSize: '12px', color: '#38B2AC', margin: '2px 0', fontWeight: 600 }}>
+                                <p style={{ fontSize: '12px', color: '#718096', margin: '2px 0' }}>
                                   {doctor.education}
                                 </p>
                               )}
@@ -1739,21 +1739,26 @@ const PatientProfile = () => {
                             )}
                           </div>
                           {doctor.specialization && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
-                              <strong>Specialization:</strong> {doctor.specialization}
+                            <p style={{ fontSize: '13px', color: '#38B2AC', margin: '4px 0', fontWeight: 600 }}>
+                              {doctor.specialization}
                             </p>
                           )}
                           {doctor.workplace && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
-                              <strong>Hospital/Clinic:</strong> {doctor.workplace}
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
+                              <strong>Hospital:</strong> {doctor.workplace}
+                            </p>
+                          )}
+                          {doctor.countryOfSpecialization && (
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
+                              <strong>Trained in:</strong> {doctor.countryOfSpecialization}
                             </p>
                           )}
                           {doctor.experience && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
                               <strong>Experience:</strong> {doctor.experience}
                             </p>
                           )}
-                          <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                          <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
                             <strong>PMDC:</strong> {doctor.pmdcNumber}
                           </p>
                         </div>
