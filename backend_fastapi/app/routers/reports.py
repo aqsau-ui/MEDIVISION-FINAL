@@ -333,6 +333,72 @@ async def get_report_detail(
             detail="Error fetching report"
         )
 
+@router.get("/patient/{patient_email}/latest")
+async def get_patient_latest_report(
+    patient_email: str,
+    doctor_id: Optional[int] = None,
+    mongodb=Depends(get_mongodb)
+):
+    """Get the latest AI diagnostic report for a patient (optionally filtered by doctor)."""
+    try:
+        collection = mongodb.get_collection("patient_reports")
+
+        query = {"patient.email": patient_email, "sentToDoctor": True}
+        if doctor_id:
+            query["doctorId"] = doctor_id
+
+        cursor = collection.find(query).sort("sentAt", -1).limit(1)
+        reports = await cursor.to_list(length=1)
+
+        if not reports:
+            # Fallback: any report for this patient
+            cursor2 = collection.find({"patient.email": patient_email}).sort("createdAt", -1).limit(1)
+            reports = await cursor2.to_list(length=1)
+
+        if not reports:
+            return {"success": False, "report": None}
+
+        report = reports[0]
+        report["_id"] = str(report["_id"])
+        return {"success": True, "report": report}
+
+    except Exception as e:
+        logger.error(f"Error fetching patient latest report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error fetching patient report",
+        )
+
+
+@router.get("/prescriptions/patient/{patient_email}")
+async def get_patient_prescriptions(
+    patient_email: str,
+    doctor_id: Optional[int] = None,
+    mongodb=Depends(get_mongodb)
+):
+    """Get prescriptions for a patient (optionally filtered by doctor)."""
+    try:
+        collection = mongodb.get_collection("doctor_prescriptions")
+
+        query = {"$or": [{"patient_id": patient_email}, {"patient_email": patient_email}]}
+        if doctor_id:
+            query["doctor_id"] = str(doctor_id)
+
+        cursor = collection.find(query).sort("created_at", -1).limit(5)
+        prescriptions = await cursor.to_list(length=5)
+        for p in prescriptions:
+            p["_id"] = str(p["_id"])
+
+        return {"success": True, "prescriptions": prescriptions}
+
+    except Exception as e:
+        logger.error(f"Error fetching patient prescriptions: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error fetching prescriptions",
+        )
+
+
 @router.patch("/update-status/{report_id}")
 async def update_report_status(
     report_id: str,

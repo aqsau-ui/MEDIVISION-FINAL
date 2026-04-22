@@ -7,6 +7,7 @@ import DoctorReviewPanel from '../components/DoctorReviewPanel';
 import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
 import DoctorChatInbox from '../components/DoctorChatInbox';
 import SignatureCanvas from 'react-signature-canvas';
+import DoctorChatInbox from '../components/DoctorChatInbox';
 import './DoctorDashboard.css';
 
 function DoctorDashboard() {
@@ -40,6 +41,9 @@ function DoctorDashboard() {
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const previousCountRef = useRef(0);
   
+  // Chat inbox toggle
+  const [showChatInbox, setShowChatInbox] = useState(false);
+
   // Prescription states
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showPrescriptionReport, setShowPrescriptionReport] = useState(false);
@@ -263,14 +267,29 @@ function DoctorDashboard() {
     }
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const profileData = {
       ...editFormData,
       profilePhoto: profilePhoto,
       signature: signaturePreview
     };
     localStorage.setItem(`doctorProfile_${doctor.id}`, JSON.stringify(profileData));
-    
+
+    // Persist to backend
+    try {
+      await fetch(`http://localhost:5000/api/doctors/${doctor.id}/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profilePhoto: profilePhoto,
+          education: editFormData.education || editFormData.specialization || '',
+          experience: editFormData.experience || '',
+          workplace: editFormData.workplace || editFormData.hospital || '',
+          city_name: editFormData.city || ''
+        })
+      });
+    } catch (_) {}
+
     // Update doctor data with signature
     const updatedDoctor = {
       ...doctor,
@@ -278,7 +297,7 @@ function DoctorDashboard() {
     };
     localStorage.setItem('doctorData', JSON.stringify(updatedDoctor));
     setDoctor(updatedDoctor);
-    
+
     setShowEditModal(false);
   };
 
@@ -520,6 +539,15 @@ function DoctorDashboard() {
                 <span className="notification-badge">{notificationCount}</span>
               )}
             </button>
+            {doctor && (
+              <button
+                className="dci-nav-btn"
+                onClick={() => setShowChatInbox(true)}
+                title="Patient Consultations"
+              >
+                💬
+              </button>
+            )}
             <div className="profile-dropdown">
               <button className="profile-btn" onClick={() => setShowProfileMenu(!showProfileMenu)}>
                 <div className="profile-avatar">
@@ -581,10 +609,14 @@ function DoctorDashboard() {
           <div className="doctor-info-card">
             <div className="doctor-header">
               <div className="doctor-avatar-large">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+                {profilePhoto ? (
+                  <img src={profilePhoto} alt="Profile" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                )}
               </div>
               <div className="doctor-title">
                 <h2>{doctor.fullName || 'Dr. User'}</h2>
@@ -1290,6 +1322,13 @@ function DoctorDashboard() {
             )}
           </div>
         </div>
+      )}
+      {/* Doctor Chat Inbox modal */}
+      {showChatInbox && doctor && (
+        <DoctorChatInbox
+          doctorId={String(doctor.id)}
+          onClose={() => setShowChatInbox(false)}
+        />
       )}
     </div>
   );

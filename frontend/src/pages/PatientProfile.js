@@ -804,6 +804,13 @@ const PatientProfile = () => {
       
       if (result.success) {
         setShowDoctorModal(false);
+        // Store chat session so PatientDashboard can open the panel
+        localStorage.setItem('activeChatSession', JSON.stringify({
+          sessionId: result.session_id || Date.now(),
+          doctorId: selectedDoctor.id,
+          doctorName: selectedDoctor.fullName,
+          availabilityTime: selectedDoctor.availabilityTime || selectedDoctor.availability_time || ''
+        }));
         setSelectedDoctor(null);
         console.log(`✅ Report sent successfully to Dr. ${result.doctorName}!`);
       } else {
@@ -1699,42 +1706,56 @@ const PatientProfile = () => {
                             transition: 'all 0.3s'
                           }}
                         >
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            marginBottom: '8px'
-                          }}>
-                            <h4 style={{
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: '#1a202c',
-                              margin: 0
-                            }}>Dr. {doctor.fullName}</h4>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                            <div style={{
+                              width: 52, height: 52, borderRadius: '50%',
+                              background: '#e0f2f1', flexShrink: 0,
+                              overflow: 'hidden', display: 'flex',
+                              alignItems: 'center', justifyContent: 'center',
+                              border: '2px solid #38B2AC'
+                            }}>
+                              {doctor.profilePhoto ? (
+                                <img src={doctor.profilePhoto} alt={doctor.fullName}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38B2AC" strokeWidth="2">
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a202c', margin: 0 }}>
+                                Dr. {doctor.fullName}
+                              </h4>
+                              {doctor.education && (
+                                <p style={{ fontSize: '12px', color: '#38B2AC', margin: '2px 0', fontWeight: 600 }}>
+                                  {doctor.education}
+                                </p>
+                              )}
+                            </div>
                             {selectedDoctor?.id === doctor.id && (
-                              <span style={{
-                                color: '#38B2AC',
-                                fontSize: '18px'
-                              }}>✓</span>
+                              <span style={{ color: '#38B2AC', fontSize: '18px', flexShrink: 0 }}>✓</span>
                             )}
                           </div>
                           {doctor.specialization && (
-                            <p style={{
-                              fontSize: '13px',
-                              color: '#718096',
-                              margin: '4px 0'
-                            }}><strong>Specialization:</strong> {doctor.specialization}</p>
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Specialization:</strong> {doctor.specialization}
+                            </p>
                           )}
-                          <p style={{
-                            fontSize: '13px',
-                            color: '#718096',
-                            margin: '4px 0'
-                          }}><strong>PMDC:</strong> {doctor.pmdcNumber}</p>
-                          <p style={{
-                            fontSize: '13px',
-                            color: '#718096',
-                            margin: '4px 0'
-                          }}><strong>Email:</strong> {doctor.email}</p>
+                          {doctor.workplace && (
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Hospital/Clinic:</strong> {doctor.workplace}
+                            </p>
+                          )}
+                          {doctor.experience && (
+                            <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                              <strong>Experience:</strong> {doctor.experience}
+                            </p>
+                          )}
+                          <p style={{ fontSize: '13px', color: '#718096', margin: '4px 0' }}>
+                            <strong>PMDC:</strong> {doctor.pmdcNumber}
+                          </p>
                         </div>
                       )))
                       }
