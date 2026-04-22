@@ -355,6 +355,22 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
         {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
 
+      {/* OSM Embedded Map */}
+      <div className="dra-map-wrap">
+        <iframe
+          title="Nearby medical facilities"
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${center.lon - 0.09},${center.lat - 0.07},${center.lon + 0.09},${center.lat + 0.07}&layer=mapnik&marker=${center.lat},${center.lon}`}
+          className="dra-osm-iframe"
+          loading="lazy"
+          style={{ border: 'none', width: '100%', height: '200px', display: 'block', borderRadius: '8px' }}
+        />
+        <a
+          href={`https://www.openstreetmap.org/?mlat=${center.lat}&mlon=${center.lon}#map=14/${center.lat}/${center.lon}`}
+          target="_blank" rel="noopener noreferrer"
+          className="dra-osm-credit"
+        >View larger map ↗</a>
+      </div>
+
       {/* Google Maps quick-search grid */}
       <div className="dra-gmaps-section">
         <p className="dra-gmaps-section-title">
@@ -511,6 +527,13 @@ const DrAvatar = () => {
 
   // ── Location handler ──────────────────────────────────────────────────────
   const handleLocationQuery = async (locationInfo) => {
+    // Show pre-search message from avatar while fetching
+    const searchLabel = (TYPE_LABELS[locationInfo.searchType] || 'medical facilities').toLowerCase();
+    const preMsg = `Okay! Let me find some ${searchLabel} for you — hang tight… 🔍`;
+    setMessages(prev => [...prev, { id: Date.now() - 1, text: preMsg, sender: 'bot', timestamp: new Date() }]);
+    setGesture('think');
+    if (voiceEnabled) speakText(`Okay! Let me find some ${searchLabel} for you!`);
+
     try {
       let coords;
       let areaLabel = '';
@@ -641,13 +664,15 @@ const DrAvatar = () => {
     if (!file) return;
     e.target.value = '';
 
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-    if (!allowed.includes(file.type)) {
+    // Extension-based check (more reliable than MIME type which browsers may not set for all PDFs)
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const allowedExts = ['jpg', 'jpeg', 'png', 'pdf'];
+    if (!allowedExts.includes(ext)) {
       setMessages(prev => [...prev, { id: Date.now(), text: "Please upload a valid file — JPG, PNG, or PDF only.", sender: 'bot', timestamp: new Date() }]);
       return;
     }
-    if (file.size > 15 * 1024 * 1024) {
-      setMessages(prev => [...prev, { id: Date.now(), text: "That file is too large (max 15 MB). Try compressing or cropping it first.", sender: 'bot', timestamp: new Date() }]);
+    if (file.size > 30 * 1024 * 1024) {
+      setMessages(prev => [...prev, { id: Date.now(), text: "That file is too large (max 30 MB). Try compressing or cropping it first.", sender: 'bot', timestamp: new Date() }]);
       return;
     }
 
