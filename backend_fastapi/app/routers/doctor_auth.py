@@ -51,30 +51,9 @@ async def validate_pmdc(request: ValidatePMDCRequest, conn=Depends(get_db)):
                 "data": {"isValid": False}
             }
         
-        # Try to verify from PMDC website, but don't fail if it doesn't work
-        logger.info(f"PMDC validation endpoint called — verifying PMDC {request.pmdc_number} for {request.full_name}")
-        
-        try:
-            verification = await verify_pmdc_number(request.pmdc_number, request.full_name)
-            
-            if not verification["isValid"]:
-                logger.warning(f"⚠️ PMDC website verification failed: {verification['message']}")
-                logger.warning(f"⚠️ DEV MODE: Accepting format-valid PMDC number")
-                # In development, accept if format is valid
-                verification = {
-                    "isValid": True,
-                    "doctorName": request.full_name,
-                    "message": "✓ PMDC format is valid (website verification skipped)"
-                }
-        except Exception as e:
-            logger.error(f"PMDC verification service error: {e}")
-            logger.warning(f"⚠️ DEV MODE: PMDC service unavailable, accepting format-valid PMDC")
-            verification = {
-                "isValid": True,
-                "doctorName": request.full_name,
-                "message": "✓ PMDC format is valid (service unavailable)"
-            }
-        
+        logger.info(f"PMDC validation: {request.pmdc_number} for {request.full_name}")
+        verification = await verify_pmdc_number(request.pmdc_number, request.full_name)
+
         return {
             "success": verification["isValid"],
             "message": verification["message"],
@@ -112,29 +91,14 @@ async def doctor_register(request: DoctorRegisterRequest, conn=Depends(get_db)):
                 detail=f"Invalid PMDC format. Expected format: XXXXX-Y (e.g., 66728-P)"
             )
         
-        # Try PMDC website verification, but don't fail if it doesn't work
-        try:
-            verification = await verify_pmdc_number(request.pmdc_number, request.full_name)
-            
-            if not verification["isValid"]:
-                logger.warning(f"⚠️ PMDC website verification failed: {verification['message']}")
-                logger.warning(f"⚠️ DEV MODE: Accepting registration with format-valid PMDC number")
-                # In development, accept if format is valid
-                verification = {
-                    "isValid": True,
-                    "doctorName": request.full_name,
-                    "message": "Accepted (PMDC format valid - website verification skipped)"
-                }
-            else:
-                logger.info(f"✓ PMDC verification successful for: {verification.get('doctorName', request.full_name)}")
-        except Exception as pmdc_error:
-            logger.error(f"PMDC verification service error: {pmdc_error}")
-            logger.warning(f"⚠️ DEV MODE: PMDC service unavailable, accepting format-valid PMDC")
-            verification = {
-                "isValid": True,
-                "doctorName": request.full_name,
-                "message": "Accepted (PMDC service unavailable)"
-            }
+        # Verify against pmdc.pk — registration is blocked if invalid
+        verification = await verify_pmdc_number(request.pmdc_number, request.full_name)
+        if not verification["isValid"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=verification["message"]
+            )
+        logger.info(f"✓ PMDC verified: {verification.get('doctorName', request.full_name)}")
         
         # Check if doctor already exists
         logger.info("Checking if email or PMDC already registered...")
@@ -191,25 +155,21 @@ async def doctor_register(request: DoctorRegisterRequest, conn=Depends(get_db)):
                 detail=f"Database error during registration: {str(db_error)}"
             )
         
-        # Send verification email
-        logger.info(f"Sending verification email to {request.email}...")
-        try:
-            email_result = await email_service.send_verification_email(
-                request.email, otp_data["otp"], request.full_name
+        # Send verification email — fail registration if email cannot be delivered
+        logger.info(f"Sending verification email to {request.email}…")
+        email_result = await email_service.send_verification_email(
+            request.email, otp_data["otp"], request.full_name
+        )
+        if not email_result["success"]:
+            logger.error(f"❌ Email failed: {email_result.get('message')}")
+            cursor.execute("DELETE FROM pending_doctors WHERE email = %s", (request.email,))
+            conn.commit()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to send verification email: {email_result['message']}. Please check your email address and try again."
             )
-            
-            if email_result["success"]:
-                logger.info(f"✓ Verification email sent successfully to {request.email}")
-            else:
-                logger.error(f"❌ Failed to send verification email: {email_result.get('message')}")
-                logger.error(f"Email error details: {email_result.get('error', 'No error details')}")
-                # Continue with registration even if email fails - user can resend OTP later
-        except Exception as email_error:
-            logger.error(f"❌ Email service exception: {email_error}")
-            import traceback
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            # Continue with registration even if email fails
-        
+        logger.info(f"✓ Verification email sent to {request.email}")
+
         return {
             "success": True,
             "message": "Registration successful. Please check your email for the verification code.",
@@ -314,41 +274,40 @@ async def doctor_verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
             )
         
         if not pending_doctor["otp"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No OTP found. Please request a new one."
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No OTP found. Please request a new one.")
+
+        # Max-attempts guard
+        MAX_ATTEMPTS = 3
+        attempts = pending_doctor.get("verification_attempts") or 0
+        if attempts >= MAX_ATTEMPTS:
+            cursor.execute("DELETE FROM pending_doctors WHERE email = %s", (request.email,))
+            conn.commit()
+            raise HTTPException(status_code=400, detail="Maximum OTP attempts exceeded. Please register again.")
+
+        # Validate OTP
+        otp_result = validate_otp(request.otp, pending_doctor["otp"], pending_doctor["otp_expires_at"])
+        if not otp_result["success"]:
+            attempts += 1
+            cursor.execute(
+                "UPDATE pending_doctors SET verification_attempts = %s WHERE id = %s",
+                (attempts, pending_doctor["id"])
             )
-        
-        # Validate OTP - BYPASSED FOR DEVELOPMENT (Accept any OTP)
-        logger.info(f"⚠️ DEV MODE: OTP Verification BYPASSED - Email: {request.email}, Input OTP: {request.otp}")
-        logger.info(f"⚠️ DEV MODE: Any OTP accepted for registration")
-        
-        # Skip OTP validation - accept any code
-        # otp_validation = validate_otp(
-        #     request.otp,
-        #     pending_doctor["otp"],
-        #     pending_doctor["otp_expires_at"]
-        # )
-        # 
-        # logger.info(f"OTP validation result: {otp_validation}")
-        # 
-        # if not otp_validation["success"]:
-        #     cursor.execute(
-        #         "UPDATE pending_doctors SET verification_attempts = verification_attempts + 1 WHERE id = %s",
-        #         (pending_doctor["id"],)
-        #     )
-        #     conn.commit()
-        #     raise HTTPException(
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         detail=otp_validation["message"]
-        #     )
-        
+            conn.commit()
+            remaining = MAX_ATTEMPTS - attempts
+            if remaining <= 0:
+                cursor.execute("DELETE FROM pending_doctors WHERE email = %s", (request.email,))
+                conn.commit()
+                raise HTTPException(status_code=400, detail="Incorrect OTP. Maximum attempts reached. Please register again.")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Incorrect OTP. {remaining} attempt{'s' if remaining != 1 else ''} remaining."
+            )
+
         # Move doctor to main doctors table
         cnic = pending_doctor.get("cnic_number")
-        
         if cnic:
             cursor.execute(
-                """INSERT INTO doctors 
+                """INSERT INTO doctors
                    (full_name, email, cnic_number, pmdc_number, password, phone, hospital_affiliation, is_verified, created_at)
                    VALUES (%s, %s, %s, %s, %s, '', '', TRUE, NOW())""",
                 (pending_doctor["full_name"], pending_doctor["email"], cnic,
@@ -356,26 +315,22 @@ async def doctor_verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
             )
         else:
             cursor.execute(
-                """INSERT INTO doctors 
+                """INSERT INTO doctors
                    (full_name, email, pmdc_number, password, phone, hospital_affiliation, is_verified, created_at)
                    VALUES (%s, %s, %s, %s, '', '', TRUE, NOW())""",
                 (pending_doctor["full_name"], pending_doctor["email"],
                  pending_doctor["pmdc_number"], pending_doctor["password"])
             )
-        
         doctor_id = cursor.lastrowid
-        
-        # Delete from pending_doctors
         cursor.execute("DELETE FROM pending_doctors WHERE id = %s", (pending_doctor["id"],))
         conn.commit()
-        
-        # Send welcome email - DISABLED FOR DEVELOPMENT
-        # await email_service.send_welcome_email(request.email, pending_doctor["full_name"])
-        logger.info(f"✅ DEV MODE: Skipped welcome email for {request.email}")
-        
+
+        # Send welcome email
+        await email_service.send_welcome_email(pending_doctor["email"], pending_doctor["full_name"], is_doctor=True)
+
         return {
             "success": True,
-            "message": "Email verified successfully! You can now login.",
+            "message": "Email verified successfully! Welcome to MEDIVISION.",
             "doctor": {
                 "id": doctor_id,
                 "fullName": pending_doctor["full_name"],
@@ -383,17 +338,13 @@ async def doctor_verify_otp(request: VerifyOTPRequest, conn=Depends(get_db)):
                 "pmdcNumber": pending_doctor["pmdc_number"]
             }
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Doctor OTP verification error: {type(e).__name__}: {str(e)}")
-        logger.error(f"Full traceback: ", exc_info=True)
         conn.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Verification failed: {str(e)}"  # Return actual error for debugging
-        )
+        logger.error(f"Doctor OTP verification error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Verification failed: {str(e)}")
     finally:
         cursor.close()
 

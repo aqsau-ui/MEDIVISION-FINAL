@@ -33,6 +33,7 @@ const DoctorRegisterPage = () => {
   const [otpError, setOtpError] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpAttempts, setOtpAttempts] = useState(0);
   const otpInputRefs = useRef([]);
 
   // Countdown timer for resend cooldown
@@ -293,18 +294,18 @@ const DoctorRegisterPage = () => {
       console.log('OTP verification response:', data);
       
       if (data.success) {
-        // Verification successful - store doctor data and auto-login
         localStorage.setItem('doctorData', JSON.stringify(data.doctor));
-        // Navigate directly to doctor dashboard
         navigate('/doctor-dashboard');
       } else {
-        // Show the actual error message from backend
+        const newAttempts = otpAttempts + 1;
+        setOtpAttempts(newAttempts);
         const errorMsg = data.detail || data.message || 'Verification failed. Please try again.';
-        console.error('OTP verification failed:', errorMsg);
         setOtpError(errorMsg);
-        // Clear OTP boxes on error
         setOtp(['', '', '', '', '', '']);
         otpInputRefs.current[0]?.focus();
+        if (errorMsg.toLowerCase().includes('maximum') || errorMsg.toLowerCase().includes('register again')) {
+          setTimeout(() => { setShowOTPVerification(false); setOtpAttempts(0); }, 2500);
+        }
       }
     } catch (err) {
       console.error('OTP verification error:', err);
@@ -576,12 +577,17 @@ const DoctorRegisterPage = () => {
                 ))}
               </div>
 
+              {otpAttempts > 0 && otpAttempts < 3 && (
+                <div style={{ textAlign:'center', fontSize:'12px', color:'#e53e3e', marginBottom:'6px' }}>
+                  ⚠️ {3 - otpAttempts} attempt{3 - otpAttempts !== 1 ? 's' : ''} remaining
+                </div>
+              )}
               {otpError && <div className="otp-error">{otpError}</div>}
 
-              <button 
-                className="otp-verify-button" 
+              <button
+                className="otp-verify-button"
                 onClick={handleVerifyOtp}
-                disabled={otpLoading}
+                disabled={otpLoading || otpAttempts >= 3}
               >
                 {otpLoading ? 'Verifying...' : 'Verify Email'}
               </button>

@@ -1,7 +1,71 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import './RegisterPage.css';
+
+// ── Google Sign-In button (no extra package needed) ───────────────────────────
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
+
+const GoogleSignInButton = ({ onSuccess }) => {
+  const btnRef = useRef(null);
+  const [gError, setGError] = useState('');
+
+  useEffect(() => {
+    const initGoogle = () => {
+      if (!window.google || !GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'your-google-client-id-here') return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            const res = await fetch('http://localhost:5000/api/auth/google-login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ credential: response.credential }),
+            });
+            const data = await res.json();
+            if (data.success) {
+              onSuccess(data.user);
+            } else {
+              setGError(data.detail || 'Google sign-in failed. Please try again.');
+            }
+          } catch {
+            setGError('Could not connect to server. Please try again.');
+          }
+        },
+      });
+      if (btnRef.current) {
+        window.google.accounts.id.renderButton(btnRef.current, {
+          theme: 'outline', size: 'large', width: '100%', text: 'signup_with',
+        });
+      }
+    };
+
+    if (window.google) { initGoogle(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initGoogle;
+    document.head.appendChild(script);
+    return () => { document.head.removeChild(script); };
+  }, [onSuccess]);
+
+  if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID === 'your-google-client-id-here') {
+    return (
+      <div style={{ textAlign:'center', color:'#718096', fontSize:'13px', padding:'8px', background:'#f7fafc', borderRadius:'8px', border:'1px dashed #e2e8f0' }}>
+        Google Sign-In not configured.<br/>
+        <span style={{ fontSize:'11px' }}>Add REACT_APP_GOOGLE_CLIENT_ID to frontend/.env</span>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div ref={btnRef} style={{ width:'100%' }} />
+      {gError && <div style={{ color:'#e53e3e', fontSize:'13px', marginTop:'6px', textAlign:'center' }}>{gError}</div>}
+    </div>
+  );
+};
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -39,6 +103,7 @@ const RegisterPage = () => {
   const [otpError, setOtpError] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpAttempts, setOtpAttempts] = useState(0);
   const otpInputRefs = useRef([]);
 
   // Countdown timer for resend cooldown
@@ -276,15 +341,19 @@ const RegisterPage = () => {
       const data = await response.json();
       
       if (data.success) {
-        // Verification successful - store user data and auto-login
         localStorage.setItem('patientData', JSON.stringify(data.user));
-        // Navigate directly to patient dashboard
         navigate('/patient-dashboard');
       } else {
-        setOtpError(data.message || 'Verification failed. Please try again.');
-        // Clear OTP boxes on error
+        const newAttempts = otpAttempts + 1;
+        setOtpAttempts(newAttempts);
+        const msg = data.detail || data.message || 'Verification failed. Please try again.';
+        setOtpError(msg);
         setOtp(['', '', '', '', '', '']);
         otpInputRefs.current[0]?.focus();
+        // If max attempts exceeded, close modal after a brief delay
+        if (msg.toLowerCase().includes('maximum') || msg.toLowerCase().includes('register again')) {
+          setTimeout(() => { setShowOTPVerification(false); setOtpAttempts(0); }, 2500);
+        }
       }
     } catch (err) {
       setOtpError('Cannot connect to server. Please try again.');
@@ -541,9 +610,22 @@ const RegisterPage = () => {
             </div>
 
             <button type="submit" className="register-button" disabled={loading}>
-              <span>{loading ? 'Registering...' : 'Register'}</span>
+              <span>{loading ? 'Registering...' : 'Create Account'}</span>
               <div className="button-ripple"></div>
             </button>
+
+            {/* Divider */}
+            <div style={{ display:'flex', alignItems:'center', gap:'12px', margin:'16px 0' }}>
+              <div style={{ flex:1, height:'1px', background:'#e2e8f0' }} />
+              <span style={{ color:'#718096', fontSize:'13px', whiteSpace:'nowrap' }}>or continue with</span>
+              <div style={{ flex:1, height:'1px', background:'#e2e8f0' }} />
+            </div>
+
+            {/* Google Sign-In */}
+            <GoogleSignInButton onSuccess={(userData) => {
+              localStorage.setItem('patientData', JSON.stringify(userData));
+              navigate('/patient-dashboard');
+            }} />
 
             <div className="register-login">
               <span>Already have an account? </span>
@@ -587,12 +669,18 @@ const RegisterPage = () => {
                 ))}
               </div>
 
+              {/* Attempt counter */}
+              {otpAttempts > 0 && otpAttempts < 3 && (
+                <div style={{ textAlign:'center', fontSize:'12px', color:'#e53e3e', marginBottom:'6px' }}>
+                  ⚠️ {3 - otpAttempts} attempt{3 - otpAttempts !== 1 ? 's' : ''} remaining
+                </div>
+              )}
               {otpError && <div className="otp-error">{otpError}</div>}
 
-              <button 
-                className="otp-verify-button" 
+              <button
+                className="otp-verify-button"
                 onClick={handleVerifyOtp}
-                disabled={otpLoading}
+                disabled={otpLoading || otpAttempts >= 3}
               >
                 {otpLoading ? 'Verifying...' : 'Verify Email'}
               </button>

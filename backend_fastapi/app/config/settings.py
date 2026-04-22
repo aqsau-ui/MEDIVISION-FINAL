@@ -40,7 +40,10 @@ class Settings(BaseSettings):
     
     # Groq AI
     GROQ_API_KEY: Optional[str] = "gsk_your_key_here"
-    
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID: Optional[str] = None
+
     # Model Selection
     USE_PYTORCH_MODEL: bool = False  # Set to True to use new PyTorch model, False for old Keras model
     

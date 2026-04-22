@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import PatientLayout from '../components/PatientLayout';
 import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
+import PatientChatPanel from '../components/PatientChatPanel';
 import './DoctorRecommendation.css';
+import '../components/ChatModule.css';
 
 const DoctorRecommendation = () => {
   const [prescriptions, setPrescriptions] = useState([]);
@@ -10,6 +12,17 @@ const DoctorRecommendation = () => {
   const [selectedPatientReport, setSelectedPatientReport] = useState(null);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
+
+  // Chat state
+  const [chatTarget, setChatTarget] = useState(null); // { doctorId, doctorName }
+
+  const handleOpenChat = (prescription) => {
+    const doctorId = parseInt(prescription.doctor_id, 10) || prescription.doctor_id;
+    setChatTarget({
+      doctorId,
+      doctorName: `Dr. ${prescription.doctor_name}`,
+    });
+  };
 
   useEffect(() => {
     fetchPrescriptions();
@@ -180,7 +193,7 @@ const DoctorRecommendation = () => {
                     </div>
                   </div>
                   <div className="prescription-card-footer">
-                    <button 
+                    <button
                       onClick={() => handleViewPrescription(prescription)}
                       className="view-prescription-btn"
                     >
@@ -197,12 +210,24 @@ const DoctorRecommendation = () => {
         {showPrescriptionModal && selectedPrescription && (
           <div className="prescription-modal-overlay" onClick={() => setShowPrescriptionModal(false)}>
             <div className="prescription-modal-content" onClick={(e) => e.stopPropagation()}>
-              <button 
+              <button
                 className="modal-close-btn"
                 onClick={() => setShowPrescriptionModal(false)}
               >
                 ×
               </button>
+              {/* Chat button inside modal */}
+              {selectedPrescription && (
+                <div style={{ padding: '12px 20px 0', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    className="cp-chat-btn"
+                    onClick={() => handleOpenChat(selectedPrescription)}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Chat with Dr. {selectedPrescription.doctor_name}
+                  </button>
+                </div>
+              )}
               {loadingReport ? (
                 <div style={{ padding: '40px', textAlign: 'center' }}>
                   <p>Loading prescription details...</p>
@@ -260,6 +285,19 @@ const DoctorRecommendation = () => {
           </div>
         )}
       </div>
+
+      {/* Floating chat panel — passes report data so patient can view inside chat */}
+      {chatTarget && (
+        <PatientChatPanel
+          doctorId={chatTarget.doctorId}
+          doctorName={chatTarget.doctorName}
+          reportData={{
+            aiReport:     selectedPatientReport,
+            prescription: selectedPrescription,
+          }}
+          onClose={() => setChatTarget(null)}
+        />
+      )}
     </PatientLayout>
   );
 };

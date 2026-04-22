@@ -335,73 +335,53 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
           paddingBottom: '8px',
           borderBottom: '2px solid #38B2AC'
         }}>RADIOLOGICAL IMAGES</h2>
-
+        
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: reportData.images?.heatmap ? '1fr 1fr' : '1fr',
-          gap: '16px',
-          maxWidth: reportData.images?.heatmap ? '100%' : '480px',
-          margin: '0 auto'
+          display: 'flex',
+          justifyContent: 'center'
         }}>
-          {/* Figure 1 — Original X-ray */}
+          {/* Original X-ray - Centered */}
           <div style={{
             backgroundColor: '#fff',
             border: '1px solid #e2e8f0',
             borderRadius: '6px',
-            padding: '14px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+            padding: '15px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            maxWidth: '500px',
+            width: '100%'
           }}>
             <div style={{
-              fontSize: '11px', fontWeight: '600', color: '#4a5568',
-              marginBottom: '10px', textAlign: 'center',
-              textTransform: 'uppercase', letterSpacing: '0.5px'
-            }}>Figure 1: Original Chest X-Ray</div>
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#4a5568',
+              marginBottom: '12px',
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>Figure 1: Original Chest X-ray</div>
             <div style={{
-              position: 'relative', width: '100%', paddingBottom: '100%',
-              backgroundColor: '#0a0a0a', borderRadius: '4px',
-              overflow: 'hidden', border: '2px solid #cbd5e0'
+              position: 'relative',
+              width: '100%',
+              paddingBottom: '100%',
+              backgroundColor: '#f7fafc',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              border: '2px solid #cbd5e0'
             }}>
-              <img
-                src={reportData.images?.original || filePreview}
-                alt="Original Chest X-ray"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain' }}
+              <img 
+                src={reportData.images?.original || filePreview} 
+                alt="Original Chest X-ray" 
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain'
+                }}
               />
             </div>
           </div>
-
-          {/* Figure 2 — Grad-CAM Heatmap (only when available) */}
-          {reportData.images?.heatmap && (
-            <div style={{
-              backgroundColor: '#fff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '6px',
-              padding: '14px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-            }}>
-              <div style={{
-                fontSize: '11px', fontWeight: '600', color: '#4a5568',
-                marginBottom: '10px', textAlign: 'center',
-                textTransform: 'uppercase', letterSpacing: '0.5px'
-              }}>Figure 2: Grad-CAM Heatmap — Affected Regions</div>
-              <div style={{
-                position: 'relative', width: '100%', paddingBottom: '100%',
-                backgroundColor: '#0a0a0a', borderRadius: '4px',
-                overflow: 'hidden', border: '2px solid #cbd5e0'
-              }}>
-                <img
-                  src={reportData.images.heatmap}
-                  alt="Grad-CAM Heatmap"
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'contain' }}
-                />
-              </div>
-              <p style={{
-                fontSize: '11px', color: '#718096', textAlign: 'center',
-                marginTop: '8px', marginBottom: 0, lineHeight: 1.5
-              }}>
-                Red/yellow regions indicate areas of highest model activation contributing to the {reportData.analysis?.prediction} classification.
-              </p>
-            </div>
-          )}
         </div>
       </div>
 

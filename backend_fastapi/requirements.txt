@@ -49,6 +49,11 @@ opencv-python>=4.9.0
 pytesseract==0.3.10
 pdf2image==1.16.3
 PyPDF2>=3.0.0
+pymupdf>=1.23.0
 
 # Validation
 email-validator==2.1.0.post1
+
+# Chat / WebSocket scheduling
+apscheduler==3.10.4
+websockets

@@ -5,6 +5,7 @@ import MedicalReport from '../components/MedicalReport';
 import TrendNotificationPanel from '../components/TrendNotificationPanel';
 import DoctorReviewPanel from '../components/DoctorReviewPanel';
 import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
+import DoctorChatInbox from '../components/DoctorChatInbox';
 import SignatureCanvas from 'react-signature-canvas';
 import './DoctorDashboard.css';
 
@@ -17,6 +18,7 @@ function DoctorDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [diseaseFilter, setDiseaseFilter] = useState('all');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showChatInbox, setShowChatInbox] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -504,6 +506,11 @@ function DoctorDashboard() {
             <Logo />
           </div>
           <div className="navbar-right">
+            <button className="notification-btn" title="Patient Chat" onClick={() => setShowChatInbox(true)} style={{ marginRight: '4px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </button>
             <button className="notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -1047,6 +1054,14 @@ function DoctorDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Doctor Chat Inbox */}
+      {showChatInbox && doctor && (
+        <DoctorChatInbox
+          doctorId={doctor.id}
+          onClose={() => setShowChatInbox(false)}
+        />
       )}
 
       {/* Report Viewing Modal */}

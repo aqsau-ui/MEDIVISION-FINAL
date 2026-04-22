@@ -1,0 +1,674 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import './ChatModule.css';
+
+const API     = 'http://localhost:5000/api/patient-chat';
+const WS_BASE = 'ws://localhost:5000/api/patient-chat/ws';
+
+const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+
+// ── Professional inline SVG icons ────────────────────────────────────────────
+const Ic = {
+  chat:      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  clock:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+  mic:       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>,
+  send:      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>,
+  close:     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  expand:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+  compress:  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>,
+  attach:    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
+  lock:      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+  unlock:    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
+  person:    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  download:  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+  fileDoc:   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+  brain:     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-1.96-3 2.5 2.5 0 0 1-1.32-4.24 3 3 0 0 1 .34-5.58 2.5 2.5 0 0 1 1.32-4.24A2.5 2.5 0 0 1 9.5 2"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 1.96-3 2.5 2.5 0 0 0 1.32-4.24 3 3 0 0 0-.34-5.58 2.5 2.5 0 0 0-1.32-4.24A2.5 2.5 0 0 0 14.5 2"/></svg>,
+  pill:      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10.5 20.5 3.5 13.5a5 5 0 0 1 7.07-7.07l7 7a5 5 0 0 1-7.07 7.07z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>,
+};
+
+export default function DoctorChatInbox({ doctorId, onClose }) {
+  const [sessions,        setSessions]        = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [activeSession,   setActiveSession]   = useState(null);
+  const [messages,        setMessages]        = useState([]);
+  const [inputText,       setInputText]       = useState('');
+  const [recording,       setRecording]       = useState(false);
+  const [fullscreen,      setFullscreen]      = useState(false);
+
+  // Context panel — AI report + prescription
+  const [reportContext,   setReportContext]   = useState(null);
+  const [loadingContext,  setLoadingContext]  = useState(false);
+  const [contextTab,      setContextTab]      = useState('ai'); // 'ai' | 'rx'
+
+  // Consultation hours
+  const [showHoursModal,  setShowHoursModal]  = useState(false);
+  const [consultHours,    setConsultHours]    = useState({
+    monday:    { enabled: true,  open: '09:00', close: '17:00' },
+    tuesday:   { enabled: true,  open: '09:00', close: '17:00' },
+    wednesday: { enabled: true,  open: '09:00', close: '17:00' },
+    thursday:  { enabled: true,  open: '09:00', close: '17:00' },
+    friday:    { enabled: true,  open: '09:00', close: '17:00' },
+    saturday:  { enabled: true,  open: '09:00', close: '13:00' },
+    sunday:    { enabled: false, open: '',      close: ''       },
+  });
+  const [hoursSaving, setHoursSaving] = useState(false);
+
+  const wsRef        = useRef(null);
+  const mediaRecRef  = useRef(null);
+  const audioChunks  = useRef([]);
+  const bottomRef    = useRef(null);
+  const pingTimer    = useRef(null);
+  const fileInputRef = useRef(null);
+
+  const doctorIdNum = parseInt(doctorId, 10) || doctorId;
+
+  // ── Load consultation hours ───────────────────────────────────────────────
+  useEffect(() => {
+    if (!doctorIdNum) return;
+    fetch(`${API}/doctor/${doctorIdNum}/hours`)
+      .then(r => r.json())
+      .then(d => { if (d.success && d.hours) setConsultHours(d.hours); })
+      .catch(() => {});
+  }, [doctorIdNum]);
+
+  // ── Load sessions ─────────────────────────────────────────────────────────
+  const loadSessions = useCallback(async () => {
+    if (!doctorIdNum) return;
+    try {
+      const res  = await fetch(`${API}/sessions/doctor/${doctorIdNum}`);
+      const data = await res.json();
+      if (data.success) setSessions(data.sessions || []);
+    } catch (e) { console.error('load sessions error', e); }
+  }, [doctorIdNum]);
+
+  useEffect(() => {
+    loadSessions();
+    const iv = setInterval(loadSessions, 8000);
+    return () => clearInterval(iv);
+  }, [loadSessions]);
+
+  // ── Load messages + session detail when session selected ──────────────────
+  useEffect(() => {
+    if (!activeSessionId) return;
+    (async () => {
+      try {
+        const [msgRes, sesRes] = await Promise.all([
+          fetch(`${API}/sessions/${activeSessionId}/messages`),
+          fetch(`${API}/sessions/${activeSessionId}`),
+        ]);
+        const msgData = await msgRes.json();
+        const sesData = await sesRes.json();
+        if (msgData.success) setMessages(msgData.messages || []);
+        if (sesData.success) setActiveSession(sesData.session);
+      } catch (e) { console.error('load messages error', e); }
+    })();
+
+    // Load medical context (right panel)
+    setReportContext(null);
+    setLoadingContext(true);
+    fetch(`${API}/sessions/${activeSessionId}/context`)
+      .then(r => r.json())
+      .then(d => { if (d.success) setReportContext(d); })
+      .catch(() => {})
+      .finally(() => setLoadingContext(false));
+  }, [activeSessionId]);
+
+  // ── Mark read ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!activeSessionId) return;
+    fetch(`${API}/sessions/${activeSessionId}/messages/read`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reader_type: 'doctor' }),
+    })
+      .then(() => setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, unread_count: 0 } : s)))
+      .catch(() => {});
+  }, [activeSessionId, messages.length]);
+
+  // ── WebSocket ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!activeSessionId) return;
+    if (wsRef.current) { wsRef.current.close(); clearInterval(pingTimer.current); }
+
+    const ws = new WebSocket(`${WS_BASE}/${activeSessionId}`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      pingTimer.current = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping' }));
+      }, 25000);
+    };
+
+    ws.onmessage = event => {
+      try {
+        const p = JSON.parse(event.data);
+        if (p.type === 'pong') return;
+        if (p.type === 'chat_unlocked') {
+          setActiveSession(prev => prev ? { ...prev, status: 'open'   } : prev);
+          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, status: 'open'   } : s));
+          return;
+        }
+        if (p.type === 'chat_locked') {
+          setActiveSession(prev => prev ? { ...prev, status: 'closed' } : prev);
+          setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, status: 'closed' } : s));
+          return;
+        }
+        if (['text','voice','image','file'].includes(p.type)) {
+          setMessages(prev => {
+            // Replace optimistic via client_id
+            if (p.client_id) {
+              const idx = prev.findIndex(m => m.id === p.client_id);
+              if (idx !== -1) {
+                const updated = [...prev];
+                updated[idx] = { ...p, local_url: prev[idx].local_url };
+                return updated;
+              }
+            }
+            if (p.id && prev.some(m => String(m.id) === String(p.id))) return prev;
+            return [...prev, p];
+          });
+          setSessions(prev => prev.map(s =>
+            s.id === activeSessionId
+              ? { ...s, last_message_text: p.content || (p.type !== 'text' ? `[${p.type}]` : ''), last_message_at: p.sent_at }
+              : s
+          ));
+        }
+      } catch (_) {}
+    };
+
+    ws.onclose = () => clearInterval(pingTimer.current);
+    return () => { ws.close(); clearInterval(pingTimer.current); };
+  }, [activeSessionId]);
+
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  // ── Toggle session ────────────────────────────────────────────────────────
+  const toggleSession = async () => {
+    if (!activeSession) return;
+    const newStatus = activeSession.status === 'open' ? 'closed' : 'open';
+    await fetch(`${API}/sessions/${activeSessionId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    setActiveSession(prev => ({ ...prev, status: newStatus }));
+    setSessions(prev => prev.map(s => s.id === activeSessionId ? { ...s, status: newStatus } : s));
+  };
+
+  // ── Send text (REST-first, no duplicate) ─────────────────────────────────
+  const sendText = async () => {
+    const text = inputText.trim();
+    if (!text || activeSession?.status !== 'open') return;
+
+    const doctorIdStr = String(doctorIdNum);
+    const cid         = `opt-${Date.now()}`;
+
+    setMessages(prev => [...prev, {
+      id: cid, session_id: activeSessionId,
+      sender_type: 'doctor', sender_id: doctorIdStr,
+      message_type: 'text', content: text, sent_at: new Date().toISOString(),
+    }]);
+    setInputText('');
+
+    try {
+      await fetch(`${API}/sessions/${activeSessionId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender_type: 'doctor', sender_id: doctorIdStr,
+          message_type: 'text', content: text, client_id: cid,
+        }),
+      });
+    } catch (e) { console.error('send error', e); }
+  };
+
+  // ── Send file / image ─────────────────────────────────────────────────────
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeSessionId || activeSession?.status !== 'open') return;
+    e.target.value = '';
+
+    const isImage  = file.type.startsWith('image/');
+    const msgType  = isImage ? 'image' : 'file';
+    const cid      = `opt-${Date.now()}`;
+    const localUrl = URL.createObjectURL(file);
+    const doctorIdStr = String(doctorIdNum);
+
+    setMessages(prev => [...prev, {
+      id: cid, session_id: activeSessionId, sender_type: 'doctor', sender_id: doctorIdStr,
+      message_type: msgType, file_name: file.name, file_mime: file.type,
+      local_url: localUrl, sent_at: new Date().toISOString(),
+    }]);
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const b64 = reader.result.split(',')[1];
+      try {
+        await fetch(`${API}/sessions/${activeSessionId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_type: 'doctor', sender_id: doctorIdStr,
+            message_type: msgType, file_data: b64,
+            file_name: file.name, file_mime: file.type, client_id: cid,
+          }),
+        });
+      } catch (err) { console.error('file send error', err); }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // ── Voice recording ───────────────────────────────────────────────────────
+  const startRecording = async () => {
+    if (activeSession?.status !== 'open') return;
+    try {
+      const stream   = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks.current = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : 'audio/webm';
+      const mr = new MediaRecorder(stream, { mimeType });
+      mediaRecRef.current = mr;
+      mr.ondataavailable = e => { if (e.data.size > 0) audioChunks.current.push(e.data); };
+      mr.onstop = async () => {
+        const blob        = new Blob(audioChunks.current, { type: mr.mimeType || 'audio/webm' });
+        const localUrl    = URL.createObjectURL(blob);
+        const cid         = `opt-${Date.now()}`;
+        const doctorIdStr = String(doctorIdNum);
+        const sid         = activeSessionId;
+
+        setMessages(prev => [...prev, {
+          id: cid, session_id: sid, sender_type: 'doctor', sender_id: doctorIdStr,
+          message_type: 'voice', local_url: localUrl, sent_at: new Date().toISOString(),
+        }]);
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const b64 = reader.result.split(',')[1];
+          try {
+            await fetch(`${API}/sessions/${sid}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sender_type: 'doctor', sender_id: doctorIdStr,
+                message_type: 'voice', audio_base64: b64, client_id: cid,
+              }),
+            });
+          } catch (err) { console.error('voice send error', err); }
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach(t => t.stop());
+      };
+      mr.start(250);
+      setRecording(true);
+    } catch (e) { console.error('Mic error', e); }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecRef.current && recording) { mediaRecRef.current.stop(); setRecording(false); }
+  };
+
+  // ── Save consultation hours ───────────────────────────────────────────────
+  const saveHours = async () => {
+    setHoursSaving(true);
+    try {
+      const res  = await fetch(`${API}/doctor/${doctorIdNum}/hours`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hours: consultHours }),
+      });
+      const data = await res.json();
+      if (data.success) setShowHoursModal(false);
+      else alert('Failed to save hours. Please try again.');
+    } catch (e) { console.error(e); alert('Network error saving hours.'); }
+    setHoursSaving(false);
+  };
+
+  // ── Render message content ────────────────────────────────────────────────
+  const renderMsg = (msg) => {
+    if (msg.message_type === 'voice') {
+      const src = msg.local_url || (msg.audio_base64 ? `data:audio/webm;base64,${msg.audio_base64}` : null);
+      return src
+        ? <audio controls src={src} style={{ maxWidth: 220, outline: 'none', display: 'block' }} />
+        : <span style={{ fontSize: 12, opacity: 0.8 }}>Voice note (processing…)</span>;
+    }
+    if (msg.message_type === 'image') {
+      const src = msg.local_url || (msg.audio_base64 ? `data:${msg.file_mime || 'image/jpeg'};base64,${msg.audio_base64}` : null);
+      return src
+        ? <div><img src={src} alt={msg.file_name || 'Image'} style={{ maxWidth: 220, borderRadius: 8, display: 'block' }} />
+            {msg.file_name && <span style={{ fontSize: 11, opacity: 0.7, marginTop: 3, display: 'block' }}>{msg.file_name}</span>}
+          </div>
+        : <span style={{ fontSize: 12 }}>{msg.file_name || 'Image'}</span>;
+    }
+    if (msg.message_type === 'file') {
+      const href = msg.local_url || (msg.audio_base64 ? `data:${msg.file_mime || 'application/octet-stream'};base64,${msg.audio_base64}` : null);
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: 'inherit', opacity: 0.8 }}>{Ic.fileDoc}</span>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 12.5 }}>{msg.file_name || 'File'}</div>
+            {href && <a href={href} download={msg.file_name} style={{ fontSize: 11, color: 'inherit', opacity: 0.8, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{Ic.download} Download</a>}
+          </div>
+        </div>
+      );
+    }
+    return <span>{msg.content}</span>;
+  };
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const statusDot = s => s === 'open' ? '#22c55e' : s === 'closed' ? '#ef4444' : '#f59e0b';
+  const fmtTime   = ts => {
+    if (!ts) return '';
+    const d = new Date(ts), today = new Date();
+    return d.toDateString() === today.toDateString()
+      ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  const ai  = reportContext?.ai_report;
+  const rx  = reportContext?.prescription;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="dci-overlay" onClick={e => e.target === e.currentTarget && onClose?.()}>
+      <div className={`dci-modal${fullscreen ? ' dci-fullscreen' : ''}`}>
+
+        {/* Header */}
+        <div className="dci-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ color: '#5eead4' }}>{Ic.chat}</span>
+            <span className="dci-title">Patient Consultations</span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button className="dci-hours-btn" onClick={() => setShowHoursModal(true)}>
+              <span style={{ marginRight: 6 }}>{Ic.clock}</span>Set Hours
+            </button>
+            <button className="dci-icon-btn-hdr" title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              onClick={() => setFullscreen(v => !v)}>
+              {fullscreen ? Ic.compress : Ic.expand}
+            </button>
+            <button className="dci-close" onClick={onClose}>{Ic.close}</button>
+          </div>
+        </div>
+
+        {/* 3-column body */}
+        <div className="dci-body">
+
+          {/* ─ Column 1: Session list ─ */}
+          <div className="dci-col-sessions">
+            <p className="dci-col-head">
+              Patient Messages
+              {sessions.length > 0 && (
+                <span style={{ marginLeft: 8, background: '#38B2AC', color: '#fff', borderRadius: '50%', fontSize: 11, fontWeight: 700, padding: '1px 6px' }}>
+                  {sessions.length}
+                </span>
+              )}
+            </p>
+
+            {sessions.length === 0 && (
+              <p className="dci-empty">No messages yet.<br />Patients contact you from the Recommendations page.</p>
+            )}
+
+            {sessions.map(s => (
+              <div
+                key={s.id}
+                className={`dci-session-item${activeSessionId === s.id ? ' dci-session-active' : ''}`}
+                onClick={() => setActiveSessionId(s.id)}
+              >
+                <div className="dci-session-avatar">
+                  <span>{Ic.person}</span>
+                  <span style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusDot(s.status), border: '1.5px solid #0a1120' }} />
+                </div>
+                <div className="dci-session-info">
+                  <p className="dci-session-email">{s.patient_email}</p>
+                  {s.last_message_text && (
+                    <p style={{ margin: 0, fontSize: 11.5, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>
+                      {s.last_message_text}
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                  <span style={{ fontSize: 10.5, color: '#475569' }}>{fmtTime(s.last_message_at)}</span>
+                  {s.unread_count > 0 && (
+                    <span style={{ background: '#ef4444', color: '#fff', borderRadius: '50%', fontSize: 10, fontWeight: 700, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {s.unread_count > 9 ? '9+' : s.unread_count}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ─ Column 2: Chat ─ */}
+          <div className="dci-col-chat">
+            {!activeSessionId ? (
+              <div className="dci-no-chat">
+                <span style={{ color: '#334155' }}>{Ic.chat}</span>
+                <p style={{ marginTop: 12, color: '#475569', fontSize: 14 }}>Select a patient to view the conversation</p>
+              </div>
+            ) : (
+              <>
+                {/* Topbar */}
+                <div className="dci-chat-topbar">
+                  <div>
+                    <span className="dci-chat-patient">{activeSession?.patient_email || '—'}</span>
+                    <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: statusDot(activeSession?.status) }}>
+                      ● {activeSession?.status?.toUpperCase() || 'PENDING'}
+                    </span>
+                  </div>
+                  <button
+                    className={`dci-toggle-btn${activeSession?.status === 'open' ? ' dci-toggle-open' : ' dci-toggle-closed'}`}
+                    onClick={toggleSession}
+                  >
+                    <span style={{ marginRight: 5 }}>{activeSession?.status === 'open' ? Ic.lock : Ic.unlock}</span>
+                    {activeSession?.status === 'open' ? 'Close Session' : 'Open Session'}
+                  </button>
+                </div>
+
+                {/* Messages */}
+                <div className="dci-messages">
+                  {messages.length === 0 && <div className="dci-empty">No messages yet.</div>}
+                  {messages.map((msg, i) => {
+                    const isMe     = msg.sender_type === 'doctor';
+                    const isSystem = msg.sender_type === 'system';
+                    return (
+                      <div key={msg.id || i} className={`cp-bubble-wrap${isMe ? ' cp-me' : isSystem ? '' : ' cp-them'}`}>
+                        <div className={`cp-bubble${isSystem ? ' cp-bubble-system' : isMe ? ' dci-bubble-me' : ' dci-bubble-them'}`}>
+                          {renderMsg(msg)}
+                          {!isSystem && (
+                            <span className="cp-time">
+                              {msg.sent_at ? new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={bottomRef} />
+                </div>
+
+                {/* Input */}
+                {activeSession?.status === 'open' ? (
+                  <div className="dci-input-bar">
+                    <input type="file" ref={fileInputRef} accept="image/*,application/pdf,.doc,.docx"
+                      style={{ display: 'none' }} onChange={handleFileSelect} />
+                    <button className="dci-icon-btn" title="Attach file"
+                      onClick={() => fileInputRef.current?.click()}>{Ic.attach}</button>
+                    <input
+                      className="dci-input"
+                      value={inputText}
+                      onChange={e => setInputText(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendText()}
+                      placeholder="Type a message…"
+                    />
+                    <button
+                      className={`dci-mic-btn${recording ? ' cp-recording' : ''}`}
+                      onMouseDown={startRecording}
+                      onMouseUp={stopRecording}
+                      onTouchStart={e => { e.preventDefault(); startRecording(); }}
+                      onTouchEnd={stopRecording}
+                      title={recording ? 'Release to send' : 'Hold to record'}
+                    >{Ic.mic}</button>
+                    <button className="dci-send-btn" onClick={sendText}>{Ic.send}</button>
+                  </div>
+                ) : (
+                  <div className="dci-locked-bar">
+                    <span style={{ marginRight: 6 }}>{Ic.lock}</span>
+                    {activeSession?.status === 'closed'
+                      ? 'Session closed — click "Open Session" to resume'
+                      : 'Click "Open Session" to start chatting with the patient'
+                    }
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ─ Column 3: Medical context ─ */}
+          <div className="dci-col-context">
+            <p className="dci-col-head">Patient Medical Context</p>
+
+            {!activeSessionId && (
+              <p className="dci-empty">Select a patient to view their reports.</p>
+            )}
+
+            {activeSessionId && loadingContext && (
+              <p style={{ fontSize: 13, color: '#475569', padding: '12px 0' }}>Loading reports…</p>
+            )}
+
+            {activeSessionId && !loadingContext && reportContext && (
+              <>
+                {/* Tab switcher */}
+                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                  <button
+                    className={`dci-ctx-tab${contextTab === 'ai' ? ' dci-ctx-tab-active' : ''}`}
+                    onClick={() => setContextTab('ai')}
+                  >
+                    <span style={{ marginRight: 5 }}>{Ic.brain}</span>AI Report
+                  </button>
+                  <button
+                    className={`dci-ctx-tab${contextTab === 'rx' ? ' dci-ctx-tab-active' : ''}`}
+                    onClick={() => setContextTab('rx')}
+                  >
+                    <span style={{ marginRight: 5 }}>{Ic.pill}</span>Prescription
+                  </button>
+                </div>
+
+                {contextTab === 'ai' && (
+                  <div className="dci-context-card">
+                    {ai ? (
+                      <>
+                        <div className="dci-ctx-row"><strong>Diagnosis:</strong>
+                          <span style={{ color: '#f87171', fontWeight: 600 }}>
+                            {ai.diagnosis || ai.predicted_disease || '—'}
+                          </span>
+                        </div>
+                        <div className="dci-ctx-row"><strong>Confidence:</strong>
+                          <span>{ai.confidence ? `${(parseFloat(ai.confidence)*100).toFixed(1)}%` : ai.probability ? `${(parseFloat(ai.probability)*100).toFixed(1)}%` : '—'}</span>
+                        </div>
+                        <div className="dci-ctx-row"><strong>Severity:</strong>
+                          <span>{ai.severity || '—'}</span>
+                        </div>
+                        <div className="dci-ctx-row"><strong>Date:</strong>
+                          <span>{ai.created_at ? new Date(ai.created_at).toLocaleDateString() : '—'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>No AI report found for this patient.</p>
+                    )}
+                  </div>
+                )}
+
+                {contextTab === 'rx' && (
+                  <div className="dci-context-card">
+                    {rx ? (
+                      <>
+                        <div className="dci-ctx-row"><strong>Confirmed Diagnosis:</strong>
+                          <span>{rx.doctor_diagnosis || '—'}</span>
+                        </div>
+                        <div className="dci-ctx-row"><strong>Medications:</strong>
+                          <span>{rx.medications || '—'}</span>
+                        </div>
+                        {rx.follow_up && <div className="dci-ctx-row"><strong>Follow-up:</strong><span>{rx.follow_up}</span></div>}
+                        {rx.hospital_visit_required && (
+                          <div style={{ marginTop: 6, padding: '4px 8px', background: 'rgba(239,68,68,0.15)', borderRadius: 6, fontSize: 12, color: '#f87171', fontWeight: 600 }}>
+                            Hospital visit required
+                          </div>
+                        )}
+                        <div className="dci-ctx-row"><strong>Prescribed:</strong>
+                          <span>{rx.created_at ? new Date(rx.created_at).toLocaleDateString() : '—'}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p style={{ fontSize: 12, color: '#475569', margin: 0 }}>No prescription found for this patient.</p>
+                    )}
+                  </div>
+                )}
+
+                <p style={{ fontSize: 11, color: '#334155', marginTop: 10, fontStyle: 'italic', lineHeight: 1.5 }}>
+                  Reports shown are the most recent on file. Always verify with the patient during consultation.
+                </p>
+              </>
+            )}
+
+            {activeSessionId && !loadingContext && !reportContext && (
+              <p style={{ fontSize: 12, color: '#475569', padding: '12px 0' }}>Could not load reports for this patient.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Consultation Hours Modal */}
+      {showHoursModal && (
+        <div className="dci-hours-overlay" onClick={e => e.target === e.currentTarget && setShowHoursModal(false)}>
+          <div className="dci-hours-modal">
+            <div className="dci-hours-header">
+              <span><span style={{ marginRight: 8 }}>{Ic.clock}</span>Consultation Hours</span>
+              <button className="dci-close" onClick={() => setShowHoursModal(false)}>{Ic.close}</button>
+            </div>
+            <p className="dci-hours-sub">Set your weekly availability. Patients can only message during these hours (they can always send an initial request).</p>
+            <div className="dci-hours-grid">
+              {DAYS.map(day => {
+                const d     = consultHours[day] || { enabled: false, open: '', close: '' };
+                const isSun = day === 'sunday';
+                return (
+                  <div key={day} className={`dci-hours-row${!d.enabled ? ' dci-hours-off' : ''}`}>
+                    <div className="dci-hours-day">
+                      <span className="dci-hours-dayname">{day.charAt(0).toUpperCase() + day.slice(1)}</span>
+                      {isSun ? (
+                        <span className="dci-hours-off-badge">Off</span>
+                      ) : (
+                        <label className="dci-hours-toggle">
+                          <input type="checkbox" checked={!!d.enabled}
+                            onChange={e => setConsultHours(prev => ({ ...prev, [day]: { ...prev[day], enabled: e.target.checked } }))} />
+                          <span className="dci-hours-slider" />
+                        </label>
+                      )}
+                    </div>
+                    {!isSun && d.enabled && (
+                      <div className="dci-hours-times">
+                        <input type="time" value={d.open || '09:00'} className="dci-time-input"
+                          onChange={e => setConsultHours(prev => ({ ...prev, [day]: { ...prev[day], open: e.target.value } }))} />
+                        <span className="dci-hours-to">to</span>
+                        <input type="time" value={d.close || '17:00'} className="dci-time-input"
+                          onChange={e => setConsultHours(prev => ({ ...prev, [day]: { ...prev[day], close: e.target.value } }))} />
+                      </div>
+                    )}
+                    {!isSun && !d.enabled && <div className="dci-hours-times dci-hours-unavail">Not available</div>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="dci-hours-footer">
+              <button className="dci-hours-cancel" onClick={() => setShowHoursModal(false)}>Cancel</button>
+              <button className="dci-hours-save" onClick={saveHours} disabled={hoursSaving}>
+                {hoursSaving ? 'Saving…' : 'Save Hours'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

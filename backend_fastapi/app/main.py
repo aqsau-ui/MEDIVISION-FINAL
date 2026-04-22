@@ -7,7 +7,7 @@ import logging
 import os
 
 from .config import mysql_db, mongodb, settings
-from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports, notifications, doctor_prescription, medical_reports, doctor_profile
+from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports, notifications, doctor_prescription, medical_reports, doctor_profile, chat_ws
 from .services.rag_service import rag_service
 
 # Configure logging
@@ -71,6 +71,7 @@ app.include_router(notifications.notification_router)
 app.include_router(doctor_prescription.router)
 app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=["Medical Reports"])
 app.include_router(doctor_profile.router)
+app.include_router(chat_ws.router)
 
 # Static files for uploaded signatures
 os.makedirs("uploads/signatures", exist_ok=True)

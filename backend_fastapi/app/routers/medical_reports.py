@@ -106,14 +106,40 @@ async def upload_medical_report(
         
         logger.info(f"✅ Report {report_id} processed and stored successfully")
         
-        # Return success with extracted data
+        parsed = ocr_result.get("parsed_data", {})
+        raw_text = ocr_result.get("raw_text", "")
+
+        # Build a structured summary the RAG/avatar can use for specific answers
+        summary_parts = []
+        if parsed.get("patient_name"):    summary_parts.append(f"Patient: {parsed['patient_name']}")
+        if parsed.get("doctor_name"):     summary_parts.append(f"Doctor: {parsed['doctor_name']}")
+        if parsed.get("test_type"):       summary_parts.append(f"Report type: {parsed['test_type']}")
+        if parsed.get("report_date"):     summary_parts.append(f"Date: {parsed['report_date']}")
+        if parsed.get("lab_name"):        summary_parts.append(f"Lab/Hospital: {parsed['lab_name']}")
+        if parsed.get("findings"):        summary_parts.append(f"Findings: {parsed['findings'][:300]}")
+        if parsed.get("impression"):      summary_parts.append(f"Diagnosis/Impression: {parsed['impression'][:300]}")
+        if parsed.get("medications"):     summary_parts.append(f"Medications: {parsed['medications'][:300]}")
+        if parsed.get("recommendations"): summary_parts.append(f"Recommendations: {parsed['recommendations'][:300]}")
+        structured_summary = " | ".join(summary_parts) if summary_parts else raw_text[:800]
+
         return {
             "success": True,
             "message": "Report uploaded and processed successfully",
             "report_id": report_id,
-            "extracted_text": ocr_result.get("raw_text", "")[:500],  # First 500 chars
-            "parsed_data": ocr_result.get("parsed_data", {}),
-            "test_type": ocr_result.get("parsed_data", {}).get("test_type", "Medical Report")
+            "extracted_text": raw_text[:1000],
+            "structured_summary": structured_summary,
+            "parsed_data": parsed,
+            "test_type": parsed.get("test_type", "Medical Report"),
+            "analysis": {
+                "patient_name":    parsed.get("patient_name"),
+                "doctor_name":     parsed.get("doctor_name"),
+                "findings":        parsed.get("findings"),
+                "impression":      parsed.get("impression"),
+                "medications":     parsed.get("medications"),
+                "recommendations": parsed.get("recommendations"),
+                "lab_name":        parsed.get("lab_name"),
+                "report_date":     parsed.get("report_date"),
+            },
         }
         
     except HTTPException:
