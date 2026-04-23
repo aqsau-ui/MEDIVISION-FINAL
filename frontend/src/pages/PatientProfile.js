@@ -1478,7 +1478,9 @@ const PatientProfile = () => {
                       <div style={{
                         position: 'fixed',
                         top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(0,0,0,0.82)',
+                        backgroundColor: 'rgba(10, 40, 55, 0.35)',
+                        backdropFilter: 'blur(6px)',
+                        WebkitBackdropFilter: 'blur(6px)',
                         zIndex: 3000,
                         overflowY: 'auto',
                         padding: '24px 16px'
