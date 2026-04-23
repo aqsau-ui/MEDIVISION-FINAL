@@ -283,11 +283,11 @@ const _overpass = async (lat, lon, searchType) => {
     clearTimeout(tid);
     if (!res.ok) throw new Error('overpass');
     const data = await res.json();
-    const medAmenities = new Set(['hospital','clinic','doctors','health_post','dentist','pharmacy']);
+    const medAmenities = new Set(['hospital','clinic','doctors','health_post','dentist','pharmacy','laboratory']);
     const typeRe = {
-      radiology:  /radiol|xray|x.ray|diagnostic|imaging|scan|lab/i,
-      hospital:   /hospit|clinic|medical|health/i,
-      laboratory: /lab|diagnost|patholog|blood/i,
+      radiology:  /radiol|xray|x.ray|x-ray|diagnostic|imaging|scan|lab|ct|mri|ultrasound/i,
+      hospital:   /hospit|medical.cent|health.cent|general.hosp/i,
+      laboratory: /lab|diagnost|patholog|blood|test.cent/i,
       medical:    /hospit|clinic|medical|health/i,
     }[searchType] || /hospit|clinic|medical|health/i;
 
@@ -315,11 +315,11 @@ const _overpass = async (lat, lon, searchType) => {
 // ── Nominatim source — uses tight bounding box around given coords ────────────
 const _nominatim = async (lat, lon, searchType) => {
   const queries = {
-    radiology:  ['diagnostic center', 'radiology clinic', 'x-ray lab', 'imaging center'],
-    hospital:   ['hospital', 'medical clinic', 'health center'],
-    laboratory: ['diagnostic laboratory', 'pathology lab', 'blood test lab'],
-    medical:    ['hospital', 'medical center', 'clinic'],
-  }[searchType] || ['hospital'];
+    radiology:  ['radiology center', 'diagnostic imaging', 'x-ray center', 'CT scan center', 'MRI center', 'ultrasound clinic'],
+    hospital:   ['hospital', 'general hospital', 'medical center', 'teaching hospital'],
+    laboratory: ['diagnostic laboratory', 'pathology lab', 'blood test center', 'medical lab'],
+    medical:    ['hospital', 'medical center', 'clinic', 'health center'],
+  }[searchType] || ['hospital', 'clinic'];
 
   // Use a tight 0.12° box (~13 km) so results stay in the actual city
   const delta = 0.12;
@@ -401,14 +401,26 @@ const GMAPS_CATEGORIES = [
 ];
 
 const LocationResultCard = ({ places, center, searchType, areaName, showDistance }) => {
+  const [mapIdx, setMapIdx] = useState(0); // which place is shown on OSM map
   const label = TYPE_LABELS[searchType] || 'Medical Facilities';
   const locationHint = areaName ? ` near ${areaName}` : '';
 
-  // Use lat/lon anchor so Google Maps opens at the exact detected location
+  // The pin shown on the OSM map — use the selected place's coords if available
+  const mapPin = places[mapIdx] ?? center;
+  const mapLat = mapPin.lat ?? center.lat;
+  const mapLon = mapPin.lon ?? center.lon;
+
+  // Google Maps category search anchored to the correct city coords
+  const cityQuery = areaName ? ` in ${areaName}` : '';
   const gmapsUrl = (term) =>
-    `https://www.google.com/maps/search/${encodeURIComponent(term)}/@${center.lat},${center.lon},14z`;
+    `https://www.google.com/maps/search/${encodeURIComponent(term + cityQuery)}/@${center.lat},${center.lon},14z`;
+
+  // Individual place — open Google Maps with the place's exact coordinates pinned
   const mapsLink = (p) =>
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + (p.address ? ' ' + p.address : ''))}&ll=${p.lat},${p.lon}`;
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&ll=${p.lat},${p.lon}`;
+
+  // OSM "View larger map" for the selected place
+  const osmLarger = `https://www.openstreetmap.org/?mlat=${mapLat}&mlon=${mapLon}#map=16/${mapLat}/${mapLon}`;
 
   return (
     <div className="dra-loc-card">
@@ -420,23 +432,33 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
         {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
 
-      {/* OSM Embedded Map */}
+      {/* OSM Embedded Map — shows selected place pin */}
       <div className="dra-map-wrap">
         <iframe
-          title="Nearby medical facilities"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${center.lon - 0.09},${center.lat - 0.07},${center.lon + 0.09},${center.lat + 0.07}&layer=mapnik&marker=${center.lat},${center.lon}`}
+          key={`${mapLat},${mapLon}`}
+          title="Medical facility location"
+          src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapLon - 0.04},${mapLat - 0.03},${mapLon + 0.04},${mapLat + 0.03}&layer=mapnik&marker=${mapLat},${mapLon}`}
           className="dra-osm-iframe"
           loading="lazy"
           style={{ border: 'none', width: '100%', height: '200px', display: 'block', borderRadius: '8px' }}
         />
-        <a
-          href={`https://www.openstreetmap.org/?mlat=${center.lat}&mlon=${center.lon}#map=14/${center.lat}/${center.lon}`}
-          target="_blank" rel="noopener noreferrer"
-          className="dra-osm-credit"
-        >View larger map ↗</a>
+        <a href={osmLarger} target="_blank" rel="noopener noreferrer" className="dra-osm-credit">
+          View larger map ↗
+        </a>
+        {places.length > 0 && (
+          <div style={{ fontSize: 11, color: '#718096', padding: '4px 6px', textAlign: 'center' }}>
+            Showing: <strong>{places[mapIdx]?.name || areaName}</strong>
+            {places.length > 1 && (
+              <span style={{ marginLeft: 8, color: '#38B2AC', cursor: 'pointer' }}
+                onClick={() => setMapIdx(i => (i + 1) % places.length)}>
+                Next →
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Google Maps quick-search grid */}
+      {/* Google Maps quick-search grid — includes city name so results are correct */}
       <div className="dra-gmaps-section">
         <p className="dra-gmaps-section-title">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -453,14 +475,19 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
         </div>
       </div>
 
-      {/* OSM results list */}
+      {/* Found places list — clicking a place updates the OSM map pin */}
       {places.length > 0 && (
         <>
-          <div className="dra-osm-label">Also found nearby:</div>
+          <div className="dra-osm-label">Found nearby — click to see on map:</div>
           <div className="dra-loc-list">
             {places.map((place, i) => (
-              <div key={i} className="dra-loc-item">
-                <div className="dra-loc-num">{i + 1}</div>
+              <div
+                key={i}
+                className="dra-loc-item"
+                style={{ cursor: 'pointer', background: mapIdx === i ? 'rgba(56,178,172,0.08)' : undefined, borderRadius: 8 }}
+                onClick={() => setMapIdx(i)}
+              >
+                <div className="dra-loc-num" style={{ background: mapIdx === i ? '#38B2AC' : undefined, color: mapIdx === i ? '#fff' : undefined }}>{i + 1}</div>
                 <div className="dra-loc-info">
                   <div className="dra-loc-name-row">
                     <h4>{place.name}</h4>
@@ -473,7 +500,13 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
                   {place.address && <p>📍 {place.address}</p>}
                   {place.phone   && <p>📞 {place.phone}</p>}
                 </div>
-                <a href={mapsLink(place)} target="_blank" rel="noopener noreferrer" className="dra-dir-btn">
+                <a
+                  href={mapsLink(place)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dra-dir-btn"
+                  onClick={e => e.stopPropagation()}
+                >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polygon points="3 11 22 2 13 21 11 13 3 11"/>
                   </svg>
