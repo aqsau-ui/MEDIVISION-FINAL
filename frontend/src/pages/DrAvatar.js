@@ -213,20 +213,35 @@ const getGPSCoords = () =>
     );
   });
 
-// ── Get best available coords: GPS if high-accuracy, else IP ─────────────────
+// ── Get GPS coords then reverse-geocode city name ────────────────────────────
 const getBestCoords = async () => {
-  const [ipResult, gpsResult] = await Promise.allSettled([getIPCoords(), getGPSCoords()]);
-  const ip  = ipResult.status  === 'fulfilled' ? ipResult.value  : null;
-  const gps = gpsResult.status === 'fulfilled' ? gpsResult.value : null;
+  // 1. Try browser GPS — most accurate, reflects actual physical location
+  try {
+    const gps = await getGPSCoords();
+    if (gps) {
+      // Reverse-geocode to get city/country from real GPS coords
+      try {
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${gps.lat}&lon=${gps.lon}&format=json&accept-language=en`,
+          { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
+        );
+        const d = await r.json();
+        const addr = d.address || {};
+        return {
+          lat:     gps.lat,
+          lon:     gps.lon,
+          source:  'gps',
+          city:    addr.city || addr.town || addr.village || addr.county || '',
+          region:  addr.state || '',
+          country: addr.country || '',
+        };
+      } catch {
+        return { lat: gps.lat, lon: gps.lon, source: 'gps', city: '', region: '', country: '' };
+      }
+    }
+  } catch {}
 
-  // If GPS accuracy is good (< 500 m) AND it's in the same country as IP, prefer GPS
-  if (gps && ip && gps.accuracy && gps.accuracy < 500) {
-    const distKm = Math.sqrt(Math.pow((gps.lat - ip.lat) * 111, 2) + Math.pow((gps.lon - ip.lon) * 111, 2));
-    if (distKm < 300) return { lat: gps.lat, lon: gps.lon, source: 'gps', city: ip.city, country: ip.country };
-  }
-  // Otherwise use IP geolocation — more reliable on desktops
-  if (ip) return { lat: ip.lat, lon: ip.lon, source: 'ip', city: ip.city, region: ip.region, country: ip.country };
-  if (gps) return { lat: gps.lat, lon: gps.lon, source: 'gps', city: '', country: '' };
+  // 2. GPS denied/unavailable — return null so caller can ask user to type city
   return null;
 };
 
@@ -606,9 +621,9 @@ const DrAvatar = () => {
         }
 
       } else {
-        // "near me" — use IP geolocation (accurate on desktops) + GPS cross-check
+        // "near me" — use browser GPS (actual device location, not IP)
         let best;
-        if (cachedCoordsRef.current) {
+        if (cachedCoordsRef.current && cachedCoordsRef.current.source === 'gps') {
           best = cachedCoordsRef.current;
         } else {
           best = await getBestCoords();
@@ -618,7 +633,7 @@ const DrAvatar = () => {
         if (!best) {
           setMessages(prev => [...prev, {
             id: Date.now(), sender: 'bot', timestamp: new Date(),
-            text: "📍 I couldn't detect your location automatically.\n\nPlease type your city — for example:\n\"hospitals in Rawalpindi\" or \"clinics in Lahore\"",
+            text: "📍 Location access was denied or unavailable.\n\nTo find places near you, either:\n• **Allow location** in your browser (click the 🔒 icon in the address bar → Site Settings → Location → Allow), then ask again\n• Or type your city, e.g. **\"hospitals in Lahore\"** or **\"clinics in Karachi\"**",
           }]);
           setIsTyping(false);
           return;
