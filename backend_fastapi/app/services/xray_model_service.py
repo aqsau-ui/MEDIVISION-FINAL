@@ -30,28 +30,28 @@ class XRayModelService:
         self.model_available = False
         self.model_load_error = None
 
-        # best_model.pth.zip loads directly with torch.load (PyTorch zip format)
-        self.model_path = (
-            Path(__file__).parent.parent.parent.parent / "best_model.pth.zip"
-        )
+        # Resolve model path: check project root first, then current dir
+        _root = Path(__file__).parent.parent.parent.parent
+        for _candidate in [
+            _root / "best_model.pth.zip",
+            _root / "best_model.pth",
+            Path("best_model.pth.zip"),
+            Path("best_model.pth"),
+        ]:
+            if _candidate.exists():
+                self.model_path = _candidate
+                break
+        else:
+            self.model_path = _root / "best_model.pth.zip"  # will fail gracefully
 
         # ImageFolder sorts classes alphabetically → NORMAL=0, PNEUMONIA=1
         self.class_names = ["Normal", "Pneumonia"]
         self.img_size = (224, 224)
 
-        # --- Anti-overconfidence settings ---
-        # Temperature >1 flattens the softmax distribution (reduces extreme outputs)
-        self.temperature = 1.5
-        # Hard cap: nothing shown to the user exceeds 85 %
-        self.max_confidence = 0.85
-
-        # --- Decision-boundary correction ---
-        # The model's training produced heavily skewed logits toward Pneumonia:
-        # even a neutral gray image gives logits ≈ [-1.75, 2.37].
-        # This bias offset is added to the Normal logit before softmax so that
-        # ambiguous inputs are not incorrectly pushed to Pneumonia.
-        # Value = mean logit difference observed on neutral (non-X-ray) images.
-        self.normal_logit_bias = 4.5   # shifts decision boundary toward Normal
+        # Temperature slightly >1 softens extreme outputs without distorting predictions
+        self.temperature = 1.2
+        # Hard cap: displayed confidence never exceeds 92%
+        self.max_confidence = 0.92
 
         # Inference transform — exactly matches val_test_transforms in the notebook:
         #   transforms.Resize((224,224))
@@ -252,16 +252,11 @@ class XRayModelService:
             with torch.no_grad():
                 logits = self.model(img_tensor)          # shape: (1, 2)
 
-                # Apply decision-boundary correction to the Normal logit.
-                # The model is biased toward Pneumonia due to training distribution;
-                # this offset re-centers the boundary.
-                bias = torch.zeros_like(logits)
-                bias[0, 0] = self.normal_logit_bias      # boost Normal
-                corrected = logits + bias
-
-                # Temperature scaling then softmax
-                scaled = corrected / self.temperature
+                # Temperature scaling then softmax — no logit bias, trust the model
+                scaled = logits / self.temperature
                 probs  = torch.softmax(scaled, dim=1)[0].cpu().numpy()
+
+            logger.info(f"Raw logits: {logits[0].cpu().numpy()}, Probs: {probs}")
 
             pred_class_idx = int(probs.argmax())
             pred_class     = self.class_names[pred_class_idx]
