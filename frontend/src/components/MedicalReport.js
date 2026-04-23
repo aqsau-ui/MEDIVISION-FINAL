@@ -14,12 +14,10 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
   return (
     <div id="medical-report" style={{
       padding: '24px 28px',
-      backgroundColor: 'rgba(255,255,255,0.92)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      borderRadius: '12px',
-      border: '1px solid rgba(56,178,172,0.25)',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+      backgroundColor: '#fff',
+      borderRadius: '8px',
+      border: '1px solid #e2e8f0',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
       maxWidth: '860px',
       margin: '0 auto',
       fontFamily: '"Times New Roman", Georgia, serif',

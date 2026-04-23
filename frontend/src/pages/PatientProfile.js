@@ -1473,44 +1473,10 @@ const PatientProfile = () => {
                     )}
 
 
-                    {/* Professional Medical Report — shown as full-page overlay */}
+                    {/* Professional Medical Report — inline below the form */}
                     {analysisResult && (
-                      <div style={{
-                        position: 'fixed',
-                        top: 0, left: 0, right: 0, bottom: 0,
-                        backgroundColor: 'rgba(10, 40, 55, 0.35)',
-                        backdropFilter: 'blur(6px)',
-                        WebkitBackdropFilter: 'blur(6px)',
-                        zIndex: 3000,
-                        overflowY: 'auto',
-                        padding: '24px 16px'
-                      }}>
-                        <div style={{ maxWidth: '880px', margin: '0 auto', position: 'relative' }}>
-                          {/* Close button */}
-                          <button
-                            onClick={() => setAnalysisResult(null)}
-                            style={{
-                              position: 'sticky',
-                              top: 0,
-                              float: 'right',
-                              zIndex: 10,
-                              backgroundColor: '#e53e3e',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '36px',
-                              height: '36px',
-                              fontSize: '20px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginBottom: '-36px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                            }}
-                            title="Close report"
-                          >×</button>
-                        <div id="medical-report" style={{ clear: 'both' }}>
+                      <div style={{ marginTop: '30px' }}>
+                        <div id="medical-report">
                           <MedicalReport
                             reportData={{
                               date: Date.now(),
@@ -1637,7 +1603,6 @@ const PatientProfile = () => {
                             </svg>
                             Send to Doctor
                           </button>
-                        </div>
                         </div>
                       </div>
                     )}
