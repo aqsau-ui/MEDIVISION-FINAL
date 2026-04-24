@@ -132,7 +132,7 @@ const detectLocationQuery = (text) => {
     'mri','ct scan','ultrasound','doctor','specialist','physician','dentist','pharmacy',
     'health center','health centre',
   ];
-  const nearMeKw = ['near me','nearby','near by','close by','around me','in my area','close to me','near comsats','comsats'];
+  const nearMeKw = ['near me','nearby','near by','close by','around me','in my area','close to me'];
   const inKw = ['near','in ','at ','around ','find ','show me'];
 
   const hasMedical = medicalKw.some(k => lower.includes(k));
@@ -471,7 +471,7 @@ const detectGesture = (text) => {
 const DrAvatar = () => {
   const [messages,       setMessages]       = useState([{
     id: 1, sender: 'bot', timestamp: new Date(),
-    text: "Hello! I'm Dr. Jarvis, your pneumonia specialist 👨‍⚕️\n\nI can help you with:\n• Pneumonia symptoms, causes & treatment\n• Analysing your chest X-ray reports\n• Finding hospitals near you\n\nTry saying: **\"show hospitals near COMSATS University\"** to find nearby medical facilities.",
+    text: "Hello! I'm Dr. Jarvis, your pneumonia specialist 👨‍⚕️\n\nI can help you with:\n• Pneumonia symptoms, causes & treatment\n• Analysing your chest X-ray reports\n• Finding hospitals near you\n\nTry saying: **\"show hospitals near me\"** or **\"hospitals in Lahore\"** to find nearby medical facilities.",
   }]);
   const [inputMessage,   setInputMessage]   = useState('');
   const [isTyping,       setIsTyping]       = useState(false);
@@ -586,9 +586,50 @@ const DrAvatar = () => {
         }
 
       } else {
-        // "near me" — fixed to COMSATS University Islamabad (for FYP presentation)
-        coords    = { lat: 33.6461, lon: 72.9861 };
-        areaLabel = 'COMSATS University Islamabad';
+        // "near me" — use browser geolocation, fallback to profile city
+        const browserCoords = await new Promise((resolve) => {
+          if (!navigator.geolocation) { resolve(null); return; }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+            ()    => resolve(null),
+            { timeout: 8000, maximumAge: 60000 }
+          );
+        });
+
+        if (browserCoords) {
+          coords = browserCoords;
+          // Reverse geocode to get city name
+          try {
+            const revResp = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lon}&format=json&accept-language=en`,
+              { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
+            );
+            const revData = await revResp.json();
+            const addr = revData.address || {};
+            areaLabel = addr.city || addr.town || addr.village || addr.county || addr.state || 'Your Location';
+          } catch {
+            areaLabel = 'Your Location';
+          }
+        } else {
+          // Fallback: use city from patient's registration profile
+          try {
+            const patientData = JSON.parse(localStorage.getItem('patientData') || '{}');
+            const profileCity = patientData.city || patientData.location || '';
+            if (profileCity) {
+              const geo = await geocodePlace(profileCity);
+              if (geo) {
+                coords    = { lat: geo.lat, lon: geo.lon };
+                areaLabel = profileCity;
+              } else {
+                throw new Error('PROFILE_CITY_GEOCODE_FAILED');
+              }
+            } else {
+              throw new Error('NO_LOCATION');
+            }
+          } catch {
+            throw new Error('LOCATION_UNAVAILABLE');
+          }
+        }
       }
 
       const [placesResult, areaResult] = await Promise.allSettled([
@@ -608,14 +649,16 @@ const DrAvatar = () => {
           showDistance: locationInfo.showDistance,
         },
       }]);
-    } catch {
+    } catch (err) {
       const label    = TYPE_LABELS[locationInfo.searchType] || 'Medical Centers';
       const cityHint = locationInfo.inCity || locationInfo.cityKey || '';
+      const isNoLocation = err?.message === 'LOCATION_UNAVAILABLE' || err?.message === 'NO_LOCATION';
       setMessages(prev => [...prev, {
         id: Date.now(), type: 'location-fallback', sender: 'bot', timestamp: new Date(),
         fallbackData: {
           label,
-          gmaps:    `https://www.google.com/maps/search/${encodeURIComponent(label + (cityHint ? ' in ' + cityHint : ' near me'))}`,
+          noLocation: isNoLocation,
+          gmaps: `https://www.google.com/maps/search/${encodeURIComponent(label + (cityHint ? ' in ' + cityHint : ' near me'))}`,
           cityName: cityHint,
         },
       }]);
@@ -904,15 +947,23 @@ const DrAvatar = () => {
                       </div>
                     ) : msg.type === 'location-fallback' ? (
                       <div className="dra-bubble">
-                        <p>📍 Couldn't pinpoint that location automatically.</p>
-                        <p>Search <strong>{msg.fallbackData.label}</strong> directly on Google Maps:</p>
+                        {msg.fallbackData.noLocation ? (
+                          <>
+                            <p>📍 I couldn't detect your current location.</p>
+                            <p style={{fontSize:'0.85rem',color:'#888'}}>Please allow location access in your browser, or tell me your city — e.g. <em>"hospitals in Lahore"</em></p>
+                          </>
+                        ) : (
+                          <p>📍 Couldn't pinpoint that location. Try searching directly:</p>
+                        )}
                         <a href={msg.fallbackData.gmaps} target="_blank" rel="noopener noreferrer" className="dra-fallback-link">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <polygon points="3 11 22 2 13 21 11 13 3 11"/>
                           </svg>
-                          Open Google Maps Search
+                          Open Google Maps — {msg.fallbackData.label}
                         </a>
-                        <p className="dra-tip">💡 Try: <em>"{msg.fallbackData.cityName ? 'hospitals in ' + msg.fallbackData.cityName : 'hospitals near me'}"</em></p>
+                        {msg.fallbackData.cityName && (
+                          <p className="dra-tip">💡 Or try: <em>"hospitals in {msg.fallbackData.cityName}"</em></p>
+                        )}
                       </div>
                     ) : (
                       <div className="dra-bubble">
@@ -964,7 +1015,7 @@ const DrAvatar = () => {
 
             {/* Input — mic & speaker moved here */}
             <div className="dra-input-area">
-              <p className="dra-input-hint">Ask about pneumonia, upload a chest X-ray, or say <strong>"hospitals near COMSATS University"</strong></p>
+              <p className="dra-input-hint">Ask about pneumonia, upload a chest X-ray, or say <strong>"hospitals near me"</strong></p>
               <form className="dra-input-form" onSubmit={handleSendMessage}>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" />
                 <button type="button" className="dra-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach report">
