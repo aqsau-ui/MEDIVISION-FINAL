@@ -50,3 +50,22 @@ ENV/
 
 # Claude Code workspace
 .claude/
+
+# ML model zip duplicates
+*.pth.zip
+*.pt.zip
+
+# Python cache (all levels)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# Frontend build output
+frontend/build/
+
+# Backend dist
+backend/dist/
+
+# OS
+*.DS_Store
+desktop.ini
