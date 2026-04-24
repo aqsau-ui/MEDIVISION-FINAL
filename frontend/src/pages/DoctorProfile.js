@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './DoctorProfile.css';
 
@@ -19,7 +19,7 @@ const DoctorProfile = () => {
   const fetchDoctorProfile = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/doctors/profile/${doctorId}`);
+      const response = await axios.get(`http://localhost:8000/api/doctors/profile/${doctorId}`);
       
       if (response.data.success) {
         setDoctorData(response.data.doctor);
@@ -79,7 +79,7 @@ const DoctorProfile = () => {
       formData.append('file', signatureFile);
 
       const response = await axios.post(
-        `http://localhost:5000/api/doctors/upload-signature?doctor_id=${doctorId}`,
+        `http://localhost:8000/api/doctors/upload-signature?doctor_id=${doctorId}`,
         formData,
         {
           headers: {
@@ -113,7 +113,7 @@ const DoctorProfile = () => {
     try {
       setUploading(true);
       const response = await axios.delete(
-        `http://localhost:5000/api/doctors/signature/${doctorId}`
+        `http://localhost:8000/api/doctors/signature/${doctorId}`
       );
 
       if (response.data.success) {

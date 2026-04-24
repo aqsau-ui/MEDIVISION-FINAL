@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import PatientLayout from '../components/PatientLayout';
 import MedicalReport from '../components/MedicalReport';
 import './PatientProfile.css';
@@ -126,7 +126,7 @@ const PatientProfile = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5000/api/xray/validate-xray', {
+      const response = await fetch('http://localhost:8000/api/xray/validate-xray', {
         method: 'POST',
         body: formData
       });
@@ -431,7 +431,7 @@ const PatientProfile = () => {
           const analyzeFormData = new FormData();
           analyzeFormData.append('file', preprocessed.blob, 'preprocessed_xray.png');
 
-          const analyzeResponse = await fetch('http://localhost:5000/api/xray/analyze', {
+          const analyzeResponse = await fetch('http://localhost:8000/api/xray/analyze', {
             method: 'POST',
             body: analyzeFormData,
           });
@@ -560,7 +560,7 @@ const PatientProfile = () => {
         confidence: (analysisData.confidence * 100).toFixed(1) + '%'
       });
 
-      const response = await fetch('http://localhost:5000/api/reports/save', {
+      const response = await fetch('http://localhost:8000/api/reports/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reportData)
@@ -582,7 +582,7 @@ const PatientProfile = () => {
   // Seed progress baseline after first X-ray analysis
   const saveProgressBaseline = async (analysisData, userEmail) => {
     try {
-      await fetch('http://localhost:5000/api/xray/progress/baseline', {
+      await fetch('http://localhost:8000/api/xray/progress/baseline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -606,7 +606,7 @@ const PatientProfile = () => {
       // Reset search when opening modal
       setDoctorSearch('');
       
-      const response = await fetch('http://localhost:5000/api/doctors/list');
+      const response = await fetch('http://localhost:8000/api/doctors/list');
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -777,7 +777,7 @@ const PatientProfile = () => {
 
       console.log('Sending report data:', JSON.stringify(reportData, null, 2));
 
-      const response = await fetch('http://localhost:5000/api/reports/send-to-doctor', {
+      const response = await fetch('http://localhost:8000/api/reports/send-to-doctor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

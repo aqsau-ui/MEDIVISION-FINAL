@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import PatientLayout from '../components/PatientLayout';
 import {
   LineChart,
@@ -71,7 +71,7 @@ const ProgressDetection = () => {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:5000/api/xray/progress/history/${encodeURIComponent(patientId)}`);
+      const response = await fetch(`http://localhost:8000/api/xray/progress/history/${encodeURIComponent(patientId)}`);
       const data = await response.json();
       if (!response.ok || !data.success) {
         // Don't surface history-load failures as a page-level error
@@ -405,7 +405,7 @@ function downloadReport() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/xray/progress/eligibility?patient_id=${encodeURIComponent(patientId)}`);
+      const response = await fetch(`http://localhost:8000/api/xray/progress/eligibility?patient_id=${encodeURIComponent(patientId)}`);
       const data = await response.json();
 
       if (data.success && data.has_prior_record === false) {
@@ -446,7 +446,7 @@ function downloadReport() {
       try {
         const validFormData = new FormData();
         validFormData.append('file', file);
-        const validRes = await fetch('http://localhost:5000/api/xray/validate-xray', {
+        const validRes = await fetch('http://localhost:8000/api/xray/validate-xray', {
           method: 'POST',
           body: validFormData
         });
@@ -471,7 +471,7 @@ function downloadReport() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`http://localhost:5000/api/xray/progress/analyze?patient_id=${encodeURIComponent(patientId)}`, {
+      const response = await fetch(`http://localhost:8000/api/xray/progress/analyze?patient_id=${encodeURIComponent(patientId)}`, {
         method: 'POST',
         body: formData
       });

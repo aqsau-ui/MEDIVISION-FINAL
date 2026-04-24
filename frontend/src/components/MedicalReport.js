@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 const MedicalReport = ({ reportData, reportId, filePreview }) => {
   const formatDateTime = (date) => {
@@ -591,7 +591,7 @@ const MedicalReport = ({ reportData, reportId, filePreview }) => {
                   marginBottom: '8px'
                 }}>
                   <img 
-                    src={`http://localhost:5000${reportData.prescription.doctor_signature_url}`} 
+                    src={`http://localhost:8000${reportData.prescription.doctor_signature_url}`} 
                     alt="Doctor's Signature" 
                     style={{
                       maxWidth: '250px',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import MedicalReport from '../components/MedicalReport';
@@ -100,7 +100,7 @@ function DoctorDashboard() {
 
       try {
         console.log('Fetching reports for doctor ID:', doctor.id);
-        const response = await fetch(`http://localhost:5000/api/reports/doctor/${doctor.id}`);
+        const response = await fetch(`http://localhost:8000/api/reports/doctor/${doctor.id}`);
         const data = await response.json();
         
         console.log('Reports response:', data);
@@ -182,7 +182,7 @@ function DoctorDashboard() {
   useEffect(() => {
     if (!doctor?.id) return;
     const fetchUnread = () => {
-      fetch(`http://localhost:5000/api/patient-chat/sessions/doctor/${doctor.id}`)
+      fetch(`http://localhost:8001/api/patient-chat/sessions/doctor/${doctor.id}`)
         .then(r => r.json())
         .then(d => {
           if (d.success) {
@@ -199,7 +199,7 @@ function DoctorDashboard() {
 
   const fetchTrendNotifications = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/notifications/disease-trends');
+      const response = await fetch('http://localhost:8000/api/notifications/disease-trends');
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -299,7 +299,7 @@ function DoctorDashboard() {
 
     // Persist to backend
     try {
-      await fetch(`http://localhost:5000/api/doctors/${doctor.id}/profile`, {
+      await fetch(`http://localhost:8000/api/doctors/${doctor.id}/profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -340,7 +340,7 @@ function DoctorDashboard() {
     console.log('Submitting prescription data:', prescriptionData);
     
     try {
-      const response = await fetch('http://localhost:5000/api/doctor-prescription/submit', {
+      const response = await fetch('http://localhost:8000/api/doctor-prescription/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -451,7 +451,7 @@ function DoctorDashboard() {
   const handleSendToPatient = async (prescription) => {
     try {
       // First, send the prescription to patient
-      const response = await fetch('http://localhost:5000/api/doctor-prescription/send-to-patient', {
+      const response = await fetch('http://localhost:8000/api/doctor-prescription/send-to-patient', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -464,7 +464,7 @@ function DoctorDashboard() {
 
       if (response.ok) {
         // Update patient report status to completed
-        const statusResponse = await fetch(`http://localhost:5000/api/reports/update-status/${prescription.report_id}?status=completed`, {
+        const statusResponse = await fetch(`http://localhost:8000/api/reports/update-status/${prescription.report_id}?status=completed`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -476,7 +476,7 @@ function DoctorDashboard() {
           setShowSuccessMessage(true);
           
           // Refetch patient reports to update the list
-          const reportsResponse = await fetch(`http://localhost:5000/api/reports/doctor/${doctor.id}`);
+          const reportsResponse = await fetch(`http://localhost:8000/api/reports/doctor/${doctor.id}`);
           const data = await reportsResponse.json();
           
           if (data.success) {

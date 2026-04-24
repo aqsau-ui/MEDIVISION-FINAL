@@ -35,7 +35,8 @@ function createOTP(expiryMinutes = 5) {
  * @returns {boolean} True if OTP is still valid
  */
 function isOTPValid(expiresAt) {
-  return Date.now() < expiresAt;
+  // MySQL may return BIGINT as a string — always coerce to number
+  return Date.now() < Number(expiresAt);
 }
 
 /**
@@ -54,8 +55,8 @@ function validateOTP(inputOTP, storedOTP, expiresAt) {
     };
   }
   
-  // Check if OTP matches
-  if (inputOTP !== storedOTP) {
+  // Check if OTP matches — trim + stringify both sides to avoid type issues
+  if (String(inputOTP).trim() !== String(storedOTP).trim()) {
     return {
       success: false,
       message: 'Invalid OTP. Please check and try again.'

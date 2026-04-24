@@ -128,13 +128,16 @@ router.post('/doctor-register', [
 
     // Send verification email
     const emailResult = await sendVerificationEmail(email, otpData.otp, fullName);
-    
+
+    // Always log OTP to terminal for dev/testing
+    console.log(`\n📧 Doctor OTP for ${email}: *** ${otpData.otp} ***\n`);
+
     if (!emailResult.success) {
-      console.error('Failed to send verification email:', emailResult.message);
+      console.error('⚠️  Email delivery failed:', emailResult.message, '— Use the OTP printed above.');
     }
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: 'Registration successful. Please check your email for the verification code.',
       email: email,
       requiresVerification: true

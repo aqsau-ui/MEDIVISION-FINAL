@@ -1,13 +1,13 @@
 /**
- * Mailtrap Email Service Module (SMTP Version)
- * Handles email sending using Mailtrap SMTP with nodemailer
+ * Gmail SMTP Email Service for MEDIVISION
+ * Uses Gmail App Password for sending real emails
  */
 
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@medivision.com';
-const FROM_NAME = process.env.FROM_NAME || 'MEDIVISION';
+const FROM_EMAIL = process.env.GMAIL_USER || process.env.FROM_EMAIL || 'noreply@medivision.com';
+const FROM_NAME  = process.env.FROM_NAME  || 'MEDIVISION';
 
 // Create SMTP transporter
 let transporter = null;
@@ -15,11 +15,10 @@ let transporter = null;
 function createTransporter() {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: process.env.MAILTRAP_SMTP_HOST || 'sandbox.smtp.mailtrap.io',
-      port: parseInt(process.env.MAILTRAP_SMTP_PORT) || 2525,
+      service: 'gmail',
       auth: {
-        user: process.env.MAILTRAP_SMTP_USERNAME,
-        pass: process.env.MAILTRAP_SMTP_PASSWORD
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD   // Gmail App Password (16-char)
       }
     });
   }

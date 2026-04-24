@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import PatientLayout from '../components/PatientLayout';
 import DoctorPrescriptionReport from '../components/DoctorPrescriptionReport';
 import PatientChatPanel from '../components/PatientChatPanel';
@@ -38,7 +38,7 @@ const DoctorRecommendation = () => {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/doctor-prescription/patient/${patientId}`);
+      const response = await fetch(`http://localhost:8000/api/doctor-prescription/patient/${patientId}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -60,7 +60,7 @@ const DoctorRecommendation = () => {
     
     try {
       // Fetch the patient report data using the report_id from prescription
-      const response = await fetch(`http://localhost:5000/api/reports/detail/${prescription.report_id}`);
+      const response = await fetch(`http://localhost:8000/api/reports/detail/${prescription.report_id}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -267,35 +267,8 @@ const DoctorRecommendation = () => {
                       ['MBBS']
                   }}
                   onDownloadPDF={handleDownloadPDF}
+                  onOpenChat={() => handleOpenChat(selectedPrescription)}
                 />
-              )}
-
-              {/* Action buttons at bottom of prescription modal */}
-              {!loadingReport && selectedPrescription && (
-                <div style={{
-                  display: 'flex',
-                  gap: '12px',
-                  justifyContent: 'center',
-                  padding: '20px',
-                  borderTop: '1px solid #e2e8f0',
-                  backgroundColor: '#f7fafc'
-                }}>
-                  <button
-                    className="cp-chat-btn"
-                    onClick={() => handleOpenChat(selectedPrescription)}
-                    style={{
-                      padding: '12px 24px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                    Chat with Dr. {selectedPrescription.doctor_name}
-                  </button>
-                </div>
               )}
             </div>
           </div>

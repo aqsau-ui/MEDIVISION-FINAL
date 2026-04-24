@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import TrendNotificationPanel from './TrendNotificationPanel';
@@ -34,7 +34,7 @@ const PatientLayout = ({ children }) => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/notifications/disease-trends/count');
+        const response = await fetch('http://localhost:8000/api/notifications/disease-trends/count');
         const data = await response.json();
         
         if (data.success) {
@@ -59,7 +59,7 @@ const PatientLayout = ({ children }) => {
     const fetchTrendData = async () => {
       if (showNotifications) {
         try {
-          const response = await fetch('http://localhost:5000/api/notifications/disease-trends');
+          const response = await fetch('http://localhost:8000/api/notifications/disease-trends');
           const data = await response.json();
           
           if (data.success) {
@@ -80,7 +80,7 @@ const PatientLayout = ({ children }) => {
       if (!user?.email) return;
       
       try {
-        const response = await fetch(`http://localhost:5000/api/doctor-prescription/patient/${user.email}`);
+        const response = await fetch(`http://localhost:8000/api/doctor-prescription/patient/${user.email}`);
         if (response.ok) {
           const data = await response.json();
           const sentPrescriptions = data.prescriptions.filter(p => p.sent_to_patient);
@@ -111,7 +111,7 @@ const PatientLayout = ({ children }) => {
     if (location.pathname === '/doctor-recommendation' && user?.email) {
       const updateViewedCount = async () => {
         try {
-          const response = await fetch(`http://localhost:5000/api/doctor-prescription/patient/${user.email}`);
+          const response = await fetch(`http://localhost:8000/api/doctor-prescription/patient/${user.email}`);
           if (response.ok) {
             const data = await response.json();
             const sentPrescriptions = data.prescriptions.filter(p => p.sent_to_patient);

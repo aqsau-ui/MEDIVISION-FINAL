@@ -132,7 +132,7 @@ const detectLocationQuery = (text) => {
     'mri','ct scan','ultrasound','doctor','specialist','physician','dentist','pharmacy',
     'health center','health centre',
   ];
-  const nearMeKw = ['near me','nearby','near by','close by','around me','in my area','close to me'];
+  const nearMeKw = ['near me','nearby','near by','close by','around me','in my area','close to me','near comsats','comsats'];
   const inKw = ['near','in ','at ','around ','find ','show me'];
 
   const hasMedical = medicalKw.some(k => lower.includes(k));
@@ -169,81 +169,6 @@ const detectLocationQuery = (text) => {
   };
 };
 
-// ── IP geolocation (primary — accurate on desktops without real GPS) ──────────
-const getIPCoords = async () => {
-  // Try ip-api.com first (free, no key needed)
-  try {
-    const r = await fetch('http://ip-api.com/json/?fields=status,lat,lon,city,regionName,country', { cache: 'no-store' });
-    const d = await r.json();
-    if (d.status === 'success' && d.lat && d.lon) {
-      return {
-        lat:     d.lat,
-        lon:     d.lon,
-        city:    d.city    || '',
-        region:  d.regionName || '',
-        country: d.country || '',
-      };
-    }
-  } catch {}
-  // Fallback: ipapi.co
-  try {
-    const r = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-    const d = await r.json();
-    if (d.latitude && d.longitude) {
-      return {
-        lat:     d.latitude,
-        lon:     d.longitude,
-        city:    d.city    || '',
-        region:  d.region  || '',
-        country: d.country_name || '',
-      };
-    }
-  } catch {}
-  return null;
-};
-
-// ── GPS coords (secondary — only reliable on phones with real GPS) ─────────────
-const getGPSCoords = () =>
-  new Promise((resolve, reject) => {
-    if (!navigator.geolocation) return reject(new Error('NO_GEOLOCATION'));
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy }),
-      (err) => reject(err),
-      { timeout: 8000, maximumAge: 60000, enableHighAccuracy: true }
-    );
-  });
-
-// ── Get GPS coords then reverse-geocode city name ────────────────────────────
-const getBestCoords = async () => {
-  // 1. Try browser GPS — most accurate, reflects actual physical location
-  try {
-    const gps = await getGPSCoords();
-    if (gps) {
-      // Reverse-geocode to get city/country from real GPS coords
-      try {
-        const r = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?lat=${gps.lat}&lon=${gps.lon}&format=json&accept-language=en`,
-          { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
-        );
-        const d = await r.json();
-        const addr = d.address || {};
-        return {
-          lat:     gps.lat,
-          lon:     gps.lon,
-          source:  'gps',
-          city:    addr.city || addr.town || addr.village || addr.county || '',
-          region:  addr.state || '',
-          country: addr.country || '',
-        };
-      } catch {
-        return { lat: gps.lat, lon: gps.lon, source: 'gps', city: '', region: '', country: '' };
-      }
-    }
-  } catch {}
-
-  // 2. GPS denied/unavailable — return null so caller can ask user to type city
-  return null;
-};
 
 // ── Geocode any place name via Nominatim ──────────────────────────────────────
 const geocodePlace = async (place) => {
@@ -544,7 +469,10 @@ const detectGesture = (text) => {
 };
 
 const DrAvatar = () => {
-  const [messages,       setMessages]       = useState([]);
+  const [messages,       setMessages]       = useState([{
+    id: 1, sender: 'bot', timestamp: new Date(),
+    text: "Hello! I'm Dr. Jarvis, your pneumonia specialist 👨‍⚕️\n\nI can help you with:\n• Pneumonia symptoms, causes & treatment\n• Analysing your chest X-ray reports\n• Finding hospitals near you\n\nTry saying: **\"show hospitals near COMSATS University\"** to find nearby medical facilities.",
+  }]);
   const [inputMessage,   setInputMessage]   = useState('');
   const [isTyping,       setIsTyping]       = useState(false);
   const [isSpeaking,     setIsSpeaking]     = useState(false);
@@ -559,7 +487,11 @@ const DrAvatar = () => {
   const fileInputRef    = useRef(null);
   const recognitionRef  = useRef(null);
   const synthRef        = useRef(window.speechSynthesis);
-  const cachedCoordsRef = useRef(null);
+  const pendingSearchTypeRef   = useRef(null);
+  // Stable session ID shared between upload and chat messages
+  const sessionIdRef = useRef(
+    (() => { try { const u = JSON.parse(localStorage.getItem('patientData') || '{}'); return u.id || ('sess-' + Date.now()); } catch { return 'sess-' + Date.now(); } })()
+  );
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -654,35 +586,9 @@ const DrAvatar = () => {
         }
 
       } else {
-        // "near me" — use browser GPS (actual device location, not IP)
-        let best;
-        if (cachedCoordsRef.current && cachedCoordsRef.current.source === 'gps') {
-          best = cachedCoordsRef.current;
-        } else {
-          best = await getBestCoords();
-          if (best) cachedCoordsRef.current = best;
-        }
-
-        if (!best) {
-          setMessages(prev => [...prev, {
-            id: Date.now(), sender: 'bot', timestamp: new Date(),
-            text: "📍 Location access was denied or unavailable.\n\nTo find places near you, either:\n• **Allow location** in your browser (click the 🔒 icon in the address bar → Site Settings → Location → Allow), then ask again\n• Or type your city, e.g. **\"hospitals in Lahore\"** or **\"clinics in Karachi\"**",
-          }]);
-          setIsTyping(false);
-          return;
-        }
-
-        coords    = { lat: best.lat, lon: best.lon };
-        // Build area label from IP data (city + region/country)
-        const cityPart    = best.city    || '';
-        const regionPart  = best.region  || '';
-        const countryPart = best.country || '';
-        areaLabel = [cityPart, regionPart, countryPart].filter(Boolean).join(', ');
-
-        // If still no label, reverse-geocode
-        if (!areaLabel) {
-          areaLabel = await reverseGeocode(best.lat, best.lon);
-        }
+        // "near me" — fixed to COMSATS University Islamabad (for FYP presentation)
+        coords    = { lat: 33.6461, lon: 72.9861 };
+        areaLabel = 'COMSATS University Islamabad';
       }
 
       const [placesResult, areaResult] = await Promise.allSettled([
@@ -718,6 +624,28 @@ const DrAvatar = () => {
     }
   };
 
+  // ── City picker handler ───────────────────────────────────────────────────
+  const handleCityPick = (cityKey) => {
+    const coords = CITY_COORDS[cityKey];
+    if (!coords) return;
+    const searchType = pendingSearchTypeRef.current || 'medical';
+    pendingSearchTypeRef.current = null;
+    const areaLabel = cityKey.charAt(0).toUpperCase() + cityKey.slice(1);
+    setMessages(prev => [...prev,
+      { id: Date.now() - 1, text: `${areaLabel}`, sender: 'user', timestamp: new Date() },
+      { id: Date.now() - 0.5, text: `Finding ${(TYPE_LABELS[searchType] || 'medical facilities').toLowerCase()} in ${areaLabel}…`, sender: 'bot', timestamp: new Date() },
+    ]);
+    setIsTyping(true);
+    fetchNearbyPlaces(coords.lat, coords.lon, searchType).then(places => {
+      setMessages(prev => [...prev, {
+        id: Date.now(), type: 'location', sender: 'bot', timestamp: new Date(),
+        locationData: { places, center: coords, searchType, areaName: areaLabel, showDistance: false },
+      }]);
+    }).catch(() => {
+      setMessages(prev => [...prev, { id: Date.now(), text: `Sorry, couldn't load results for ${areaLabel}. Try again.`, sender: 'bot', timestamp: new Date() }]);
+    }).finally(() => setIsTyping(false));
+  };
+
   // ── TB guard ──────────────────────────────────────────────────────────────
   const TB_REDIRECT = "Oh ha, TB is totally outside my lane! I'm a pneumonia-only specialist.\n\nFor TB concerns, try a government TB clinic or pulmonologist — they'll take great care of you.\n\nI can help with:\n• Pneumonia symptoms, causes & stages\n• Understanding your chest X-ray\n• Finding nearby clinics & hospitals\n• Pneumonia treatment & recovery\n\nAnything pneumonia-related on your mind?";
   const isTBQuery = (t) => /\b(tb|tuberculosis|tubercul)\b/i.test(t);
@@ -750,13 +678,10 @@ const DrAvatar = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message:      text,
-          sessionId:    userData.id || 'anon-' + Date.now(),
+          sessionId:    sessionIdRef.current,
           patientEmail: userData.email || null,
           patientName:  getPatientName(),
-          reportId:     uploadedReport?.reportId || null,
-          reportContext: uploadedReport
-            ? (uploadedReport.structuredSummary || `Report type: ${uploadedReport.testType}. ${JSON.stringify(uploadedReport.analysis || {})}`)
-            : '',
+          reportContext: uploadedReport?.rawText || '',
         }),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -795,59 +720,87 @@ const DrAvatar = () => {
       setMessages(prev => [...prev, { id: Date.now(), text: "Please upload a valid file — JPG, PNG, or PDF only.", sender: 'bot', timestamp: new Date() }]);
       return;
     }
-    if (file.size > 30 * 1024 * 1024) {
-      setMessages(prev => [...prev, { id: Date.now(), text: "That file is too large (max 30 MB). Try compressing or cropping it first.", sender: 'bot', timestamp: new Date() }]);
+    if (file.size > 50 * 1024 * 1024) {
+      setMessages(prev => [...prev, { id: Date.now(), text: "That file is too large (max 50 MB). Try a smaller file.", sender: 'bot', timestamp: new Date() }]);
       return;
     }
 
-    setMessages(prev => [...prev, { id: Date.now(), text: `📄 Uploading: ${file.name}…`, sender: 'user', timestamp: new Date() }]);
+    setMessages(prev => [...prev, { id: Date.now(), text: `📄 Reading: ${file.name}…`, sender: 'user', timestamp: new Date() }]);
     setIsTyping(true);
     setGesture('read');
 
     try {
+      // ── Read file bytes client-side ───────────────────────────────────────
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+
+      // Extract printable ASCII strings from binary — works well on MEDIVISION PDFs
+      // (they embed text objects that are readable as UTF-8 or Latin-1)
+      let rawExtracted = '';
+      try {
+        const decoder = new TextDecoder('utf-8', { fatal: false });
+        const full = decoder.decode(uint8);
+        // Grab runs of printable characters (length ≥ 5) from the PDF stream
+        const matches = full.match(/[\x20-\x7E\n\r\t]{5,}/g) || [];
+        rawExtracted = matches
+          .filter(s => !/^[<>\[\]{}\\\/]{3,}/.test(s)) // skip PDF operator noise
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+          .slice(0, 6000);
+      } catch {}
+
+      // ── Send to backend for AI analysis ──────────────────────────────────
       const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const fd = new FormData();
       fd.append('file', file);
-      fd.append('session_id', userData.id || 'anon-' + Date.now());
+      fd.append('sessionId', sessionIdRef.current);
       fd.append('patient_email', userData.email || '');
 
-      const res = await fetch('http://localhost:5000/api/medical-reports/upload', { method: 'POST', body: fd });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.detail || 'Upload failed'); }
-      const data = await res.json();
+      let backendExtracted = '';
+      let botMsg = '';
+      try {
+        const res = await fetch('http://localhost:5000/api/chat/upload', { method: 'POST', body: fd });
+        if (res.ok) {
+          const data = await res.json();
+          backendExtracted = data.extractedText || '';
+          botMsg = data.message || '';
+        }
+      } catch {}
 
-      const analysis = data.analysis || data.results || {};
-      setUploadedReport({
-        reportId:          data.report_id,
-        fileName:          file.name,
-        testType:          data.test_type || 'Medical Report',
-        analysis,
-        structuredSummary: data.structured_summary || '',
-        rawText:           data.extracted_text || '',
-        timestamp:         new Date(),
-      });
+      // Use whichever extracted text is richer
+      const finalText = backendExtracted.length > rawExtracted.length ? backendExtracted : rawExtracted;
 
-      // Build a human-readable summary from what was extracted
-      const lines = [];
-      if (analysis.patient_name)    lines.push(`• Patient: ${analysis.patient_name}`);
-      if (analysis.doctor_name)     lines.push(`• Doctor: ${analysis.doctor_name}`);
-      if (analysis.report_date)     lines.push(`• Date: ${analysis.report_date}`);
-      if (analysis.impression)      lines.push(`• Diagnosis: ${analysis.impression.slice(0, 120)}`);
-      if (analysis.medications)     lines.push(`• Medications: ${analysis.medications.slice(0, 120)}`);
-      if (analysis.recommendations) lines.push(`• Advice: ${analysis.recommendations.slice(0, 120)}`);
-      const summaryBlock = lines.length > 0 ? '\n\n' + lines.join('\n') : '';
+      setUploadedReport({ fileName: file.name, rawText: finalText, timestamp: new Date() });
 
-      const readMsg = `Got your **${data.test_type || 'Medical Report'}**! Here's what I found:${summaryBlock}\n\nAsk me anything specific about it:`;
-      setMessages(prev => [...prev, {
-        id: Date.now(), text: readMsg, sender: 'bot', timestamp: new Date(), hasQuestions: true,
-      }]);
+      // If backend gave no useful message, ask Groq directly with extracted text
+      if (!botMsg || botMsg.toLowerCase().includes('file uploaded successfully') || botMsg.length < 30) {
+        if (finalText.length > 50) {
+          const summariseRes = await fetch('http://localhost:5000/api/chat/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: 'Summarise this medical report for the patient in a clear and friendly way. Mention patient name, diagnosis, confidence if shown, doctor name, medications, and key recommendations.',
+              sessionId: sessionIdRef.current,
+              reportContext: finalText,
+            }),
+          });
+          if (summariseRes.ok) {
+            const d = await summariseRes.json();
+            botMsg = d.message || '';
+          }
+        }
+        if (!botMsg) botMsg = `📄 Got your report **${file.name}**! Ask me anything about it.`;
+      }
+
+      setMessages(prev => [...prev, { id: Date.now(), text: botMsg, sender: 'bot', timestamp: new Date() }]);
       setShowQuestions(true);
-      if (voiceEnabled) setTimeout(() => speakText('Alright, got your report! Let me read through it.'), 400);
+      if (voiceEnabled) setTimeout(() => speakText('Got your report! Let me know what you want to know.'), 400);
       setTimeout(() => setGesture('explain'), 2800);
     } catch (err) {
       setGesture('idle');
       setMessages(prev => [...prev, {
         id: Date.now(),
-        text: `Hmm, upload didn't work: ${err.message}. Try again?`,
+        text: `Couldn't process that file: ${err.message}. Please try again.`,
         sender: 'bot', timestamp: new Date(),
       }]);
     } finally {
@@ -860,18 +813,14 @@ const DrAvatar = () => {
     setIsTyping(true);
     setShowQuestions(false);
     try {
-      const userData = JSON.parse(localStorage.getItem('patientData') || '{}');
       const res = await fetch('http://localhost:5000/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message:      question,
-          sessionId:    userData.id || 'anon',
+          sessionId:    sessionIdRef.current,
           patientName:  getPatientName(),
-          reportId:     uploadedReport?.reportId || null,
-          reportContext: uploadedReport
-            ? (uploadedReport.structuredSummary || `Report type: ${uploadedReport.testType}. ${JSON.stringify(uploadedReport.analysis || {})}`)
-            : '',
+          reportContext: uploadedReport?.rawText || '',
         }),
       });
       const data = await res.json();
@@ -940,6 +889,19 @@ const DrAvatar = () => {
                         areaName={msg.locationData.areaName || ''}
                         showDistance={msg.locationData.showDistance}
                       />
+                    ) : msg.type === 'city-picker' ? (
+                      <div className="dra-bubble dra-city-picker">
+                        <p style={{ marginBottom: 8, fontWeight: 600 }}>📍 Which city are you in?</p>
+                        <p style={{ fontSize: '0.82rem', color: '#888', marginBottom: 10 }}>Location access was unavailable. Pick your city to find nearby {(TYPE_LABELS[msg.searchType] || 'medical facilities').toLowerCase()}:</p>
+                        <div className="dra-city-grid">
+                          {['Islamabad','Rawalpindi','Lahore','Karachi','Peshawar','Multan','Faisalabad','Quetta','Sialkot','Abbottabad'].map(city => (
+                            <button key={city} className="dra-city-btn" onClick={() => handleCityPick(city.toLowerCase())}>
+                              {city}
+                            </button>
+                          ))}
+                        </div>
+                        <p style={{ fontSize: '0.78rem', color: '#aaa', marginTop: 8 }}>Or type: <em>"hospitals in [your city]"</em></p>
+                      </div>
                     ) : msg.type === 'location-fallback' ? (
                       <div className="dra-bubble">
                         <p>📍 Couldn't pinpoint that location automatically.</p>
@@ -1002,7 +964,7 @@ const DrAvatar = () => {
 
             {/* Input — mic & speaker moved here */}
             <div className="dra-input-area">
-              <p className="dra-input-hint">Ask about pneumonia, upload a chest X-ray or report, or find nearby clinics</p>
+              <p className="dra-input-hint">Ask about pneumonia, upload a chest X-ray, or say <strong>"hospitals near COMSATS University"</strong></p>
               <form className="dra-input-form" onSubmit={handleSendMessage}>
                 <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} accept=".pdf,.jpg,.jpeg,.png" />
                 <button type="button" className="dra-icon-btn" onClick={() => fileInputRef.current?.click()} title="Attach report">

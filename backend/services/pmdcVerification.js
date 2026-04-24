@@ -122,9 +122,11 @@ async function verifyPMDCNumber(pmdcNumber, doctorName = null) {
             console.warn('Selenium fallback failed:', e3.message);
           }
         }
-        console.warn('PMDC site unreachable - using lenient validation for development');
-        // Don't block registration if PMDC site is down
-        parsed = { extractedName: '', status: '', regNo: '' };
+        console.warn('PMDC site unreachable - blocking registration');
+        return {
+          isValid: false,
+          message: 'PMDC verification service is currently unavailable. Please try again in a few minutes.'
+        };
       }
     }
     
@@ -144,15 +146,11 @@ async function verifyPMDCNumber(pmdcNumber, doctorName = null) {
       }
     }
     
-    // If no name extracted but PMDC format is valid, be lenient for development
-    // PMDC formats: 12345-N, 123456-P, or older formats like 123456-12-A
-    const validPmdcFormat = /^\d{4,6}-([A-Z]|\d{1,2}-[A-Z])$/i.test(normPmdc);
-    if (!parsed.extractedName && normPmdc && validPmdcFormat) {
-      console.warn('PMDC site returned no data - allowing registration (dev mode)');
+    // If no name extracted and PMDC site returned data but found nothing — reject
+    if (!parsed.extractedName) {
       return {
-        isValid: true,
-        doctorName: normName || 'Doctor',
-        message: 'PMDC number format is valid. Registration allowed for development.'
+        isValid: false,
+        message: 'Invalid PMDC registration number. No doctor found with this registration number.'
       };
     }
 

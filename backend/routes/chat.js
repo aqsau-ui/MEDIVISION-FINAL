@@ -8,7 +8,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 50 * 1024 * 1024 // 50MB limit — allows large MEDIVISION PDF reports
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -44,10 +44,10 @@ router.post('/message', async (req, res) => {
     // Get or create conversation history
     const conversationHistory = conversationStore.get(sessionId) || [];
 
-    // If report context is provided, add it to the message
+    // Build enhanced message with report context injected directly
     let enhancedMessage = message;
-    if (reportContext) {
-      enhancedMessage = `Based on this medical report analysis: "${reportContext}"\n\nUser question: ${message}`;
+    if (reportContext && reportContext.trim().length > 20) {
+      enhancedMessage = `The patient has shared their medical report. Here is the report content:\n\n"""\n${reportContext.slice(0, 3000)}\n"""\n\nBased on this report, answer the following question:\n${message}`;
     }
 
     // Process query with RAG
@@ -114,11 +114,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       req.file.mimetype
     );
 
+    const extractedText = analysis.extractedText || '';
+
     if (analysis.success) {
-      // Add to conversation history
+      // Store extracted text in conversation history so future questions have context
       const conversationHistory = conversationStore.get(sessionId) || [];
       conversationHistory.push(
-        { role: 'user', content: `[Uploaded medical report: ${req.file.originalname}]` },
+        {
+          role: 'user',
+          content: extractedText
+            ? `[Uploaded medical report: ${req.file.originalname}]\n\nReport content:\n${extractedText.slice(0, 3000)}`
+            : `[Uploaded medical report: ${req.file.originalname}]`
+        },
         { role: 'assistant', content: analysis.message }
       );
       conversationStore.set(sessionId, conversationHistory);
@@ -127,6 +134,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     res.json({
       success: true,
       message: analysis.message,
+      extractedText: extractedText,   // ← returned to frontend for follow-up Q context
       fileName: req.file.originalname,
       sessionId: sessionId
     });

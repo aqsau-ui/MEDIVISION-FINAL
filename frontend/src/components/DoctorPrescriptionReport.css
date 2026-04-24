@@ -8,7 +8,11 @@
 }
 
 .prescription-actions {
-  text-align: right;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 20px;
 }
 
@@ -27,6 +31,25 @@
 
 .btn-download-pdf:hover {
   background: #2C7A7B;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-chat-doctor {
+  background: #2C7A7B;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-chat-doctor:hover {
+  background: #1f6263;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 

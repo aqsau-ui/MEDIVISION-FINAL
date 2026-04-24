@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './ChatModule.css';
 
-const API     = 'http://localhost:5000/api/patient-chat';
-const WS_BASE = 'ws://localhost:5000/api/patient-chat/ws';
+const API     = 'http://localhost:8001/api/patient-chat';
+const WS_BASE = 'ws://localhost:8001/api/patient-chat/ws';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
@@ -556,7 +556,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0' }}>AI Medical Report</div>
                     {ai ? (
                       <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                        {ai.diagnosis || ai.predicted_disease || 'Unknown'} &bull; {ai.created_at ? new Date(ai.created_at).toLocaleDateString() : ''}
+                        {ai.analysis?.prediction || ai.diagnosis || ai.predicted_disease || 'Unknown'} &bull; {ai.createdAt || ai.created_at ? new Date(ai.createdAt || ai.created_at).toLocaleDateString() : ''}
                       </div>
                     ) : (
                       <div style={{ fontSize: 11, color: '#64748b' }}>No report on file</div>
@@ -666,8 +666,8 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#fff', borderRadius: 12, width: '100%', maxWidth: 820,
-              maxHeight: '88vh', overflowY: 'auto',
+              background: '#fff', borderRadius: 12, width: '100%', maxWidth: 960,
+              maxHeight: '92vh', overflowY: 'auto',
               boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
               fontFamily: '"Times New Roman", Georgia, serif'
             }}
@@ -791,6 +791,23 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                     </div>
                   </div>
 
+                  {/* X-Ray Images */}
+                  {(ai.images?.original || ai.images?.heatmap) && (
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>Chest X-Ray Images</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        {ai.images?.original && (<div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>Original X-Ray</div>
+                          <img src={ai.images.original} alt="X-Ray" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                        </div>)}
+                        {ai.images?.heatmap && (<div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>AI Heatmap Analysis</div>
+                          <img src={ai.images.heatmap} alt="Heatmap" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                        </div>)}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Disclaimer */}
                   <div style={{ background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#78350f' }}>
                     <strong>⚠ Medical Disclaimer:</strong> This AI report is generated for clinical decision support only. It does not replace diagnosis or treatment by a licensed medical professional. All findings must be correlated with clinical examination, patient history, and professional radiological interpretation.
@@ -871,6 +888,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
 
                 {/* Signature */}
                 <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e8f0', textAlign: 'right', fontSize: 13, color: '#4a5568' }}>
+                  {rx.doctor_signature && <img src={rx.doctor_signature} alt="Signature" style={{ height: 60, marginBottom: 6, display: 'inline-block' }} />}
                   <div style={{ fontWeight: 700, fontSize: 15, color: '#2c5f6f' }}>Dr. {rx.doctor_name || '—'}</div>
                   <div>{rx.doctor_license ? `PMDC: ${rx.doctor_license}` : ''}{rx.doctor_specialization ? ` | ${rx.doctor_specialization}` : ''}</div>
                   <div style={{ fontStyle: 'italic', marginTop: 4 }}>{rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : ''}</div>

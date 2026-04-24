@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 import TrendNotificationPanel from './TrendNotificationPanel';
@@ -33,7 +33,7 @@ const DoctorLayout = ({ children }) => {
   useEffect(() => {
     const fetchNotificationCount = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/notifications/disease-trends/count');
+        const response = await fetch('http://localhost:8000/api/notifications/disease-trends/count');
         const data = await response.json();
         
         if (data.success) {
@@ -58,7 +58,7 @@ const DoctorLayout = ({ children }) => {
     const fetchTrendData = async () => {
       if (showNotifications) {
         try {
-          const response = await fetch('http://localhost:5000/api/notifications/disease-trends');
+          const response = await fetch('http://localhost:8000/api/notifications/disease-trends');
           const data = await response.json();
           
           if (data.success) {

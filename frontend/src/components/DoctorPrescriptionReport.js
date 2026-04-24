@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import './DoctorPrescriptionReport.css';
 
-const DoctorPrescriptionReport = ({ prescription, patientReport, onDownloadPDF, doctor }) => {
+const DoctorPrescriptionReport = ({ prescription, patientReport, onDownloadPDF, doctor, onOpenChat }) => {
   const reportRef = useRef();
 
   // Debug logging
@@ -254,11 +254,17 @@ const DoctorPrescriptionReport = ({ prescription, patientReport, onDownloadPDF, 
         </div>
       </div>
 
-      {/* Download button at bottom */}
-      <div className="prescription-actions no-print" style={{ padding: '0 20px 20px', textAlign: 'center' }}>
+      {/* Action buttons at bottom */}
+      <div className="prescription-actions no-print" style={{ padding: '0 20px 20px' }}>
         <button onClick={() => onDownloadPDF(reportRef)} className="btn-download-pdf">
           Download Prescription (PDF)
         </button>
+        {typeof onOpenChat === 'function' && (
+          <button onClick={onOpenChat} className="btn-chat-doctor">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8 }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Chat with Dr. {prescription.doctor_name}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -464,6 +464,28 @@
 }
 .dra-fallback-link:hover { background: rgba(44, 122, 123, 0.16); }
 
+.dra-city-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.dra-city-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #2c7a7b;
+  background: rgba(44, 122, 123, 0.08);
+  color: #2c7a7b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.dra-city-btn:hover {
+  background: #2c7a7b;
+  color: #fff;
+}
+
 .dra-tip {
   font-size: 0.75rem !important;
   color: rgba(26, 58, 74, 0.45) !important;

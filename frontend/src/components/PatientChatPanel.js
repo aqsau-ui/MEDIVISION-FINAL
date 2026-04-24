@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './ChatModule.css';
 
-const API     = 'http://localhost:5000/api/patient-chat';
-const WS_BASE = 'ws://localhost:5000/api/patient-chat/ws';
+const API     = 'http://localhost:8001/api/patient-chat';
+const WS_BASE = 'ws://localhost:8001/api/patient-chat/ws';
 const DAYS    = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
 // -- Professional inline SVG icons --------------------------------------------
@@ -562,46 +562,233 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
       )}
     </div>
 
-    {/* Report modals */}
+    {/* Report modals — full-page styled like PDF */}
     {showReport && (
-      <div className="cp-report-overlay" onClick={() => setShowReport(null)}>
-        <div className="cp-report-modal" onClick={e => e.stopPropagation()}>
-          <div className="cp-report-modal-hdr">
-            <span>{showReport === 'ai' ? 'AI Diagnostic Report' : 'Doctor Prescription'}</span>
-            <button className="cp-report-close" onClick={() => setShowReport(null)}>{Ic.close}</button>
+      <div
+        onClick={() => setShowReport(null)}
+        style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(15,40,55,0.6)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '16px'
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: '#fff', borderRadius: 12, width: '100%', maxWidth: 960,
+            maxHeight: '92vh', overflowY: 'auto',
+            boxShadow: '0 24px 80px rgba(0,0,0,0.3)',
+            fontFamily: '"Times New Roman", Georgia, serif'
+          }}
+        >
+          {/* Header bar */}
+          <div style={{
+            background: 'linear-gradient(135deg,#1a3a4a,#38B2AC)',
+            padding: '16px 24px', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between',
+            borderRadius: '12px 12px 0 0', position: 'sticky', top: 0, zIndex: 2
+          }}>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, letterSpacing: 0.5 }}>
+              {showReport === 'ai' ? 'AI Medical Report' : 'Doctor Prescription'}
+            </span>
+            <button
+              onClick={() => setShowReport(null)}
+              style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none',
+                borderRadius: '50%', width: 32, height: 32,
+                color: '#fff', fontSize: 20, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >×</button>
           </div>
-          <div className="cp-report-modal-body">
-            {loadingDocs ? (
-              <p style={{ color: '#6b7280', textAlign: 'center', padding: '20px 0' }}>Loading report…</p>
-            ) : showReport === 'ai' ? (
-              aiR ? (
-                <div className="cp-report-card">
-                  <div className="cp-rr"><strong>Diagnosis</strong><span style={{ color: '#dc2626', fontWeight: 600 }}>{getDiagnosis(aiR)}</span></div>
-                  <div className="cp-rr"><strong>Confidence</strong><span>{getConf(aiR)}</span></div>
-                  <div className="cp-rr"><strong>Severity</strong><span>{getSeverity(aiR)}</span></div>
-                  <div className="cp-rr"><strong>Analysis Date</strong><span>{getDate(aiR)}</span></div>
-                  {aiR.recommendations && <div className="cp-rr"><strong>Recommendations</strong><span>{aiR.recommendations}</span></div>}
-                  {(aiR.medicalInfo?.symptoms || aiR.symptoms) && (
-                    <div className="cp-rr"><strong>Reported Symptoms</strong><span>{aiR.medicalInfo?.symptoms || aiR.symptoms}</span></div>
+
+          {loadingDocs ? (
+            <p style={{ color: '#6b7280', textAlign: 'center', padding: '40px 0' }}>Loading report…</p>
+          ) : showReport === 'ai' ? (
+            aiR ? (() => {
+              const pred   = aiR.analysis?.prediction || aiR.diagnosis || aiR.predicted_disease || '';
+              const conf   = parseFloat(aiR.analysis?.confidence ?? aiR.confidence ?? 0);
+              const sev    = aiR.analysis?.severity || aiR.severity || '';
+              const expl   = aiR.analysis?.heatmapExplanation || aiR.medical_context || '';
+              const pName  = aiR.patient?.name  || aiR.patient_name  || '—';
+              const pAge   = aiR.patient?.age   || aiR.patient_age   || '—';
+              const pGend  = aiR.patient?.gender|| aiR.patient_gender|| '—';
+              const pSmoke = aiR.patient?.smokingStatus || aiR.smoking_status || '—';
+              const pCough = aiR.patient?.hasCough || '—';
+              const symp   = aiR.medicalInfo?.symptoms || aiR.symptoms || '';
+              const hist   = aiR.medicalInfo?.medicalHistory || aiR.medical_history || '';
+              const rDate  = aiR.createdAt || aiR.created_at || aiR.timestamp;
+              const isNorm = pred === 'Normal';
+              return (
+                <div style={{ padding: '24px 30px' }}>
+                  {/* MEDIVISION header */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #38B2AC', paddingBottom: 12, marginBottom: 18 }}>
+                    <div>
+                      <div style={{ fontSize: 26, fontWeight: 700, color: '#38B2AC', letterSpacing: 1 }}>MEDIVISION</div>
+                      <div style={{ fontSize: 12, color: '#718096' }}>AI-Powered Radiology Platform</div>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#4a5568', lineHeight: 2, textAlign: 'right' }}>
+                      <div><strong>Report ID:</strong> {aiR.reportId || aiR.report_id || 'N/A'}</div>
+                      <div><strong>Date:</strong> {rDate ? new Date(rDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}</div>
+                      <div><strong>Patient ID:</strong> {(aiR.patient?.email || patientEmail)?.split('@')[0].toUpperCase() || 'N/A'}</div>
+                    </div>
+                  </div>
+                  {/* Patient Info */}
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>Patient Information</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10 }}>
+                      {[['Full Name', pName], ['Age', pAge !== '—' ? `${pAge} yrs` : '—'], ['Gender', pGend], ['Smoking', pSmoke]].map(([label, val]) => (
+                        <div key={label} style={{ background: '#F5F1E8', border: '1px solid #E6E0D6', borderRadius: 8, padding: '10px 12px' }}>
+                          <div style={{ fontSize: 10, color: '#718096', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#1a202c' }}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+                      {symp && (<div style={{ background: '#F5F1E8', border: '1px solid #E6E0D6', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 10, color: '#718096', textTransform: 'uppercase', marginBottom: 4 }}>Symptoms</div>
+                        <div style={{ fontSize: 13, color: '#1a202c' }}>{symp}</div>
+                      </div>)}
+                      {hist && (<div style={{ background: '#F5F1E8', border: '1px solid #E6E0D6', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 10, color: '#718096', textTransform: 'uppercase', marginBottom: 4 }}>Medical History</div>
+                        <div style={{ fontSize: 13, color: '#1a202c' }}>{hist}</div>
+                      </div>)}
+                      <div style={{ background: '#F5F1E8', border: '1px solid #E6E0D6', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 10, color: '#718096', textTransform: 'uppercase', marginBottom: 4 }}>Cough Status</div>
+                        <div style={{ fontSize: 13, color: '#1a202c' }}>{pCough}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* AI Analysis */}
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>AI Analysis</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
+                      <div style={{ border: '2px solid #38B2AC', borderRadius: 8, padding: '14px 10px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: '#718096', marginBottom: 6, textTransform: 'uppercase' }}>Predicted Condition</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: isNorm ? '#2e7d32' : '#c62828', textTransform: 'uppercase' }}>{pred || 'Unknown'}</div>
+                      </div>
+                      <div style={{ border: '2px solid #38B2AC', borderRadius: 8, padding: '14px 10px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: '#718096', marginBottom: 6, textTransform: 'uppercase' }}>Probability Score</div>
+                        <div style={{ fontSize: 28, fontWeight: 700, color: '#1565c0' }}>{conf > 0 ? `${(conf * 100).toFixed(1)}%` : '—'}</div>
+                      </div>
+                      <div style={{ border: '2px solid #38B2AC', borderRadius: 8, padding: '14px 10px', textAlign: 'center' }}>
+                        <div style={{ fontSize: 10, color: '#718096', marginBottom: 6, textTransform: 'uppercase' }}>Severity Level</div>
+                        <div style={{ fontSize: 20, fontWeight: 700, color: sev === 'Severe' ? '#c62828' : sev === 'Moderate' ? '#e65100' : '#2e7d32', textTransform: 'uppercase' }}>
+                          {sev || (conf > 0.8 ? 'Severe' : conf > 0.5 ? 'Moderate' : conf > 0 ? 'Mild' : '—')}
+                        </div>
+                      </div>
+                    </div>
+                    {expl && (<div style={{ background: '#F5F1E8', border: '1px solid #E6E0D6', borderRadius: 8, padding: '12px 16px', fontSize: 13, lineHeight: 1.7, color: '#6b5d47' }}>
+                      <strong style={{ color: '#6c5ce7' }}>AI Analysis:</strong> {expl}
+                    </div>)}
+                  </div>
+                  {/* Clinical Impression */}
+                  <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 10 }}>Clinical Impression</div>
+                    <div style={{ background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '14px 18px', fontSize: 14, lineHeight: 1.9, color: '#2d3748', textAlign: 'justify' }}>
+                      {isNorm
+                        ? 'The radiographic examination reveals lung fields within normal limits. No significant consolidation, infiltrates, or pleural effusion identified. Cardiothoracic ratio appears normal. AI analysis confirms absence of pathological findings with high confidence. Clinical correlation recommended.'
+                        : `The AI analysis indicates radiological patterns consistent with ${pred} showing a diagnostic probability of ${(conf * 100).toFixed(1)}%. Observed opacity regions suggest possible inflammatory infiltration within the lung fields. Severity classification: ${sev || 'Moderate'}. Correlation with clinical symptoms, laboratory investigations, and professional radiological interpretation is recommended.`
+                      }
+                    </div>
+                  </div>
+                  {/* Images */}
+                  {(aiR.images?.original || aiR.images?.heatmap) && (
+                    <div style={{ marginBottom: 18 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>Chest X-Ray Images</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        {aiR.images?.original && (<div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>Original X-Ray</div>
+                          <img src={aiR.images.original} alt="X-Ray" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                        </div>)}
+                        {aiR.images?.heatmap && (<div style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>AI Heatmap Analysis</div>
+                          <img src={aiR.images.heatmap} alt="Heatmap" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                        </div>)}
+                      </div>
+                    </div>
                   )}
+                  {/* Disclaimer */}
+                  <div style={{ background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#78350f' }}>
+                    <strong>⚠ Medical Disclaimer:</strong> This AI report is generated for clinical decision support only. It does not replace diagnosis or treatment by a licensed medical professional. All findings must be correlated with clinical examination, patient history, and professional radiological interpretation.
+                  </div>
                 </div>
-              ) : <p style={{ color: '#9ca3af', textAlign: 'center' }}>No AI report found for your account.</p>
-            ) : (
-              rxR ? (
-                <div className="cp-report-card">
-                  <div className="cp-rr"><strong>Doctor</strong><span>Dr. {rxR.doctor_name || '—'}</span></div>
-                  {rxR.doctor_specialization && <div className="cp-rr"><strong>Specialization</strong><span>{rxR.doctor_specialization}</span></div>}
-                  <div className="cp-rr"><strong>Confirmed Diagnosis</strong><span style={{ fontWeight: 600 }}>{rxR.doctor_diagnosis || '—'}</span></div>
-                  {rxR.medications && <div className="cp-rr"><strong>Medications</strong><span style={{ whiteSpace: 'pre-wrap' }}>{rxR.medications}</span></div>}
-                  {rxR.follow_up && <div className="cp-rr"><strong>Follow-up</strong><span>{rxR.follow_up}</span></div>}
-                  {rxR.hospital_visit_required && (
-                    <div className="cp-rr-alert">Hospital visit required</div>
-                  )}
-                  <div className="cp-rr"><strong>Prescribed on</strong><span>{rxR.created_at ? new Date(rxR.created_at).toLocaleDateString() : '—'}</span></div>
+              );
+            })() : <p style={{ color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>No AI report found for your account.</p>
+          ) : (
+            rxR ? (
+              <div style={{ padding: '24px 30px' }}>
+                {/* Doctor header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #2c5f6f', paddingBottom: 14, marginBottom: 18 }}>
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#2c5f6f' }}>Dr. {rxR.doctor_name || '—'}</div>
+                    <div style={{ fontSize: 13, color: '#4a5568', marginTop: 2 }}>{rxR.doctor_qualifications || 'MBBS'}</div>
+                    <div style={{ fontSize: 13, color: '#718096', fontStyle: 'italic' }}>Specialist in {rxR.doctor_specialization || 'General Medicine'}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: 12, color: '#4a5568' }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#38B2AC' }}>+ MEDIVISION</div>
+                    <div style={{ marginTop: 4 }}>PMDC: {rxR.doctor_license || '—'}</div>
+                    <div>{rxR.created_at ? new Date(rxR.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '—'}</div>
+                  </div>
                 </div>
-              ) : <p style={{ color: '#9ca3af', textAlign: 'center' }}>No prescription found for your account.</p>
-            )}
-          </div>
+                {/* Patient row */}
+                <div style={{ display: 'flex', gap: 30, background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14 }}>
+                  <span><strong>Patient:</strong> {rxR.patient_name || patientEmail}</span>
+                  {rxR.patient_age && <span><strong>Age:</strong> {rxR.patient_age}</span>}
+                </div>
+                {/* AI Diagnosis Verification */}
+                <div style={{ marginBottom: 14, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #38B2AC', borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#718096', marginBottom: 4, letterSpacing: 0.5 }}>AI Diagnosis Verification</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
+                    {rxR.diagnosis_confirmation === 'confirm' ? '✓ Confirmed — AI diagnosis verified' : rxR.diagnosis_confirmation === 'modify' ? 'Modified — See doctor\'s diagnosis below' : 'Inconclusive — Further tests recommended'}
+                  </div>
+                </div>
+                {/* Diagnosis */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Diagnosis</div>
+                  <div style={{ fontSize: 15, color: '#1a202c', lineHeight: 1.8 }}>{rxR.doctor_diagnosis || '—'}</div>
+                </div>
+                {rxR.medications && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Medications</div>
+                    {rxR.medications.split('\n').map((m, i) => m.trim() && (<div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '5px 0', borderBottom: '1px dashed #e2e8f0' }}>• {m}</div>))}
+                  </div>
+                )}
+                {rxR.diet_recommendations && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Dietary Recommendations</div>
+                    {rxR.diet_recommendations.split('\n').map((d, i) => d.trim() && (<div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '3px 0' }}>• {d}</div>))}
+                  </div>
+                )}
+                {rxR.precautions && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Precautions</div>
+                    {rxR.precautions.split('\n').map((p, i) => p.trim() && (<div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '3px 0' }}>• {p}</div>))}
+                  </div>
+                )}
+                {rxR.hospital_visit_required && (
+                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px', marginBottom: 16, color: '#b91c1c', fontWeight: 600, fontSize: 14 }}>
+                    ⚠ Patient is advised to visit a hospital for comprehensive physical examination and further diagnostic tests.
+                  </div>
+                )}
+                {rxR.follow_up && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Follow-up</div>
+                    <div style={{ fontSize: 14, color: '#2d3748' }}>{rxR.follow_up}</div>
+                  </div>
+                )}
+                {/* Signature */}
+                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e8f0', textAlign: 'right', fontSize: 13, color: '#4a5568' }}>
+                  {rxR.doctor_signature && <img src={rxR.doctor_signature} alt="Signature" style={{ height: 60, marginBottom: 6 }} />}
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#2c5f6f' }}>Dr. {rxR.doctor_name || '—'}</div>
+                  <div>{rxR.doctor_license ? `PMDC: ${rxR.doctor_license}` : ''}{rxR.doctor_specialization ? ` | ${rxR.doctor_specialization}` : ''}</div>
+                  <div style={{ fontStyle: 'italic', marginTop: 4 }}>{rxR.created_at ? new Date(rxR.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : ''}</div>
+                </div>
+              </div>
+            ) : <p style={{ color: '#9ca3af', textAlign: 'center', padding: '40px 0' }}>No prescription found for your account.</p>
+          )}
         </div>
       </div>
     )}

@@ -12,7 +12,7 @@ router.post('/register', [
   body('fullName').trim().notEmpty().withMessage('Full name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/).withMessage('Password must be at least 8 characters and include uppercase, lowercase, number and special character'),
-  body('gender').isIn(['male', 'female', 'other']).withMessage('Valid gender is required'),
+  body('gender').optional().isIn(['male', 'female', 'other']).withMessage('Valid gender is required'),
   body('city').trim().notEmpty().withMessage('City is required')
 ], async (req, res) => {
   try {
@@ -25,7 +25,8 @@ router.post('/register', [
       });
     }
 
-    const { fullName, email, password, gender, city } = req.body;
+    const { fullName, email, password, city } = req.body;
+    const gender = req.body.gender || 'other';
 
     // Check if user already exists in verified users
     const [existingUsers] = await db.query(
@@ -59,13 +60,16 @@ router.post('/register', [
 
     // Send verification email
     const emailResult = await sendVerificationEmail(email, otpData.otp, fullName);
-    
+
+    // Always log OTP to terminal for dev/testing purposes
+    console.log(`\n📧 OTP for ${email}: *** ${otpData.otp} ***\n`);
+
     if (!emailResult.success) {
-      console.error('Failed to send verification email:', emailResult.message);
+      console.error('⚠️  Email delivery failed:', emailResult.message, '— Use the OTP printed above.');
     }
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: 'Registration successful. Please check your email for the verification code.',
       email: email,
       requiresVerification: true
@@ -216,7 +220,7 @@ router.post('/verify-otp', [
     const safeDob = pendingUser.date_of_birth || '1970-01-01';
     if (pendingUser.cnic_number !== undefined && pendingUser.cnic_number !== null) {
       const [result] = await db.query(
-        `INSERT INTO users (full_name, email, cnic_number, password, phone, date_of_birth, gender, address, is_verified, created_at) 
+        `INSERT INTO users (full_name, email, cnic_number, password, phone, date_of_birth, gender, city, is_verified, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
         [pendingUser.full_name, pendingUser.email, pendingUser.cnic_number, pendingUser.password, '', safeDob, pendingUser.gender, pendingUser.city]
       );
@@ -237,7 +241,7 @@ router.post('/verify-otp', [
       });
     } else {
       const [result] = await db.query(
-        `INSERT INTO users (full_name, email, password, phone, date_of_birth, gender, address, is_verified, created_at) 
+        `INSERT INTO users (full_name, email, password, phone, date_of_birth, gender, city, is_verified, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, NOW())`,
         [pendingUser.full_name, pendingUser.email, pendingUser.password, '', safeDob, pendingUser.gender, pendingUser.city]
       );
