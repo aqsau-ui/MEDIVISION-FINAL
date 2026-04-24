@@ -328,7 +328,9 @@ const GMAPS_CATEGORIES = [
 const LocationResultCard = ({ places, center, searchType, areaName, showDistance }) => {
   const [mapIdx, setMapIdx] = useState(0); // which place is shown on OSM map
   const label = TYPE_LABELS[searchType] || 'Medical Facilities';
-  const locationHint = areaName ? ` near ${areaName}` : '';
+  // Show city name only if it's a real named city (not a generic fallback)
+  const displayArea = areaName && areaName !== 'Near You' && areaName !== 'Your Location' ? areaName : '';
+  const locationHint = displayArea ? ` in ${displayArea}` : ' Near You';
 
   // The pin shown on the OSM map — use the selected place's coords if available
   const mapPin = places[mapIdx] ?? center;
@@ -336,7 +338,7 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
   const mapLon = mapPin.lon ?? center.lon;
 
   // Google Maps category search anchored to the correct city coords
-  const cityQuery = areaName ? ` in ${areaName}` : '';
+  const cityQuery = displayArea ? ` in ${displayArea}` : '';
   const gmapsUrl = (term) =>
     `https://www.google.com/maps/search/${encodeURIComponent(term + cityQuery)}/@${center.lat},${center.lon},14z`;
 
@@ -389,7 +391,7 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          Search on Google Maps{areaName ? ` · ${areaName}` : ''}
+          Search on Google Maps{displayArea ? ` · ${displayArea}` : ''}
         </p>
         <div className="dra-gmaps-grid">
           {GMAPS_CATEGORIES.map(cat => (
@@ -586,50 +588,9 @@ const DrAvatar = () => {
         }
 
       } else {
-        // "near me" — use browser geolocation, fallback to profile city
-        const browserCoords = await new Promise((resolve) => {
-          if (!navigator.geolocation) { resolve(null); return; }
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-            ()    => resolve(null),
-            { timeout: 8000, maximumAge: 60000 }
-          );
-        });
-
-        if (browserCoords) {
-          coords = browserCoords;
-          // Reverse geocode to get city name
-          try {
-            const revResp = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lon}&format=json&accept-language=en`,
-              { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
-            );
-            const revData = await revResp.json();
-            const addr = revData.address || {};
-            areaLabel = addr.city || addr.town || addr.village || addr.county || addr.state || 'Your Location';
-          } catch {
-            areaLabel = 'Your Location';
-          }
-        } else {
-          // Fallback: use city from patient's registration profile
-          try {
-            const patientData = JSON.parse(localStorage.getItem('patientData') || '{}');
-            const profileCity = patientData.city || patientData.location || '';
-            if (profileCity) {
-              const geo = await geocodePlace(profileCity);
-              if (geo) {
-                coords    = { lat: geo.lat, lon: geo.lon };
-                areaLabel = profileCity;
-              } else {
-                throw new Error('PROFILE_CITY_GEOCODE_FAILED');
-              }
-            } else {
-              throw new Error('NO_LOCATION');
-            }
-          } catch {
-            throw new Error('LOCATION_UNAVAILABLE');
-          }
-        }
+        // "near me" — always use Islamabad
+        coords    = CITY_COORDS['islamabad'];
+        areaLabel = 'Islamabad';
       }
 
       const [placesResult, areaResult] = await Promise.allSettled([
