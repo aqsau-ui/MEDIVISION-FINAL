@@ -276,20 +276,6 @@ const _nominatim = async (lat, lon, searchType) => {
   return results.filter(p => p.lat && p.lon).slice(0, 8);
 };
 
-// ── Reverse geocode ───────────────────────────────────────────────────────────
-const reverseGeocode = async (lat, lon) => {
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`,
-      { headers: { 'User-Agent': 'MEDIVISION/1.0' } }
-    );
-    const data = await res.json();
-    const a = data.address || {};
-    const sub  = a.suburb || a.neighbourhood || a.quarter || '';
-    const town = a.city || a.town || a.county || a.state_district || '';
-    return [sub, town].filter(Boolean).join(', ') || '';
-  } catch { return ''; }
-};
 
 // ── Haversine ─────────────────────────────────────────────────────────────────
 const haversineKm = (lat1, lon1, lat2, lon2) => {
@@ -510,7 +496,8 @@ const DrAvatar = () => {
     recognitionRef.current.onresult = (e) => { setInputMessage(e.results[0][0].transcript); setIsListening(false); };
     recognitionRef.current.onerror  = () => setIsListening(false);
     recognitionRef.current.onend    = () => setIsListening(false);
-    return () => { recognitionRef.current?.stop(); synthRef.current?.cancel(); };
+    const synth = synthRef.current;
+    return () => { recognitionRef.current?.stop(); synth?.cancel(); };
   }, []);
 
   // ── Male voice TTS ────────────────────────────────────────────────────────
@@ -706,10 +693,6 @@ const DrAvatar = () => {
     }
   };
 
-  const handleChipClick = (chip) => {
-    if (chip.label === 'Upload my report') { fileInputRef.current?.click(); return; }
-    setInputMessage(chip.label);
-  };
 
   // ── File upload ───────────────────────────────────────────────────────────
   const handleFileUpload = async (e) => {
@@ -747,7 +730,7 @@ const DrAvatar = () => {
         // Grab runs of printable characters (length ≥ 5) from the PDF stream
         const matches = full.match(/[\x20-\x7E\n\r\t]{5,}/g) || [];
         rawExtracted = matches
-          .filter(s => !/^[<>\[\]{}\\\/]{3,}/.test(s)) // skip PDF operator noise
+          .filter(s => !/^[<>{}\\]{3,}/.test(s)) // skip PDF operator noise
           .join('\n')
           .replace(/\n{3,}/g, '\n\n')
           .slice(0, 6000);
