@@ -3,6 +3,36 @@ import PatientLayout from '../components/PatientLayout';
 import AnimatedDoctorAvatar from './DoctorAvatarSVG';
 import './DrAvatar.css';
 
+let leafletLoaderPromise = null;
+
+const loadLeaflet = () => {
+  if (window.L) return Promise.resolve(window.L);
+  if (!leafletLoaderPromise) {
+    leafletLoaderPromise = new Promise((resolve, reject) => {
+      const existingCss = document.getElementById('leaflet-css');
+      if (!existingCss) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+        link.crossOrigin = '';
+        document.head.appendChild(link);
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.async = true;
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
+      script.onload = () => resolve(window.L);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+  return leafletLoaderPromise;
+};
+
 // ─── Worldwide city coords ─────────────────────────────────────────────────────
 const CITY_COORDS = {
   // Pakistan
@@ -144,9 +174,10 @@ const detectLocationQuery = (text) => {
 
   if (!cityKey && !hasNearMe && !hasIn) return null;
 
-  // Extract unknown city name after "in/near/at" for geocoding
+  // Extract unknown city name after "in/near/at" for geocoding.
+  // Important: do not treat "near me" as a city name.
   let inCity = null;
-  if (!cityKey && hasIn) {
+  if (!cityKey && hasIn && !hasNearMe) {
     const locMatch = /\b(?:in|near|at|around)\s+([A-Za-z][A-Za-z\s]{1,28}?)(?:\s*$|\s*[?.,!]|\s+(?:and|or|for|but|please))/i.exec(text);
     if (locMatch) inCity = locMatch[1].trim();
   }
@@ -184,6 +215,75 @@ const geocodePlace = async (place) => {
       displayName: data[0].display_name.split(',')[0].trim(),
     };
   } catch { return null; }
+};
+
+const reverseGeocodeLocation = async (lat, lon) => {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&format=jsonv2&accept-language=en`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'MEDIVISION/1.0' } });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const address = data.address || {};
+    const displayName = data.display_name ? data.display_name.split(',')[0].trim() : '';
+    const city = address.city || address.town || address.village || address.municipality || address.state || displayName;
+    return {
+      displayName: displayName || city || 'Your Location',
+      cityName: city || displayName || 'Your Location',
+    };
+  } catch {
+    return null;
+  }
+};
+
+const getCurrentBrowserLocation = () => new Promise((resolve, reject) => {
+  if (!navigator.geolocation) {
+    reject(new Error('LOCATION_UNAVAILABLE'));
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const label = await reverseGeocodeLocation(lat, lon);
+      resolve({
+        coords: { lat, lon },
+        areaLabel: label?.cityName || label?.displayName || 'Your Location',
+      });
+    },
+    () => reject(new Error('LOCATION_UNAVAILABLE')),
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
+  );
+});
+
+const getStoredPatientLocation = async () => {
+  try {
+    const patientData = JSON.parse(localStorage.getItem('patientData') || '{}');
+    const patientLocation = JSON.parse(localStorage.getItem('patientLocation') || '{}');
+    const country = patientData.country || patientLocation.country || '';
+    const city = patientData.city || patientLocation.city || '';
+
+    const locationQuery = [city, country].filter(Boolean).join(', ');
+    if (!locationQuery) return null;
+
+    const normalizedCity = city.toLowerCase().trim();
+    if (normalizedCity && CITY_COORDS[normalizedCity]) {
+      return {
+        coords: CITY_COORDS[normalizedCity],
+        areaLabel: city,
+      };
+    }
+
+    const geo = await geocodePlace(locationQuery);
+    if (!geo) return null;
+
+    return {
+      coords: { lat: geo.lat, lon: geo.lon },
+      areaLabel: city || geo.displayName || country || 'Your Location',
+    };
+  } catch {
+    return null;
+  }
 };
 
 // ── Overpass source ───────────────────────────────────────────────────────────
@@ -303,7 +403,7 @@ const fetchNearbyPlaces = async (lat, lon, searchType) => {
     .slice(0, 10);
 };
 
-// ─── Location Result Card (no Leaflet — pure links) ───────────────────────────
+// ─── Location Result Card ────────────────────────────────────────────────────
 const GMAPS_CATEGORIES = [
   { key: 'hospital',   emoji: '🏥', label: 'Hospitals' },
   { key: 'clinic',     emoji: '🩺', label: 'Clinics' },
@@ -312,13 +412,16 @@ const GMAPS_CATEGORIES = [
 ];
 
 const LocationResultCard = ({ places, center, searchType, areaName, showDistance }) => {
-  const [mapIdx, setMapIdx] = useState(0); // which place is shown on OSM map
+  const [mapIdx, setMapIdx] = useState(0);
+  const [showLargeMap, setShowLargeMap] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersLayerRef = useRef(null);
   const label = TYPE_LABELS[searchType] || 'Medical Facilities';
   // Show city name only if it's a real named city (not a generic fallback)
   const displayArea = areaName && areaName !== 'Near You' && areaName !== 'Your Location' ? areaName : '';
   const locationHint = displayArea ? ` in ${displayArea}` : ' Near You';
 
-  // The pin shown on the OSM map — use the selected place's coords if available
   const mapPin = places[mapIdx] ?? center;
   const mapLat = mapPin.lat ?? center.lat;
   const mapLon = mapPin.lon ?? center.lon;
@@ -332,8 +435,68 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
   const mapsLink = (p) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name)}&ll=${p.lat},${p.lon}`;
 
-  // OSM "View larger map" for the selected place
-  const osmLarger = `https://www.openstreetmap.org/?mlat=${mapLat}&mlon=${mapLon}#map=16/${mapLat}/${mapLon}`;
+  const buildLeafletMap = async (container, mapRefState, markersRefState) => {
+    if (!container) return;
+    const L = await loadLeaflet();
+
+    if (!mapRefState.current) {
+      mapRefState.current = L.map(container, { zoomControl: true, scrollWheelZoom: true });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(mapRefState.current);
+    }
+
+    if (markersRefState.current) {
+      markersRefState.current.remove();
+    }
+
+    const markerPoints = places.length > 0 ? places : [center];
+    markersRefState.current = L.layerGroup().addTo(mapRefState.current);
+
+    markerPoints.forEach((place, index) => {
+      const lat = place.lat ?? center.lat;
+      const lon = place.lon ?? center.lon;
+      const marker = L.marker([lat, lon]).addTo(markersRefState.current);
+      const popupText = place.name ? `<strong>${index + 1}. ${place.name}</strong>${place.address ? `<br/>${place.address}` : ''}` : displayArea || 'Your location';
+      marker.bindPopup(popupText);
+    });
+
+    const bounds = L.latLngBounds(markerPoints.map(place => [place.lat ?? center.lat, place.lon ?? center.lon]));
+    if (bounds.isValid()) {
+      mapRefState.current.fitBounds(bounds.pad(0.2));
+    } else {
+      mapRefState.current.setView([center.lat, center.lon], 14);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initMap = async () => {
+      if (!mapRef.current) return;
+      if (cancelled || !mapRef.current) return;
+      await buildLeafletMap(mapRef.current, mapInstanceRef, markersLayerRef);
+    };
+
+    initMap().catch(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setView([center.lat, center.lon], 14);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [places, center.lat, center.lon, displayArea]);
+
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 80);
+    }
+  }, [showLargeMap]);
 
   return (
     <div className="dra-loc-card">
@@ -345,28 +508,45 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
         {places.length > 0 && <span className="dra-loc-count">{places.length} found</span>}
       </div>
 
-      {/* OSM Embedded Map — shows selected place pin */}
+      {/* OSM map with all place pins */}
       <div className="dra-map-wrap">
-        <iframe
-          key={`${mapLat},${mapLon}`}
-          title="Medical facility location"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapLon - 0.04},${mapLat - 0.03},${mapLon + 0.04},${mapLat + 0.03}&layer=mapnik&marker=${mapLat},${mapLon}`}
-          className="dra-osm-iframe"
-          loading="lazy"
-          style={{ border: 'none', width: '100%', height: '200px', display: 'block', borderRadius: '8px' }}
-        />
-        <a href={osmLarger} target="_blank" rel="noopener noreferrer" className="dra-osm-credit">
+        <div
+          className="dra-map-shell"
+          style={{
+            position: showLargeMap ? 'fixed' : 'relative',
+            inset: showLargeMap ? '5vh 2vw' : 'auto',
+            zIndex: showLargeMap ? 2000 : 'auto',
+            width: showLargeMap ? '96vw' : '100%',
+            height: showLargeMap ? '90vh' : '200px',
+            borderRadius: 16,
+            overflow: 'hidden',
+            background: '#fff',
+            boxShadow: showLargeMap ? '0 20px 60px rgba(0,0,0,0.35)' : 'none',
+          }}
+        >
+          {showLargeMap && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#2C7A7B', color: '#fff' }}>
+              <strong>{label}{locationHint}</strong>
+              <button type="button" onClick={() => setShowLargeMap(false)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer' }}>×</button>
+            </div>
+          )}
+          <div
+            ref={mapRef}
+            className="dra-osm-iframe"
+            style={{ border: 'none', width: '100%', height: showLargeMap ? 'calc(100% - 48px)' : '100%', display: 'block' }}
+          />
+        </div>
+        <button
+          type="button"
+          className="dra-osm-credit"
+          onClick={() => setShowLargeMap(true)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+        >
           View larger map ↗
-        </a>
+        </button>
         {places.length > 0 && (
           <div style={{ fontSize: 11, color: '#718096', padding: '4px 6px', textAlign: 'center' }}>
-            Showing: <strong>{places[mapIdx]?.name || areaName}</strong>
-            {places.length > 1 && (
-              <span style={{ marginLeft: 8, color: '#38B2AC', cursor: 'pointer' }}
-                onClick={() => setMapIdx(i => (i + 1) % places.length)}>
-                Next →
-              </span>
-            )}
+            Showing all nearby results: <strong>{places.length}</strong> pins
           </div>
         )}
       </div>
@@ -413,18 +593,20 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
                   {place.address && <p>📍 {place.address}</p>}
                   {place.phone   && <p>📞 {place.phone}</p>}
                 </div>
-                <a
-                  href={mapsLink(place)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
                   className="dra-dir-btn"
-                  onClick={e => e.stopPropagation()}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setMapIdx(i);
+                    window.open(mapsLink(place), '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polygon points="3 11 22 2 13 21 11 13 3 11"/>
                   </svg>
                   Go
-                </a>
+                </button>
               </div>
             ))}
           </div>
@@ -433,8 +615,26 @@ const LocationResultCard = ({ places, center, searchType, areaName, showDistance
 
       <div className="dra-loc-footer">
         <span>© OpenStreetMap · Google Maps</span>
-        <a href={gmapsUrl(label)} target="_blank" rel="noopener noreferrer">Open in Google Maps →</a>
+        <button
+          type="button"
+          onClick={() => window.open(gmapsUrl(label), '_blank', 'noopener,noreferrer')}
+          style={{ background: 'transparent', border: 'none', color: '#2C7A7B', cursor: 'pointer', padding: 0, font: 'inherit' }}
+        >
+          Open in Google Maps →
+        </button>
       </div>
+
+      {showLargeMap && (
+        <div
+          onClick={() => setShowLargeMap(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1999,
+            background: 'rgba(15, 23, 42, 0.55)',
+          }}
+        />
+      )}
     </div>
   );
 };
@@ -574,10 +774,31 @@ const DrAvatar = () => {
           }
         }
 
+      } else if (locationInfo.showDistance) {
+        // "near me" — prefer the user's current GPS location, then profile city/country
+        try {
+          const current = await getCurrentBrowserLocation();
+          coords = current.coords;
+          areaLabel = current.areaLabel || 'Your Location';
+        } catch {
+          const stored = await getStoredPatientLocation();
+          if (stored) {
+            coords = stored.coords;
+            areaLabel = stored.areaLabel || 'Your Location';
+          } else {
+            throw new Error('LOCATION_UNAVAILABLE');
+          }
+        }
+
       } else {
-        // "near me" — always use Islamabad
-        coords    = CITY_COORDS['islamabad'];
-        areaLabel = 'Islamabad';
+        const stored = await getStoredPatientLocation();
+        if (stored) {
+          coords = stored.coords;
+          areaLabel = stored.areaLabel || 'Your Location';
+        } else {
+          coords    = CITY_COORDS['islamabad'];
+          areaLabel = 'Islamabad';
+        }
       }
 
       const [placesResult, areaResult] = await Promise.allSettled([

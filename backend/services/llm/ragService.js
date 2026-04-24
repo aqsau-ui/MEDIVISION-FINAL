@@ -1,13 +1,22 @@
 const Groq = require('groq-sdk');
 const fs = require('fs').promises;
 const path = require('path');
+const pdfParseModule = require('pdf-parse');
+const pdfParse = typeof pdfParseModule === 'function'
+  ? pdfParseModule
+  : (pdfParseModule && typeof pdfParseModule.default === 'function'
+      ? pdfParseModule.default
+      : null);
 
 class RAGService {
   constructor() {
+    const groqApiKey = process.env.GROQ_API_KEY || '';
+    const hasValidGroqKey = groqApiKey.startsWith('gsk_') && !groqApiKey.includes('your_');
+
     // Initialize Groq client
-    this.groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY || 'gsk_your_key_here'
-    });
+    this.groq = hasValidGroqKey
+      ? new Groq({ apiKey: groqApiKey })
+      : null;
     
     // Knowledge base storage
     this.knowledgeBase = {
@@ -15,27 +24,37 @@ class RAGService {
       pneumonia: null
     };
 
-    this.systemPrompt = `You are Dr. Jarvis, a friendly AI medical assistant specializing in tuberculosis (TB) and pneumonia.
+    this.systemPrompt = `You are Dr. Jarvis — a warm, caring AI doctor avatar who speaks directly to the patient like a real doctor would in a clinic. You specialise in chest X-ray analysis, pneumonia, and respiratory health.
 
-COMMUNICATION STYLE:
-- Use simple, everyday language (talk like explaining to a friend)
-- Keep answers SHORT and natural (3-5 sentences)
-- NO medical jargon - use common words
-- NO emojis or special characters
-- Answer directly, then stop
+PERSONALITY:
+- Speak like a real, empathetic doctor — warm, calm, and reassuring
+- Use "I" naturally: "I can see from your report that...", "I'd recommend..."
+- Never sound robotic or templated — every answer should feel personalised
+- Keep responses conversational and concise (3–6 sentences max)
+- Use plain English — no jargon unless you explain it immediately
 
-KNOWLEDGE SOURCE:
-You have access to comprehensive medical knowledge about TB and Pneumonia from the knowledge base below. Use this information to answer questions accurately.
+WHEN A REPORT IS SHARED:
+- Reference specific details from the report (patient name, diagnosis, confidence %, medications)
+- Explain what the finding means in simple terms
+- Tell the patient clearly what their next steps should be
+- Be reassuring but honest
 
-CRITICAL RULES:
-- ONLY answer questions about TB, pneumonia, and lung/breathing issues
-- If asked about other topics, say: "I specialize in TB and pneumonia. For other health concerns, please consult your doctor."
-- NEVER say someone definitely has a disease - use "might suggest" or "could be"
-- NEVER add disclaimers like "I'm an AI" or "consult a doctor" at the end
-- Be direct and helpful
-- Focus on the specific question asked
+WHEN NO REPORT IS SHARED:
+- Answer general pneumonia / chest X-ray questions helpfully
+- If asked about other health topics, say you focus on chest and lung health but give a brief helpful answer anyway
+
+RULES:
+- NEVER return a list of your own capabilities as an answer — that is not a response
+- NEVER say "I don't see a report" if the patient just asked a general health question — just answer it
+- NEVER use template phrases like "Great question!" or "As an AI..."
+- NEVER repeat the same intro message as a response to a question
+- Always end with one natural follow-up like "How are you feeling about this?" or "Let me know if you want me to explain anything else."
 
 Keep responses under 100 words unless asked for more detail.`;
+
+    if (!hasValidGroqKey) {
+      console.warn('⚠️ GROQ_API_KEY is missing/placeholder. Using local fallback responses.');
+    }
   }
 
   async initialize() {
@@ -104,89 +123,96 @@ Keep responses under 100 words unless asked for more detail.`;
 
   async processQuery(userMessage, conversationHistory = []) {
     try {
-      console.log('📝 Processing query:', userMessage.substring(0, 100));
-      
-      // Get relevant context from knowledge base
-      const relevantContext = this.getRelevantContext(userMessage);
-      console.log('📚 Knowledge base context length:', relevantContext ? relevantContext.length : 0);
+      console.log('📝 Processing query:', userMessage.substring(0, 120));
 
-      // Check if we have knowledge base content
-      if (relevantContext && relevantContext.length > 100 && !relevantContext.includes('No knowledge base content available')) {
-        try {
-          // Build messages for Groq AI
-          const messages = [
-            {
-              role: 'system',
-              content: `${this.systemPrompt}
-
-COMPREHENSIVE MEDICAL KNOWLEDGE BASE:
-${relevantContext}
-
-Use this information to answer the user's question accurately. Be specific and helpful.`
-            },
-            ...conversationHistory.slice(-6), // Keep last 3 exchanges for context
-            {
-              role: 'user',
-              content: userMessage
-            }
-          ];
-
-          console.log('🤖 Calling Groq AI...');
-          
-          // Call Groq API
-          const response = await this.groq.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: messages,
-            temperature: 0.7,
-            max_tokens: 400,
-            top_p: 0.9
-          });
-
-          const aiResponse = response.choices[0].message.content;
-          
-          console.log('✅ Groq AI responded successfully');
-
-          return {
-            success: true,
-            message: aiResponse,
-            source: 'Groq AI + Knowledge Base'
-          };
-        } catch (apiError) {
-          console.error('⚠️ Groq API error:', apiError.message);
-          console.log('📖 Falling back to knowledge base extraction...');
-          
-          // Fall back to knowledge base extraction
-          const extractedResponse = this.extractFromKnowledgeBase(userMessage);
-          console.log('✅ Using knowledge base extraction');
-          return {
-            success: true,
-            message: extractedResponse,
-            source: 'Knowledge Base (AI unavailable)'
-          };
-        }
+      if (!this.groq) {
+        return {
+          success: false,
+          message: "I'm having trouble connecting right now. Please check back in a moment.",
+          source: 'No Groq key'
+        };
       }
 
-      // If no knowledge base content, use fallback
-      console.log('⚠️ No knowledge base content, using fallback');
-      const fallbackMessage = this.getFallbackResponse(userMessage);
-      return {
-        success: true,
-        message: fallbackMessage,
-        source: 'Fallback'
-      };
+      // Build knowledge base snippet for context (brief, not dumped in full)
+      let kbSnippet = '';
+      try {
+        const lower = userMessage.toLowerCase();
+        const wantsPneumonia = lower.includes('pneumonia') || lower.includes('chest') || lower.includes('lung') || lower.includes('xray') || lower.includes('x-ray') || lower.includes('breath') || lower.includes('cough');
+        const wantsTB = lower.includes('tb') || lower.includes('tuberculosis');
+        if (wantsPneumonia && this.knowledgeBase.pneumonia) {
+          kbSnippet = `\n\nPNEUMONIA FACTS (use as needed):\n${JSON.stringify(this.knowledgeBase.pneumonia).slice(0, 1200)}`;
+        } else if (wantsTB && this.knowledgeBase.tb) {
+          kbSnippet = `\n\nTB FACTS (use as needed):\n${JSON.stringify(this.knowledgeBase.tb).slice(0, 1200)}`;
+        }
+      } catch {}
+
+      const messages = [
+        {
+          role: 'system',
+          content: this.systemPrompt + kbSnippet
+        },
+        // Keep last 6 messages (3 exchanges) for memory
+        ...conversationHistory.slice(-6),
+        {
+          role: 'user',
+          content: userMessage
+        }
+      ];
+
+      console.log('🤖 Calling Groq AI...');
+      const response = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: 0.75,
+        max_tokens: 350,
+        top_p: 0.9,
+      });
+
+      const aiResponse = response.choices[0].message.content;
+      console.log('✅ Groq responded:', aiResponse.substring(0, 80));
+
+      return { success: true, message: aiResponse, source: 'Groq AI' };
 
     } catch (error) {
-      console.error('❌ Error in RAG processing:', error);
-      console.error('Stack:', error.stack);
-      
-      // Use fallback response if everything fails
-      const fallbackMessage = this.getFallbackResponse(userMessage);
+      console.error('❌ Groq error:', error.message);
       return {
         success: false,
-        message: fallbackMessage,
+        message: "I'm having a little trouble right now — could you ask me that again? I'm here to help.",
         error: error.message
       };
     }
+  }
+
+  getReportFallbackResponse(userMessage) {
+    if (!userMessage || !userMessage.includes('The patient has shared their medical report')) {
+      return null;
+    }
+
+    const reportMatch = userMessage.match(/"""([\s\S]*?)"""/);
+    const reportText = (reportMatch && reportMatch[1] ? reportMatch[1] : '').toLowerCase();
+    const question = (userMessage.split('Based on this report, answer the following question:').pop() || '').toLowerCase();
+
+    const confMatch = reportText.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+    const confidence = confMatch ? parseFloat(confMatch[1]) : null;
+
+    const hasPneumonia = /pneumonia/.test(reportText);
+    const hasTB = /\b(tb|tuberculosis)\b/.test(reportText);
+    const hasNormal = /\bnormal\b/.test(reportText) && !hasPneumonia && !hasTB;
+
+    if (/serious|danger|critical|urgent/.test(question)) {
+      if (hasPneumonia || hasTB) {
+        if (confidence !== null) {
+          return `Based on the uploaded report text, this can be clinically important and should be reviewed by a doctor soon. The report mentions ${hasTB ? 'TB-related findings' : 'pneumonia-related findings'} with around ${confidence}% confidence. Please follow your doctor\'s treatment plan and seek urgent care if breathing worsens, fever is high, or chest pain increases.`;
+        }
+        return `Based on the uploaded report text, this may be significant and should be reviewed by a doctor promptly. Please continue with the prescribed plan and seek urgent care if symptoms worsen.`;
+      }
+      if (hasNormal) {
+        return 'Based on the uploaded report text, the result appears to be normal. If you still have symptoms, follow up with your doctor for a full clinical evaluation.';
+      }
+      return 'I received your report, but key diagnosis terms were not clear in the extracted text. Please share the diagnosis line or confidence value from the report so I can assess seriousness more accurately.';
+    }
+
+    return null;
   }
 
   // Extract answer directly from knowledge base (when Groq AI unavailable)
@@ -288,34 +314,65 @@ Use this information to answer the user's question accurately. Be specific and h
   // Analyze uploaded medical report (image or PDF)
   async analyzeReport(fileBuffer, fileType) {
     try {
-      // For now, return a template response
-      // In production, you would use OCR (like Tesseract) or Vision API
+      let extractedText = '';
+
+      // ── Extract text from PDF ──────────────────────────────────────────
+      if (fileType === 'application/pdf') {
+        try {
+          if (!pdfParse) {
+            throw new Error('pdf-parse module is unavailable or incompatible in this runtime');
+          }
+          const pdfData = await pdfParse(fileBuffer);
+          extractedText = (pdfData && pdfData.text) ? pdfData.text : '';
+          console.log(`✅ PDF parsed: ${extractedText.length} characters extracted`);
+        } catch (pdfErr) {
+          console.error('PDF parse error:', pdfErr.message);
+          extractedText = '';
+        }
+      }
+
+      const hasText = extractedText && extractedText.trim().length > 50;
+
+      // ── Groq summarises or greets based on whether text was extracted ──
+      let summary = '';
+      try {
+        if (!this.groq) throw new Error('no groq');
+
+        const systemMsg = `${this.systemPrompt}`;
+        const userMsg = hasText
+          ? `The patient has uploaded their MEDIVISION medical report. Here is the extracted text:\n\n"""\n${extractedText.slice(0, 4000)}\n"""\n\nGreet the patient warmly, tell them you've read their report, summarise the key findings (diagnosis, confidence %, patient name, doctor's recommendations/medications) in simple friendly language, and ask if they have any questions.`
+          : `The patient just uploaded a MEDIVISION medical report PDF. The file appears to be image-based so text extraction wasn't possible. Greet them warmly, let them know you received their report, and tell them they can ask you anything about it — for example, what the diagnosis means, what the medications are for, or what they should do next. Keep it warm and natural, 3-4 sentences.`;
+
+        const completion = await this.groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: systemMsg },
+            { role: 'user', content: userMsg }
+          ],
+          temperature: 0.75,
+          max_tokens: 400,
+        });
+        summary = completion.choices[0]?.message?.content || '';
+      } catch (groqErr) {
+        console.error('Groq summary error:', groqErr.message);
+        summary = hasText
+          ? `I've read through your report! I can see it contains your medical analysis results. Feel free to ask me anything — what the diagnosis means, what you should do next, or about any medications mentioned.`
+          : `I've received your medical report! Even though I couldn't read the text directly, you can ask me anything about it — just tell me what the report says or ask your questions and I'll guide you through it.`;
+      }
+
       return {
         success: true,
-        message: `I've received your medical report! 📄
-
-**What I Can Help You With:**
-• Explain what the X-ray or report says in simple words
-• Help you understand medical terms and findings
-• Explain what the AI detected (like pneumonia or TB signs)
-• Answer questions about your symptoms
-• Tell you about treatment options
-• Help you prepare questions for your doctor
-
-**What Would You Like to Know?**
-Feel free to ask:
-• "What does this report mean?"
-• "Explain the AI findings in simple words"
-• "What are these symptoms?"
-• "What should I ask my doctor?"
-
-I'm here to help! What's your question?`,
-        requiresHumanReview: true
+        extractedText: extractedText || '',
+        message: summary,
+        requiresHumanReview: !hasText
       };
+
     } catch (error) {
+      console.error('analyzeReport error:', error.message);
       return {
         success: false,
-        message: "Oops! I had trouble reading your report. Please make sure it's a clear picture of your chest X-ray or medical paper about TB/Pneumonia.",
+        extractedText: '',
+        message: "I had trouble reading that file. Please make sure it's a valid PDF report and try again.",
         error: error.message
       };
     }

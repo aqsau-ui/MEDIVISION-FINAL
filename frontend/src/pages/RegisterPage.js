@@ -341,7 +341,16 @@ const RegisterPage = () => {
       const data = await response.json();
       
       if (data.success) {
-        localStorage.setItem('patientData', JSON.stringify(data.user));
+        const patientData = {
+          ...data.user,
+          country: formData.country,
+          city: formData.city,
+        };
+        localStorage.setItem('patientData', JSON.stringify(patientData));
+        localStorage.setItem('patientLocation', JSON.stringify({
+          country: formData.country,
+          city: formData.city,
+        }));
         navigate('/patient-dashboard');
       } else {
         const newAttempts = otpAttempts + 1;

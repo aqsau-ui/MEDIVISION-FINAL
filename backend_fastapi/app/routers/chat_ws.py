@@ -345,11 +345,12 @@ async def get_session_context(session_id: int):
     conn = _get_conn()
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT patient_email FROM chat_sessions WHERE id=%s", (session_id,))
+        cursor.execute("SELECT patient_email, doctor_id FROM chat_sessions WHERE id=%s", (session_id,))
         row = cursor.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Session not found")
         patient_email = row[0]
+        doctor_id = row[1]
     finally:
         cursor.close()
         conn.close()
@@ -368,11 +369,70 @@ async def get_session_context(session_id: int):
         reports_col       = mongodb.get_collection("patient_reports")
         prescriptions_col = mongodb.get_collection("doctor_prescriptions")
 
-        ai_report    = await reports_col.find_one({"patient_id": patient_email}, sort=[("created_at",-1)])
-        prescription = await prescriptions_col.find_one({"patient_id": patient_email}, sort=[("created_at",-1)])
+        patient_match = {
+            "$or": [
+                {"patient_id": patient_email},
+                {"patient.email": patient_email},
+                {"patientEmail": patient_email},
+            ]
+        }
+
+        # Resolve prescription first, then fetch the exact linked report.
+        # This guarantees doctor sees the same report/prescription pair shared in workflow.
+        doctor_match_values = [doctor_id, str(doctor_id)]
+        rx_queries = [
+            {"patient_id": patient_email, "doctor_id": {"$in": doctor_match_values}, "sent_to_patient": True},
+            {"patient_id": patient_email, "doctor_id": {"$in": doctor_match_values}},
+            {"patient_id": patient_email, "sent_to_patient": True},
+            {"patient_id": patient_email},
+        ]
+
+        prescription = None
+        for q in rx_queries:
+            prescription = await prescriptions_col.find_one(
+                q,
+                sort=[("sent_at", -1), ("created_at", -1)]
+            )
+            if prescription:
+                break
+
+        ai_report = None
+        selection_source = "none"
+        report_id = None
+        if prescription:
+            report_id = prescription.get("report_id")
+
+        if report_id:
+            ai_report = await reports_col.find_one(
+                {"reportId": report_id}
+            )
+            if not ai_report:
+                ai_report = await reports_col.find_one(
+                    {"report_id": report_id}
+                )
+            if ai_report:
+                selection_source = "prescription_report_link"
+
+        # Fallback only when no linked report was found from prescription.
+        if not ai_report:
+            report_queries = [
+                {**patient_match, "doctorId": doctor_id, "sentToDoctor": True},
+                {**patient_match, "doctorId": doctor_id},
+                {**patient_match, "sentToDoctor": True},
+                patient_match,
+            ]
+            for q in report_queries:
+                ai_report = await reports_col.find_one(
+                    q,
+                    sort=[("sentAt", -1), ("createdAt", -1), ("created_at", -1), ("timestamp", -1)]
+                )
+                if ai_report:
+                    selection_source = "patient_report_fallback"
+                    break
 
         return {
             "success": True, "patient_email": patient_email,
+            "selection_source": selection_source,
             "ai_report": _serialize(ai_report),
             "prescription": _serialize(prescription),
         }
@@ -400,8 +460,22 @@ async def get_patient_reports(patient_email: str):
         reports_col       = mongodb.get_collection("patient_reports")
         prescriptions_col = mongodb.get_collection("doctor_prescriptions")
 
-        ai_report    = await reports_col.find_one({"patient_id": patient_email}, sort=[("created_at",-1)])
-        prescription = await prescriptions_col.find_one({"patient_id": patient_email}, sort=[("created_at",-1)])
+        patient_match = {
+            "$or": [
+                {"patient_id": patient_email},
+                {"patient.email": patient_email},
+                {"patientEmail": patient_email},
+            ]
+        }
+
+        ai_report = await reports_col.find_one(
+            patient_match,
+            sort=[("sentAt", -1), ("createdAt", -1), ("created_at", -1), ("timestamp", -1)]
+        )
+        prescription = await prescriptions_col.find_one(
+            {"patient_id": patient_email},
+            sort=[("sent_at", -1), ("created_at", -1)]
+        )
 
         return {
             "success": True,

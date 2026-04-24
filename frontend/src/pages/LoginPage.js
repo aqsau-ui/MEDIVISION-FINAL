@@ -256,8 +256,22 @@ const LoginPage = () => {
 
         if (data.success) {
           console.log('Login successful, user data:', data.user);
-          // Store user data in localStorage
-          localStorage.setItem('patientData', JSON.stringify(data.user));
+          // Preserve any previously saved location details from registration.
+          const savedPatientData = JSON.parse(localStorage.getItem('patientData') || '{}');
+          const savedPatientLocation = JSON.parse(localStorage.getItem('patientLocation') || '{}');
+          const mergedPatientData = {
+            ...savedPatientData,
+            ...data.user,
+            country: savedPatientData.country || savedPatientLocation.country || data.user.country || '',
+            city: savedPatientData.city || savedPatientLocation.city || data.user.city || '',
+          };
+          localStorage.setItem('patientData', JSON.stringify(mergedPatientData));
+          if (mergedPatientData.country || mergedPatientData.city) {
+            localStorage.setItem('patientLocation', JSON.stringify({
+              country: mergedPatientData.country || '',
+              city: mergedPatientData.city || '',
+            }));
+          }
           // Navigate to patient dashboard
           navigate('/patient-dashboard');
         } else if (data.requiresVerification) {
