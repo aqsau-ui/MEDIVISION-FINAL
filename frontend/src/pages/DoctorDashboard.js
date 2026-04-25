@@ -563,45 +563,45 @@ function DoctorDashboard() {
   ];
 
   return (
-    <div className="doctor-dashboard-container">
+    <div className="dd-root">
       {/* Top Navbar */}
-      <nav className="doctor-navbar">
-        <div className="navbar-content">
-          <div className="navbar-left">
+      <nav className="dd-navbar">
+        <div className="dd-navbar-inner">
+          <div className="dd-navbar-left">
             <Logo />
           </div>
-          <div className="navbar-right">
-            <button className="notification-btn" title="Patient Chat" onClick={() => { setShowChatInbox(true); setUnreadChatCount(0); }} style={{ marginRight: '4px', position: 'relative' }}>
+          <div className="dd-navbar-right">
+            <button className="dd-icon-btn" title="Patient Chat" onClick={() => { setShowChatInbox(true); setUnreadChatCount(0); }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
               {unreadChatCount > 0 && (
-                <span className="notification-badge" style={{ backgroundColor: '#e53e3e' }}>
+                <span className="dd-badge">
                   {unreadChatCount > 99 ? '99+' : unreadChatCount}
                 </span>
               )}
             </button>
-            <button className="notification-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            <button className="dd-icon-btn" onClick={() => setShowNotifications(!showNotifications)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
               {notificationCount > 0 && (
-                <span className="notification-badge">{notificationCount}</span>
+                <span className="dd-badge">{notificationCount}</span>
               )}
             </button>
-            <div className="profile-dropdown">
-              <button className="profile-btn" onClick={() => setShowProfileMenu(!showProfileMenu)}>
-                <div className="profile-avatar">
+            <div className="dd-profile-wrap">
+              <button className="dd-profile-btn" onClick={() => setShowProfileMenu(!showProfileMenu)}>
+                <div className="dd-profile-avatar">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                   </svg>
                 </div>
-                <span className="profile-name">{doctor.fullName || 'Dr. User'}</span>
+                <span className="dd-profile-name">{doctor.fullName || 'Dr. User'}</span>
               </button>
               {showProfileMenu && (
-                <div className="profile-menu">
+                <div className="dd-profile-menu">
                   <button onClick={handleEditProfile}>Edit Profile</button>
                   <button onClick={handleLogout}>Logout</button>
                 </div>
@@ -613,10 +613,10 @@ function DoctorDashboard() {
 
       {/* Notification Dropdown */}
       {showNotifications && (
-        <div className="notification-dropdown-overlay" onClick={() => setShowNotifications(false)}>
-          <div className="notification-dropdown-container" onClick={(e) => e.stopPropagation()}>
-            <TrendNotificationPanel 
-              trendData={trendData} 
+        <div className="dd-notif-overlay" onClick={() => setShowNotifications(false)}>
+          <div className="dd-notif-container" onClick={(e) => e.stopPropagation()}>
+            <TrendNotificationPanel
+              trendData={trendData}
               onClose={() => setShowNotifications(false)}
             />
           </div>
@@ -624,35 +624,22 @@ function DoctorDashboard() {
       )}
 
       {/* Main Content */}
-      <div className="dashboard-main-content">
+      <div className="dd-main">
         {/* Success Message */}
         {showSuccessMessage && (
-          <div style={{
-            position: 'fixed',
-            top: '80px',
-            right: '20px',
-            backgroundColor: successMessage.includes('✅') ? '#38B2AC' : '#E53E3E',
-            color: 'white',
-            padding: '16px 24px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 9999,
-            fontSize: '16px',
-            fontWeight: '600',
-            animation: 'slideIn 0.3s ease-out'
-          }}>
+          <div className={`dd-toast ${successMessage.includes('✅') ? 'dd-toast--success' : 'dd-toast--error'}`}>
             {successMessage}
           </div>
         )}
         
         {/* Top Section - Two Columns */}
-        <div className="top-section">
+        <div className="dd-top-section">
           {/* Left: Doctor Information Card */}
-          <div className="doctor-info-card">
-            <div className="doctor-header">
-              <div className="doctor-avatar-large">
+          <div className="dd-doctor-card">
+            <div className="dd-doctor-header">
+              <div className="dd-doctor-avatar">
                 {profilePhoto ? (
-                  <img src={profilePhoto} alt="Profile" style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                  <img src={profilePhoto} alt="Profile" />
                 ) : (
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -660,9 +647,9 @@ function DoctorDashboard() {
                   </svg>
                 )}
               </div>
-              <div className="doctor-title">
+              <div className="dd-doctor-title">
                 <h2>{doctor.fullName || 'Dr. User'}</h2>
-                <div className="verified-badge">
+                <div className="dd-verified-badge">
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
                   </svg>
@@ -670,42 +657,42 @@ function DoctorDashboard() {
                 </div>
               </div>
             </div>
-            <div className="doctor-details">
-              <div className="detail-item">
-                <span className="detail-label">PMDC Registration</span>
-                <span className="detail-value">{doctor.pmdcNumber || 'Not provided'}</span>
+            <div className="dd-doctor-details">
+              <div className="dd-detail-item">
+                <span className="dd-detail-label">PMDC Registration</span>
+                <span className="dd-detail-value">{doctor.pmdcNumber || 'Not provided'}</span>
               </div>
               {editFormData.medicalDegrees.length > 0 && (
-                <div className="detail-item">
-                  <span className="detail-label">Medical Degree(s)</span>
-                  <span className="detail-value">{editFormData.medicalDegrees.join(', ')}</span>
+                <div className="dd-detail-item">
+                  <span className="dd-detail-label">Medical Degree(s)</span>
+                  <span className="dd-detail-value">{editFormData.medicalDegrees.join(', ')}</span>
                 </div>
               )}
               {(editFormData.specializations || []).length > 0 && (
-                <div className="detail-item">
-                  <span className="detail-label">Specialization</span>
-                  <span className="detail-value">{(editFormData.specializations || []).join(', ')}</span>
+                <div className="dd-detail-item">
+                  <span className="dd-detail-label">Specialization</span>
+                  <span className="dd-detail-value">{(editFormData.specializations || []).join(', ')}</span>
                 </div>
               )}
               {editFormData.experience && (
-                <div className="detail-item">
-                  <span className="detail-label">Experience</span>
-                  <span className="detail-value">{editFormData.experience}</span>
+                <div className="dd-detail-item">
+                  <span className="dd-detail-label">Experience</span>
+                  <span className="dd-detail-value">{editFormData.experience}</span>
                 </div>
               )}
               {editFormData.workplace && (
-                <div className="detail-item">
-                  <span className="detail-label">Hospital / Clinic</span>
-                  <span className="detail-value">{editFormData.workplace}</span>
+                <div className="dd-detail-item">
+                  <span className="dd-detail-label">Hospital / Clinic</span>
+                  <span className="dd-detail-value">{editFormData.workplace}</span>
                 </div>
               )}
               {editFormData.city && (
-                <div className="detail-item">
-                  <span className="detail-label">City</span>
-                  <span className="detail-value">{editFormData.city}</span>
+                <div className="dd-detail-item">
+                  <span className="dd-detail-label">City</span>
+                  <span className="dd-detail-value">{editFormData.city}</span>
                 </div>
               )}
-              <button className="edit-profile-btn" onClick={handleEditProfile}>
+              <button className="dd-edit-profile-btn" onClick={handleEditProfile}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -716,21 +703,11 @@ function DoctorDashboard() {
           </div>
 
           {/* Right: Disease Analytics Chart */}
-          <div className="analytics-card">
-            <h3>Disease Distribution</h3>
-            <div className="chart-container">
-              <div className="donut-chart">
+          <div className="dd-analytics-card">
+            <h3 className="dd-chart-title">Disease Distribution</h3>
+            <div className="dd-chart-container">
+              <div className="dd-donut-chart">
                 <svg viewBox="0 0 200 200">
-                  <circle
-                    cx="100"
-                    cy="100"
-                    r="80"
-                    fill="none"
-                    stroke="#38B2AC"
-                    strokeWidth="40"
-                    strokeDasharray={`${tbPercentage * 5.03} ${500 - tbPercentage * 5.03}`}
-                    transform="rotate(-90 100 100)"
-                  />
                   <circle
                     cx="100"
                     cy="100"
@@ -739,7 +716,6 @@ function DoctorDashboard() {
                     stroke="#4FD1C5"
                     strokeWidth="40"
                     strokeDasharray={`${pneumoniaPercentage * 5.03} ${500 - pneumoniaPercentage * 5.03}`}
-                    strokeDashoffset={`-${tbPercentage * 5.03}`}
                     transform="rotate(-90 100 100)"
                   />
                   <circle
@@ -750,83 +726,92 @@ function DoctorDashboard() {
                     stroke="#68D391"
                     strokeWidth="40"
                     strokeDasharray={`${normalPercentage * 5.03} ${500 - normalPercentage * 5.03}`}
-                    strokeDashoffset={`-${(tbPercentage + pneumoniaPercentage) * 5.03}`}
+                    strokeDashoffset={`-${pneumoniaPercentage * 5.03}`}
                     transform="rotate(-90 100 100)"
                   />
                 </svg>
-                <div className="chart-center">
-                  <div className="total-cases">{totalDiseases}</div>
-                  <div className="total-label">Total Cases</div>
+                <div className="dd-chart-center">
+                  <div className="dd-total-cases">{totalDiseases}</div>
+                  <div className="dd-total-label">Total Cases</div>
                 </div>
               </div>
-              <div className="chart-legend">
-                <div className="legend-item">
-                  <span className="legend-color tb"></span>
-                  <span className="legend-label">Tuberculosis</span>
-                  <span className="legend-value">{tbCount} ({tbPercentage}%)</span>
+              <div className="dd-chart-legend">
+<div className="dd-legend-item">
+                  <span className="dd-legend-color dd-legend-color--pneumonia"></span>
+                  <span className="dd-legend-label">Pneumonia</span>
+                  <span className="dd-legend-value">{pneumoniaCount} ({pneumoniaPercentage}%)</span>
                 </div>
-                <div className="legend-item">
-                  <span className="legend-color pneumonia"></span>
-                  <span className="legend-label">Pneumonia</span>
-                  <span className="legend-value">{pneumoniaCount} ({pneumoniaPercentage}%)</span>
+                <div className="dd-legend-item">
+                  <span className="dd-legend-color dd-legend-color--normal"></span>
+                  <span className="dd-legend-label">Normal</span>
+                  <span className="dd-legend-value">{normalCount} ({normalPercentage}%)</span>
                 </div>
-                <div className="legend-item">
-                  <span className="legend-color normal"></span>
-                  <span className="legend-label">Normal</span>
-                  <span className="legend-value">{normalCount} ({normalPercentage}%)</span>
-                </div>
+              </div>
+            </div>
+            {/* Mini stat row below chart */}
+            <div className="dd-analytics-stats">
+              <div className="dd-analytics-stat">
+                <span className="dd-analytics-stat-value">{totalDiseases}</span>
+                <span className="dd-analytics-stat-label">Total Patients</span>
+              </div>
+<div className="dd-analytics-stat">
+                <span className="dd-analytics-stat-value" style={{color:'var(--dd-orange)'}}>{pneumoniaCount}</span>
+                <span className="dd-analytics-stat-label">Pneumonia</span>
+              </div>
+              <div className="dd-analytics-stat">
+                <span className="dd-analytics-stat-value" style={{color:'var(--dd-green)'}}>{normalCount}</span>
+                <span className="dd-analytics-stat-label">Normal</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Section - Two Columns */}
-        <div className="bottom-section">
+        <div className="dd-bottom-section">
           {/* Left: Filters Card */}
-          <div className="filters-card">
+          <div className="dd-filters-card">
             <h3>Filter Patients</h3>
-            <div className="filter-group">
+            <div className="dd-filter-group">
               <label>Search Patient</label>
               <input
                 type="text"
                 placeholder="Enter patient name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="filter-input"
+                className="dd-filter-input"
               />
             </div>
-            <div className="filter-group">
+            <div className="dd-filter-group">
               <label>Patient Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="filter-select"
+                className="dd-filter-select"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="completed">Completed</option>
               </select>
             </div>
-            <div className="filter-group">
+            <div className="dd-filter-group">
               <label>Disease</label>
               <select
                 value={diseaseFilter}
                 onChange={(e) => setDiseaseFilter(e.target.value)}
-                className="filter-select"
+                className="dd-filter-select"
               >
                 <option value="all">All Diseases</option>
                 <option value="normal">Normal</option>
-                <option value="tb">Tuberculosis (TB)</option>
                 <option value="pneumonia">Pneumonia</option>
               </select>
             </div>
           </div>
 
           {/* Right: Recent Patient Cases Table */}
-          <div className="patients-table-card">
+          <div className="dd-patients-card">
             <h3>Recent Patient Cases</h3>
-            <div className="table-wrapper">
-              <table className="patients-table">
+            <div className="dd-table-wrap">
+              <table className="dd-table">
                 <thead>
                   <tr>
                     <th>Patient Name</th>
@@ -841,22 +826,17 @@ function DoctorDashboard() {
                       <td>{patient.name}</td>
                       <td>{new Date(patient.date).toLocaleDateString()}</td>
                       <td>
-                        <span style={{
-                          padding: '4px 12px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor: patient.disease === 'Normal' ? '#d1fae5' : 
-                                         patient.disease === 'Pneumonia' ? '#fed7aa' : '#fecaca',
-                          color: patient.disease === 'Normal' ? '#065f46' : 
-                                patient.disease === 'Pneumonia' ? '#92400e' : '#991b1b'
-                        }}>
+                        <span className={`dd-pill ${
+                          patient.disease === 'Normal' ? 'dd-pill--normal' :
+                          patient.disease === 'Pneumonia' ? 'dd-pill--pneumonia' :
+                          'dd-pill--other'
+                        }`}>
                           {patient.disease}
                         </span>
                       </td>
                       <td>
-                        <button 
-                          className="view-case-btn"
+                        <button
+                          className="dd-view-btn"
                           onClick={() => {
                             setSelectedReport(patient.reportData);
                             setShowReportModal(true);
@@ -870,7 +850,7 @@ function DoctorDashboard() {
                 </tbody>
               </table>
               {filteredPatients.length === 0 && (
-                <div className="no-results">
+                <div className="dd-empty">
                   <p>No patients found.</p>
                 </div>
               )}
@@ -881,25 +861,25 @@ function DoctorDashboard() {
 
       {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="dd-modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="dd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="dd-modal-header">
               <h2>Edit Profile</h2>
-              <button className="modal-close" onClick={() => setShowEditModal(false)}>
+              <button className="dd-modal-close" onClick={() => setShowEditModal(false)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
-            <div className="modal-body">
-              <div className="form-group">
+            <div className="dd-modal-body">
+              <div className="dd-form-group">
                 <label>Profile Photo</label>
-                <div className="photo-upload">
+                <div className="dd-photo-upload">
                   {profilePhoto ? (
-                    <img src={profilePhoto} alt="Profile" className="profile-preview" />
+                    <img src={profilePhoto} alt="Profile" className="dd-profile-preview" />
                   ) : (
-                    <div className="profile-placeholder">
+                    <div className="dd-profile-placeholder">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
@@ -913,17 +893,17 @@ function DoctorDashboard() {
                     id="photo-upload"
                     style={{display: 'none'}}
                   />
-                  <label htmlFor="photo-upload" className="upload-btn">
+                  <label htmlFor="photo-upload" className="dd-upload-btn">
                     Upload Photo
                   </label>
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="dd-form-group">
                 <label>Medical Degree(s)</label>
-                <div className="checkbox-group">
+                <div className="dd-checkbox-group">
                   {medicalDegreeOptions.map(degree => (
-                    <label key={degree} className="checkbox-label">
+                    <label key={degree} className="dd-checkbox-label">
                       <input
                         type="checkbox"
                         checked={editFormData.medicalDegrees.includes(degree)}
@@ -935,11 +915,11 @@ function DoctorDashboard() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Specialization(s) <span style={{fontWeight:400,fontSize:'12px',color:'#718096'}}>(select all that apply)</span></label>
-                <div className="checkbox-group">
+              <div className="dd-form-group">
+                <label>Specialization(s) <span style={{fontWeight:400,fontSize:'12px',color:'var(--c-text-muted)'}}>(select all that apply)</span></label>
+                <div className="dd-checkbox-group">
                   {specializationOptions.map(spec => (
-                    <label key={spec} className="checkbox-label">
+                    <label key={spec} className="dd-checkbox-label">
                       <input
                         type="checkbox"
                         checked={(editFormData.specializations || []).includes(spec)}
@@ -957,13 +937,13 @@ function DoctorDashboard() {
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="dd-form-group">
                 <label>Country of Specialization / Training</label>
                 <select
                   name="countryOfSpecialization"
                   value={editFormData.countryOfSpecialization || ''}
                   onChange={handleEditFormChange}
-                  className="modal-select"
+                  className="dd-modal-select"
                 >
                   <option value="">Select Country</option>
                   {allCountries.map(c => (
@@ -972,13 +952,13 @@ function DoctorDashboard() {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="dd-form-group">
                 <label>Years of Experience</label>
                 <select
                   name="experience"
                   value={editFormData.experience}
                   onChange={handleEditFormChange}
-                  className="modal-select"
+                  className="dd-modal-select"
                 >
                   <option value="">Select Experience</option>
                   {experienceOptions.map(exp => (
@@ -987,7 +967,7 @@ function DoctorDashboard() {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="dd-form-group">
                 <label>Current Workplace / Hospital / Clinic</label>
                 <input
                   type="text"
@@ -995,11 +975,11 @@ function DoctorDashboard() {
                   value={editFormData.workplace}
                   onChange={handleEditFormChange}
                   placeholder="Enter hospital or clinic name"
-                  className="modal-input"
+                  className="dd-modal-input"
                 />
               </div>
 
-              <div className="form-group">
+              <div className="dd-form-group">
                 <label>City</label>
                 <input
                   type="text"
@@ -1007,19 +987,19 @@ function DoctorDashboard() {
                   value={editFormData.city}
                   onChange={handleEditFormChange}
                   placeholder="Enter city"
-                  className="modal-input"
+                  className="dd-modal-input"
                 />
               </div>
 
               {/* Digital Signature Section */}
-              <div className="form-group signature-section">
+              <div className="dd-form-group dd-signature-section">
                 <label>Digital Signature</label>
-                <p className="signature-info">Your signature will appear on all prescriptions you issue</p>
-                
-                <div className="signature-mode-tabs">
+                <p className="dd-signature-info">Your signature will appear on all prescriptions you issue</p>
+
+                <div className="dd-sig-tabs">
                   <button
                     type="button"
-                    className={`tab-button ${signatureMode === 'upload' ? 'active' : ''}`}
+                    className={`dd-sig-tab${signatureMode === 'upload' ? ' dd-sig-tab--active' : ''}`}
                     onClick={() => setSignatureMode('upload')}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1031,7 +1011,7 @@ function DoctorDashboard() {
                   </button>
                   <button
                     type="button"
-                    className={`tab-button ${signatureMode === 'draw' ? 'active' : ''}`}
+                    className={`dd-sig-tab${signatureMode === 'draw' ? ' dd-sig-tab--active' : ''}`}
                     onClick={() => setSignatureMode('draw')}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1045,13 +1025,13 @@ function DoctorDashboard() {
                 </div>
 
                 {signatureMode === 'upload' ? (
-                  <div className="signature-upload-container">
+                  <div className="dd-sig-upload-wrap">
                     {signaturePreview && (
-                      <div className="signature-preview">
+                      <div className="dd-sig-preview">
                         <img src={signaturePreview} alt="Signature Preview" />
-                        <button 
-                          type="button" 
-                          className="remove-signature-btn"
+                        <button
+                          type="button"
+                          className="dd-sig-remove-btn"
                           onClick={handleRemoveSignature}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1069,7 +1049,7 @@ function DoctorDashboard() {
                       onChange={handleSignatureFileChange}
                       style={{display: 'none'}}
                     />
-                    <label htmlFor="signature-upload" className="signature-upload-label">
+                    <label htmlFor="signature-upload" className="dd-sig-upload-label">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
@@ -1077,28 +1057,28 @@ function DoctorDashboard() {
                       </svg>
                       {signaturePreview ? 'Change Signature' : 'Upload Signature Image'}
                     </label>
-                    <p className="signature-hint">Upload a PNG or JPG image of your signature (max 2MB)</p>
+                    <p className="dd-sig-hint">Upload a PNG or JPG image of your signature (max 2MB)</p>
                   </div>
                 ) : (
-                  <div className="signature-draw-container">
+                  <div className="dd-sig-draw-wrap">
                     {signaturePreview ? (
-                      <div className="signature-preview">
+                      <div className="dd-sig-preview">
                         <img src={signaturePreview} alt="Signature Preview" />
-                        <button 
-                          type="button" 
-                          className="remove-signature-btn"
+                        <button
+                          type="button"
+                          className="dd-sig-remove-btn"
                           onClick={handleRemoveSignature}
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                           </svg>
-                          Remove & Redraw
+                          Remove &amp; Redraw
                         </button>
                       </div>
                     ) : (
                       <>
-                        <div className="signature-pad-wrapper">
+                        <div className="dd-sig-pad-wrap">
                           <SignatureCanvas
                             ref={signaturePadRef}
                             canvasProps={{
@@ -1110,10 +1090,10 @@ function DoctorDashboard() {
                             penColor="black"
                           />
                         </div>
-                        <div className="signature-controls">
-                          <button 
-                            type="button" 
-                            className="clear-signature-btn"
+                        <div className="dd-sig-controls">
+                          <button
+                            type="button"
+                            className="dd-sig-clear-btn"
                             onClick={handleClearSignature}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1122,9 +1102,9 @@ function DoctorDashboard() {
                             </svg>
                             Clear
                           </button>
-                          <button 
-                            type="button" 
-                            className="save-signature-btn"
+                          <button
+                            type="button"
+                            className="dd-sig-save-btn"
                             onClick={handleSaveDrawnSignature}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1133,18 +1113,18 @@ function DoctorDashboard() {
                             Save Signature
                           </button>
                         </div>
-                        <p className="signature-hint">Draw your signature above using mouse or touchscreen</p>
+                        <p className="dd-sig-hint">Draw your signature above using mouse or touchscreen</p>
                       </>
                     )}
                   </div>
                 )}
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowEditModal(false)}>
+            <div className="dd-modal-footer">
+              <button className="dd-btn-cancel" onClick={() => setShowEditModal(false)}>
                 Cancel
               </button>
-              <button className="save-btn" onClick={handleSaveProfile}>
+              <button className="dd-btn-save" onClick={handleSaveProfile}>
                 Save Changes
               </button>
             </div>
@@ -1162,33 +1142,12 @@ function DoctorDashboard() {
 
       {/* Report Viewing Modal */}
       {showReportModal && selectedReport && (
-        <div className="modal-overlay" onClick={handleCloseReportModal}>
-          <div className="modal-content" style={{ 
-            maxWidth: '1100px', 
-            maxHeight: '95vh', 
-            overflow: 'auto', 
-            padding: '20px',
-            backgroundColor: 'white'
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-              <button 
-                className="modal-close" 
+        <div className="dd-modal-overlay" onClick={handleCloseReportModal}>
+          <div className="dd-modal dd-modal--wide" onClick={(e) => e.stopPropagation()}>
+            <div className="dd-modal-close-row">
+              <button
+                className="dd-modal-close--danger"
                 onClick={handleCloseReportModal}
-                style={{
-                  background: '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: '40px',
-                  height: '40px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  zIndex: 10
-                }}
               >
                 ×
               </button>
@@ -1231,29 +1190,10 @@ function DoctorDashboard() {
                 />
 
                 {/* Add Prescription Button */}
-                <div style={{ marginTop: '20px', textAlign: 'center' }}>
-                  <button 
+                <div className="dd-action-row">
+                  <button
+                    className="dd-btn-action"
                     onClick={handleAddPrescription}
-                    style={{
-                      background: '#38B2AC',
-                      color: 'white',
-                      border: 'none',
-                      padding: '14px 32px',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = '#2C7A7B';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = '#38B2AC';
-                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
-                    }}
                   >
                     Add Doctor Prescription
                   </button>
@@ -1299,19 +1239,11 @@ function DoctorDashboard() {
 
             {/* Doctor Prescription Report */}
             {showPrescriptionReport && currentPrescription && (
-              <div style={{ padding: '20px', backgroundColor: 'white', minHeight: '400px' }}>
-                <div style={{ 
-                  background: '#2C7A7B',
-                  padding: '16px 24px',
-                  borderRadius: '6px',
-                  marginBottom: '20px',
-                  color: 'white',
-                  fontSize: '18px',
-                  fontWeight: '700'
-                }}>
+              <div className="dd-rx-body">
+                <div className="dd-rx-banner">
                   Prescription Submitted Successfully
                 </div>
-                
+
                 <DoctorPrescriptionReport
                   prescription={currentPrescription}
                   patientReport={{
@@ -1337,34 +1269,10 @@ function DoctorDashboard() {
                 />
 
                 {/* Send to Patient Button */}
-                <div style={{ 
-                  marginTop: '30px', 
-                  paddingTop: '20px',
-                  borderTop: '2px solid #E2E8F0',
-                  textAlign: 'center' 
-                }}>
+                <div className="dd-action-row--border">
                   <button
+                    className="dd-btn-action"
                     onClick={() => handleSendToPatient(currentPrescription)}
-                    style={{
-                      background: '#38B2AC',
-                      color: 'white',
-                      border: 'none',
-                      padding: '14px 32px',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-                      transition: 'all 0.3s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.background = '#2C7A7B';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.background = '#38B2AC';
-                      e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.1)';
-                    }}
                   >
                     Send to Patient
                   </button>
@@ -1374,13 +1282,13 @@ function DoctorDashboard() {
             
             {/* Debug: Show what state we're in */}
             {showPrescriptionReport && !currentPrescription && (
-              <div style={{ padding: '20px', color: 'red', backgroundColor: 'white' }}>
+              <div className="dd-rx-body" style={{ color: 'var(--c-error)' }}>
                 Error: showPrescriptionReport is true but currentPrescription is null/undefined
               </div>
             )}
-            
+
             {!showReviewPanel && !showPrescriptionReport && !selectedReport && (
-              <div style={{ padding: '20px', color: 'orange', backgroundColor: 'white' }}>
+              <div className="dd-rx-body" style={{ color: 'var(--c-warning)' }}>
                 No report selected
               </div>
             )}

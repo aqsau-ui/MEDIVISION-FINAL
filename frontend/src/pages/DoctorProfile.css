@@ -1,139 +1,182 @@
+/* ═══════════════════════════════════════════════════════════
+   DoctorProfile — Design-system rewrite
+   All selectors kept identical to what DoctorProfile.js references.
+═══════════════════════════════════════════════════════════ */
+
+/* ── Page container ─────────────────────────────────────── */
 .doctor-profile-container {
-  max-width: 1000px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 30px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: var(--sp-8) var(--sp-6);
+  font-family: var(--font-body);
 }
 
+/* ── Profile hero header ─────────────────────────────────── */
 .profile-header {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: var(--sp-10);
+  padding: var(--sp-8) var(--sp-6);
+  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
 }
 
+/* Subtle teal accent band behind hero */
+.profile-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--c-primary-dark) 0%, var(--c-primary) 60%, var(--c-secondary) 100%);
+  opacity: 0.92;
+  z-index: 0;
+}
+
+.profile-header > * { position: relative; z-index: 1; }
+
 .profile-header h1 {
-  color: #2c5f6f;
-  font-size: 2.5rem;
-  margin-bottom: 10px;
+  color: var(--c-text-inverse);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-black);
+  margin-bottom: var(--sp-2);
+  letter-spacing: -0.02em;
+  line-height: var(--lh-tight);
 }
 
 .subtitle {
-  color: #666;
-  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-normal);
+  line-height: var(--lh-normal);
 }
 
+/* ── Shared card base ────────────────────────────────────── */
 .profile-info-card,
 .signature-card,
 .usage-info-card {
-  background: white;
-  border-radius: 12px;
-  padding: 30px;
-  margin-bottom: 30px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-6);
+  margin-bottom: var(--sp-6);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--c-border);
 }
 
+/* Section headings with secondary teal accent underline */
 .profile-info-card h2,
 .signature-card h2,
 .usage-info-card h2 {
-  color: #2c5f6f;
-  margin-bottom: 20px;
-  font-size: 1.8rem;
-  border-bottom: 2px solid #38B2AC;
-  padding-bottom: 10px;
+  color: var(--c-primary);
+  margin-bottom: var(--sp-5);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  padding-bottom: var(--sp-3);
+  border-bottom: 2px solid var(--c-secondary);
 }
 
-/* Profile Information */
+/* ── Info grid ───────────────────────────────────────────── */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-5);
 }
 
 .info-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: var(--sp-1);
 }
 
 .info-item label {
-  font-weight: 600;
-  color: #555;
-  font-size: 0.9rem;
+  font-weight: var(--fw-semi);
+  color: var(--c-text-secondary);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 .info-item span {
-  color: #333;
-  font-size: 1.1rem;
+  color: var(--c-text);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-medium);
 }
 
-/* Signature Section */
+/* ── Signature section ───────────────────────────────────── */
 .signature-description {
-  color: #666;
-  margin-bottom: 25px;
-  line-height: 1.6;
+  color: var(--c-text-secondary);
+  margin-bottom: var(--sp-6);
+  line-height: var(--lh-normal);
+  font-size: var(--fs-sm);
 }
 
 .current-signature,
 .upload-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--sp-6);
 }
 
 .current-signature h3,
 .upload-section h3 {
-  color: #2c5f6f;
-  margin-bottom: 15px;
-  font-size: 1.3rem;
+  color: var(--c-primary);
+  margin-bottom: var(--sp-3);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semi);
 }
 
 .signature-preview-container {
-  background: #f8f9fa;
-  border: 2px dashed #38B2AC;
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--c-bg-alt);
+  border: 2px dashed var(--c-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--sp-5);
   text-align: center;
-  margin: 20px 0;
+  margin: var(--sp-5) 0;
 }
 
 .signature-image {
   max-width: 400px;
   max-height: 150px;
   object-fit: contain;
-  background: white;
-  padding: 10px;
-  border-radius: 4px;
+  background: var(--c-surface);
+  padding: var(--sp-2);
+  border-radius: var(--radius-sm);
 }
 
 .signature-image.preview {
-  border: 1px solid #ddd;
+  border: 1px solid var(--c-border-strong);
 }
 
-/* Upload Instructions */
+/* ── Upload instructions — border-left accent ────────────── */
 .upload-instructions {
-  background: #f0f8ff;
-  border-left: 4px solid #38B2AC;
-  padding: 15px;
-  margin-bottom: 20px;
-  border-radius: 4px;
+  background: var(--c-secondary-pale);
+  border-left: 4px solid var(--c-secondary);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-5);
+  border-radius: var(--radius-sm);
 }
 
 .upload-instructions p {
-  margin: 0 0 10px 0;
-  color: #2c5f6f;
-  font-weight: 600;
+  margin: 0 0 var(--sp-2) 0;
+  color: var(--c-primary);
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-sm);
 }
 
 .upload-instructions ul {
   margin: 0;
-  padding-left: 20px;
-  color: #555;
+  padding-left: var(--sp-5);
+  color: var(--c-text-secondary);
 }
 
 .upload-instructions li {
-  margin-bottom: 5px;
+  margin-bottom: var(--sp-1);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
 }
 
-/* File Input */
+/* ── File input ──────────────────────────────────────────── */
 .file-input-wrapper {
-  margin: 20px 0;
+  margin: var(--sp-5) 0;
 }
 
 #signature-upload {
@@ -142,137 +185,155 @@
 
 .file-input-label {
   display: inline-block;
-  padding: 12px 30px;
-  background: #38B2AC;
-  color: white;
-  border-radius: 6px;
+  padding: 10px var(--sp-6);
+  background: var(--c-secondary);
+  color: var(--c-text-inverse);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  font-weight: 600;
-  transition: background 0.3s ease;
+  font-weight: var(--fw-semi);
+  font-size: var(--fs-sm);
+  font-family: var(--font-body);
+  transition: background var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease);
 }
 
 .file-input-label:hover {
-  background: #2c8a81;
+  background: var(--c-secondary-light);
+  box-shadow: 0 4px 16px rgba(56, 178, 172, 0.30);
 }
 
-/* Buttons */
+/* ── Buttons ─────────────────────────────────────────────── */
 .btn-upload,
 .btn-delete {
-  padding: 12px 30px;
+  padding: 10px var(--sp-6);
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semi);
+  font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background var(--dur-base) var(--ease), transform var(--dur-fast) var(--ease), box-shadow var(--dur-base) var(--ease);
 }
 
 .btn-upload {
-  background: #38B2AC;
-  color: white;
-  margin-top: 15px;
+  background: var(--c-secondary);
+  color: var(--c-text-inverse);
+  margin-top: var(--sp-3);
+  box-shadow: 0 2px 8px rgba(56, 178, 172, 0.25);
 }
 
 .btn-upload:hover:not(:disabled) {
-  background: #2c8a81;
+  background: var(--c-secondary-light);
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(56, 178, 172, 0.3);
+  box-shadow: 0 4px 16px rgba(56, 178, 172, 0.35);
 }
 
 .btn-delete {
-  background: #e74c3c;
-  color: white;
-  margin-top: 15px;
+  background: var(--c-error);
+  color: var(--c-text-inverse);
+  margin-top: var(--sp-3);
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.20);
 }
 
 .btn-delete:hover:not(:disabled) {
-  background: #c0392b;
+  background: #C53030;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+  box-shadow: 0 4px 16px rgba(229, 62, 62, 0.30);
 }
 
 .btn-upload:disabled,
 .btn-delete:disabled,
 .file-input-label:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
-/* Messages */
+/* ── Status messages ─────────────────────────────────────── */
 .message {
-  padding: 15px;
-  border-radius: 6px;
-  margin-top: 20px;
-  font-weight: 500;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--radius-md);
+  margin-top: var(--sp-5);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
+  border: 1px solid transparent;
 }
 
 .message.success {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: rgba(56, 161, 105, 0.08);
+  color: var(--c-success);
+  border-color: rgba(56, 161, 105, 0.22);
 }
 
 .message.error {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: rgba(229, 62, 62, 0.08);
+  color: var(--c-error);
+  border-color: rgba(229, 62, 62, 0.22);
 }
 
-/* Usage Steps */
+/* ── Usage steps ─────────────────────────────────────────── */
 .usage-steps {
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: var(--sp-6);
 }
 
 .step {
   display: flex;
-  gap: 20px;
+  gap: var(--sp-5);
   align-items: flex-start;
 }
 
+/* PMDC-style numbered circle badge */
 .step-number {
-  width: 50px;
-  height: 50px;
-  background: #38B2AC;
-  color: white;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--c-secondary), var(--c-primary-light));
+  color: var(--c-text-inverse);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(56, 178, 172, 0.30);
 }
 
 .step-content h3 {
-  color: #2c5f6f;
-  margin: 0 0 8px 0;
-  font-size: 1.2rem;
+  color: var(--c-primary);
+  margin: 0 0 var(--sp-2) 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semi);
 }
 
 .step-content p {
-  color: #666;
+  color: var(--c-text-secondary);
   margin: 0;
-  line-height: 1.6;
+  line-height: var(--lh-normal);
+  font-size: var(--fs-sm);
 }
 
-/* Loading */
+/* ── Loading ─────────────────────────────────────────────── */
 .loading-spinner {
   text-align: center;
-  padding: 100px 20px;
-  font-size: 1.2rem;
-  color: #38B2AC;
+  padding: 100px var(--sp-5);
+  font-size: var(--fs-md);
+  color: var(--c-secondary);
+  font-family: var(--font-body);
 }
 
-/* Responsive */
+/* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .doctor-profile-container {
-    padding: 20px 15px;
+    padding: var(--sp-5) var(--sp-4);
   }
 
   .profile-header h1 {
-    font-size: 2rem;
+    font-size: var(--fs-xl);
+  }
+
+  .profile-header {
+    padding: var(--sp-6) var(--sp-4);
+    border-radius: var(--radius-lg);
   }
 
   .info-grid {
@@ -290,6 +351,6 @@
   .step-number {
     width: 40px;
     height: 40px;
-    font-size: 1.2rem;
+    font-size: var(--fs-md);
   }
 }

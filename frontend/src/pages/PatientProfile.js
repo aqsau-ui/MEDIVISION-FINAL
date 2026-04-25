@@ -837,30 +837,30 @@ const PatientProfile = () => {
 
   return (
     <PatientLayout>
-      <div className="profile-page-content">
-          <div className="profile-container">
-            <div className="profile-header">
-              <h1 className="profile-title">Complete Your Profile & Upload X-ray</h1>
-              <p className="profile-subtitle">All fields are important for accurate diagnosis</p>
+      <div className="pp-content">
+          <div className="pp-container">
+            <div className="pp-header">
+              <h1 className="pp-title">Complete Your Profile &amp; Upload X-ray</h1>
+              <p className="pp-subtitle">All fields are important for accurate diagnosis</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="profile-form">
+            <form onSubmit={handleSubmit} className="pp-form">
               {/* Basic Information */}
-              <div className="form-section">
-                <h2 className="section-title">Basic Information</h2>
-                <div className="form-content">
-                  <div className="medical-history-grid">
+              <div className="pp-card">
+                <h2 className="pp-section-header">Basic Information</h2>
+                <div className="pp-section-body">
+                  <div className="pp-grid-2">
                     {/* Age Card */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                           <circle cx="12" cy="7" r="4" />
                         </svg>
                         Age
                       </h3>
-                      <div className="form-group">
-                        <label htmlFor="age">Enter your age <span className="required">*</span></label>
+                      <div className="pp-field">
+                        <label htmlFor="age">Enter your age <span className="pp-required">*</span></label>
                         <input
                           type="number"
                           id="age"
@@ -874,8 +874,8 @@ const PatientProfile = () => {
                     </div>
 
                     {/* Gender Card */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="9" cy="7" r="4" />
                           <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
@@ -884,10 +884,10 @@ const PatientProfile = () => {
                         </svg>
                         Gender
                       </h3>
-                      <div className="form-group">
-                        <label>Select your gender <span className="required">*</span></label>
-                        <div className="radio-group">
-                          <label className="radio-label">
+                      <div className="pp-field">
+                        <label>Select your gender <span className="pp-required">*</span></label>
+                        <div className="pp-radio-group">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="gender"
@@ -898,7 +898,7 @@ const PatientProfile = () => {
                             />
                             <span>Male</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="gender"
@@ -908,7 +908,7 @@ const PatientProfile = () => {
                             />
                             <span>Female</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="gender"
@@ -918,7 +918,7 @@ const PatientProfile = () => {
                             />
                             <span>Other</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="gender"
@@ -936,13 +936,13 @@ const PatientProfile = () => {
               </div>
 
               {/* Smoking History */}
-              <div className="form-section">
-                <h2 className="section-title">Smoking History</h2>
-                <div className="form-content">
-                  <div className="medical-history-grid">
+              <div className="pp-card">
+                <h2 className="pp-section-header">Smoking History</h2>
+                <div className="pp-section-body">
+                  <div className="pp-grid-2">
                     {/* Smoking Status Card */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M18 8c0-3.3-2.7-6-6-6S6 4.7 6 8" />
                           <path d="M2 16h20" />
@@ -951,10 +951,10 @@ const PatientProfile = () => {
                         </svg>
                         Smoking Status
                       </h3>
-                      <div className="form-group">
-                        <label>Select your smoking status <span className="required">*</span></label>
-                        <div className="radio-group">
-                          <label className="radio-label">
+                      <div className="pp-field">
+                        <label>Select your smoking status <span className="pp-required">*</span></label>
+                        <div className="pp-radio-group">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="smokingStatus"
@@ -965,7 +965,7 @@ const PatientProfile = () => {
                             />
                             <span>Current smoker</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="smokingStatus"
@@ -975,7 +975,7 @@ const PatientProfile = () => {
                             />
                             <span>Former smoker</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="smokingStatus"
@@ -990,8 +990,8 @@ const PatientProfile = () => {
                     </div>
 
                     {/* Cough Question Card */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10" />
                           <path d="M12 8v4" />
@@ -999,10 +999,10 @@ const PatientProfile = () => {
                         </svg>
                         Cough Status
                       </h3>
-                      <div className="form-group">
-                        <label>Do you have a cough? <span className="required">*</span></label>
-                        <div className="radio-group">
-                          <label className="radio-label">
+                      <div className="pp-field">
+                        <label>Do you have a cough? <span className="pp-required">*</span></label>
+                        <div className="pp-radio-group">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="hasCough"
@@ -1013,7 +1013,7 @@ const PatientProfile = () => {
                             />
                             <span>Yes</span>
                           </label>
-                          <label className="radio-label">
+                          <label className="pp-radio-label">
                             <input
                               type="radio"
                               name="hasCough"
@@ -1029,8 +1029,8 @@ const PatientProfile = () => {
                       {/* Cough Duration - Show only if hasCough is Yes */}
                       {formData.hasCough === 'Yes' && (
                         <>
-                          <div className="form-group" style={{marginTop: '1rem'}}>
-                            <label htmlFor="coughDuration">How long have you had the cough? <span className="required">*</span></label>
+                          <div className="pp-field">
+                            <label htmlFor="coughDuration">How long have you had the cough? <span className="pp-required">*</span></label>
                             <input
                               type="text"
                               id="coughDuration"
@@ -1042,10 +1042,10 @@ const PatientProfile = () => {
                             />
                           </div>
 
-                          <div className="form-group" style={{marginTop: '1rem'}}>
-                            <label>What type of cough? <span className="required">*</span></label>
-                            <div className="radio-group">
-                              <label className="radio-label">
+                          <div className="pp-field">
+                            <label>What type of cough? <span className="pp-required">*</span></label>
+                            <div className="pp-radio-group">
+                              <label className="pp-radio-label">
                                 <input
                                   type="radio"
                                   name="coughType"
@@ -1056,7 +1056,7 @@ const PatientProfile = () => {
                                 />
                                 <span>Dry cough (no mucus)</span>
                               </label>
-                              <label className="radio-label">
+                              <label className="pp-radio-label">
                                 <input
                                   type="radio"
                                   name="coughType"
@@ -1066,7 +1066,7 @@ const PatientProfile = () => {
                                 />
                                 <span>Productive cough (with mucus/phlegm)</span>
                               </label>
-                              <label className="radio-label">
+                              <label className="pp-radio-label">
                                 <input
                                   type="radio"
                                   name="coughType"
@@ -1086,20 +1086,20 @@ const PatientProfile = () => {
               </div>
 
               {/* Current Symptoms */}
-              <div className="form-section">
-                <h2 className="section-title">Current Symptoms</h2>
-                <div className="form-content">
-                  <div className="medical-card">
-                    <h3 className="card-title">
+              <div className="pp-card">
+                <h2 className="pp-section-header">Current Symptoms</h2>
+                <div className="pp-section-body">
+                  <div className="pp-info-card">
+                    <h3 className="pp-card-title">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                       </svg>
                       Additional Symptoms
                     </h3>
-                    <div className="form-group">
+                    <div className="pp-field">
                       <label>Select all that apply</label>
-                      <div className="checkbox-grid">
-                      <label className="checkbox-label">
+                      <div className="pp-checkbox-grid">
+                      <label className="pp-checkbox-label">
                         <input
                           type="checkbox"
                           value="Fever"
@@ -1108,7 +1108,7 @@ const PatientProfile = () => {
                         />
                         <span>Fever</span>
                       </label>
-                      <label className="checkbox-label">
+                      <label className="pp-checkbox-label">
                         <input
                           type="checkbox"
                           value="Weight loss"
@@ -1117,7 +1117,7 @@ const PatientProfile = () => {
                         />
                         <span>Weight loss</span>
                       </label>
-                      <label className="checkbox-label">
+                      <label className="pp-checkbox-label">
                         <input
                           type="checkbox"
                           value="Night sweats"
@@ -1126,7 +1126,7 @@ const PatientProfile = () => {
                         />
                         <span>Night sweats</span>
                       </label>
-                      <label className="checkbox-label">
+                      <label className="pp-checkbox-label">
                         <input
                           type="checkbox"
                           value="Chest pain"
@@ -1135,7 +1135,7 @@ const PatientProfile = () => {
                         />
                         <span>Chest pain</span>
                       </label>
-                      <label className="checkbox-label">
+                      <label className="pp-checkbox-label">
                         <input
                           type="checkbox"
                           value="Shortness of breath"
@@ -1151,21 +1151,21 @@ const PatientProfile = () => {
               </div>
 
               {/* Medical History */}
-              <div className="form-section">
-                <h2 className="section-title">Medical History</h2>
-                <p className="section-subtitle">Relevant to pneumonia risk</p>
-                <div className="form-content">
-                  <div className="medical-history-grid">
+              <div className="pp-card">
+                <h2 className="pp-section-header">Medical History</h2>
+                <p className="pp-section-sub">Relevant to pneumonia risk</p>
+                <div className="pp-section-body">
+                  <div className="pp-grid-2">
                     {/* Previous Lung Diseases */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                         </svg>
                         Previous Lung Diseases
                       </h3>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
+                      <div className="pp-checkbox-group">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Asthma"
@@ -1174,7 +1174,7 @@ const PatientProfile = () => {
                           />
                           <span>Asthma</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="COPD"
@@ -1183,7 +1183,7 @@ const PatientProfile = () => {
                           />
                           <span>COPD</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Previous Pneumonia"
@@ -1192,7 +1192,7 @@ const PatientProfile = () => {
                           />
                           <span>Previous Pneumonia</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Bronchitis"
@@ -1201,7 +1201,7 @@ const PatientProfile = () => {
                           />
                           <span>Bronchitis</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Chronic cough"
@@ -1214,16 +1214,16 @@ const PatientProfile = () => {
                     </div>
 
                     {/* Immune System Status */}
-                    <div className="medical-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                         </svg>
                         Immune System Status
                       </h3>
-                      <p className="card-subtitle">VERY important for TB and pneumonia severity</p>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
+                      <p className="pp-card-note">VERY important for TB and pneumonia severity</p>
+                      <div className="pp-checkbox-group">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Diabetes"
@@ -1232,7 +1232,7 @@ const PatientProfile = () => {
                           />
                           <span>Diabetes</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Kidney disease"
@@ -1241,7 +1241,7 @@ const PatientProfile = () => {
                           />
                           <span>Kidney disease</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="HIV or immune deficiency"
@@ -1250,7 +1250,7 @@ const PatientProfile = () => {
                           />
                           <span>HIV or immune deficiency</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Organ transplant"
@@ -1259,7 +1259,7 @@ const PatientProfile = () => {
                           />
                           <span>Organ transplant</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Cancer or chemotherapy"
@@ -1268,7 +1268,7 @@ const PatientProfile = () => {
                           />
                           <span>Cancer or chemotherapy</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Taking steroids or immunosuppressive drugs"
@@ -1281,16 +1281,16 @@ const PatientProfile = () => {
                     </div>
 
                     {/* Genetic Risk - Pneumonia */}
-                    <div className="medical-card genetic-card">
-                      <h3 className="card-title">
+                    <div className="pp-info-card pp-info-card--risk">
+                      <h3 className="pp-card-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M12 2v20M2 12h20" />
                           <circle cx="12" cy="12" r="4" />
                         </svg>
                         Genetic Risk - Pneumonia
                       </h3>
-                      <div className="checkbox-group">
-                        <label className="checkbox-label">
+                      <div className="pp-checkbox-group">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Family history of recurrent pneumonia"
@@ -1299,7 +1299,7 @@ const PatientProfile = () => {
                           />
                           <span>Family history of recurrent pneumonia</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Chronic respiratory conditions in family"
@@ -1308,7 +1308,7 @@ const PatientProfile = () => {
                           />
                           <span>Chronic respiratory conditions in family</span>
                         </label>
-                        <label className="checkbox-label">
+                        <label className="pp-checkbox-label">
                           <input
                             type="checkbox"
                             value="Age over 65 or under 2"
@@ -1324,10 +1324,10 @@ const PatientProfile = () => {
               </div>
 
               {/* Allergies & Medications */}
-              <div className="form-section">
-                <h2 className="section-title">Allergies & Medications</h2>
-                <div className="form-content">
-                  <div className="form-group">
+              <div className="pp-card">
+                <h2 className="pp-section-header">Allergies &amp; Medications</h2>
+                <div className="pp-section-body">
+                  <div className="pp-field">
                     <label htmlFor="allergiesMedications">List any allergies or current medications</label>
                     <textarea
                       id="allergiesMedications"
@@ -1342,34 +1342,33 @@ const PatientProfile = () => {
               </div>
 
               {/* Upload Medical Imaging */}
-              <div className="form-section">
-                <h2 className="section-title">Upload Medical Imaging</h2>
-                <div className="form-content">
-                  <div className="form-group">
-                    <label htmlFor="xray">Upload Chest X-ray <span className="required">*</span></label>
-                    <p className="field-description" style={{ marginBottom: '15px', fontSize: '14px', color: '#666' }}>
-                      📋 Please upload a clear chest X-ray image only (JPEG, JPG, or PNG format, max 10MB)
+              <div className="pp-card">
+                <h2 className="pp-section-header">Upload Medical Imaging</h2>
+                <div className="pp-section-body">
+                  <div className="pp-field">
+                    <label htmlFor="xray">Upload Chest X-ray <span className="pp-required">*</span></label>
+                    <p className="pp-upload-desc">
+                      Please upload a clear chest X-ray image only (JPEG, JPG, or PNG format, max 10MB)
                     </p>
-                    <div className="file-upload-wrapper">
+                    <div className="pp-upload-zone">
                       <input
                         type="file"
                         id="xray"
                         name="xray"
                         accept="image/jpeg,image/jpg,image/png"
                         onChange={handleFileChange}
-                        style={{ display: 'none' }}
                         required
                         disabled={isValidatingFile}
                       />
-                      <button 
-                        type="button" 
-                        className="file-upload-button"
+                      <button
+                        type="button"
+                        className={`pp-upload-trigger${formData.xrayFile ? ' pp-upload-trigger--active' : ''}`}
                         onClick={handleFileInputClick}
                         disabled={isValidatingFile}
                       >
                         {isValidatingFile ? (
                           <>
-                            <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg className="pp-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
                               <path d="M12 2 A 10 10 0 0 1 22 12" strokeLinecap="round" />
                             </svg>
@@ -1387,22 +1386,11 @@ const PatientProfile = () => {
                         )}
                       </button>
                     </div>
-                    
+
                     {/* Validation Error Message */}
                     {fileValidationError && (
-                      <div className="validation-error" style={{
-                        marginTop: '12px',
-                        padding: '12px 16px',
-                        backgroundColor: '#fee',
-                        border: '1px solid #fcc',
-                        borderRadius: '8px',
-                        color: '#c33',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '20px', height: '20px', flexShrink: 0 }}>
+                      <div className="pp-msg pp-msg--error">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10" />
                           <line x1="12" y1="8" x2="12" y2="12" />
                           <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -1410,72 +1398,36 @@ const PatientProfile = () => {
                         <span>{fileValidationError}</span>
                       </div>
                     )}
-                    
-                    {/* Success Message and Preview */}
+
+                    {/* Success Message */}
                     {formData.xrayFile && !fileValidationError && filePreview && (
-                      <div className="validation-success" style={{
-                        marginTop: '12px',
-                        padding: '12px 16px',
-                        backgroundColor: '#e8f5e9',
-                        border: '1px solid #a5d6a7',
-                        borderRadius: '8px',
-                        color: '#2e7d32',
-                        fontSize: '14px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '20px', height: '20px', flexShrink: 0 }}>
+                      <div className="pp-msg pp-msg--success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                           <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
-                        <span>✓ Valid chest X-ray detected - File uploaded successfully</span>
+                        <span>Valid chest X-ray detected - File uploaded successfully</span>
                       </div>
                     )}
-                    
+
                     {/* Image Preview */}
                     {filePreview && formData.xrayFile && (
-                      <div className="image-preview" style={{
-                        marginTop: '15px',
-                        padding: '15px',
-                        backgroundColor: '#f9f9f9',
-                        borderRadius: '8px',
-                        border: '1px solid #e0e0e0'
-                      }}>
-                        <p style={{ marginBottom: '10px', fontSize: '14px', fontWeight: '500', color: '#333' }}>Preview:</p>
-                        <img 
-                          src={filePreview} 
-                          alt="X-ray preview" 
-                          style={{
-                            maxWidth: '100%',
-                            maxHeight: '300px',
-                            borderRadius: '4px',
-                            border: '2px solid #38B2AC',
-                            display: 'block',
-                            margin: '0 auto'
-                          }}
+                      <div className="pp-preview-box">
+                        <p className="pp-preview-label">Preview:</p>
+                        <img
+                          src={filePreview}
+                          alt="X-ray preview"
+                          className="pp-preview-img"
                         />
-                        
-                        {/* Info text */}
-                        <p style={{
-                          marginTop: '15px',
-                          fontSize: '14px',
-                          color: '#4a5568',
-                          textAlign: 'center',
-                          padding: '10px',
-                          backgroundColor: '#e6fffa',
-                          borderRadius: '6px',
-                          border: '1px solid #81e6d9'
-                        }}>
-                          ℹ️ Click "Upload and Analyze" below to start AI disease detection with preprocessing
+                        <p className="pp-preview-hint">
+                          Click "Upload and Analyze" below to start AI disease detection with preprocessing
                         </p>
                       </div>
                     )}
 
-
                     {/* Professional Medical Report — inline below the form */}
                     {analysisResult && (
-                      <div style={{ marginTop: '30px' }}>
+                      <div className="pp-report-wrap">
                         <div id="medical-report">
                           <MedicalReport
                             reportData={{
@@ -1518,46 +1470,12 @@ const PatientProfile = () => {
                         </div>
 
                         {/* Report Action Buttons - Not included in PDF */}
-                        <div className="report-action-buttons-no-print" style={{
-                          display: 'flex',
-                          gap: '20px',
-                          justifyContent: 'center',
-                          paddingTop: '30px',
-                          marginTop: '30px',
-                          borderTop: '1px solid #e2e8f0'
-                        }}>
+                        <div className="pp-report-actions report-action-buttons-no-print">
                           <button
                             onClick={downloadPDF}
-                            className="report-btn download-btn"
-                            style={{
-                              padding: '14px 32px',
-                              backgroundColor: '#38B2AC',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              transition: 'all 0.3s ease',
-                              boxShadow: '0 2px 4px rgba(56,178,172,0.2)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px'
-                            }}
-                            onMouseOver={(e) => {
-                              e.currentTarget.style.backgroundColor = '#2c9a8e';
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(56,178,172,0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseOut={(e) => {
-                              e.currentTarget.style.backgroundColor = '#38B2AC';
-                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(56,178,172,0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
+                            className="pp-btn pp-btn--download"
                           >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '20px', height: '20px' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                               <polyline points="7 10 12 15 17 10" />
                               <line x1="12" y1="15" x2="12" y2="3" />
@@ -1566,38 +1484,9 @@ const PatientProfile = () => {
                           </button>
                           <button
                             onClick={fetchDoctors}
-                            className="report-btn send-btn"
-                            style={{
-                              padding: '14px 32px',
-                              backgroundColor: '#1F7A6E',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              transition: 'all 0.3s ease',
-                              boxShadow: '0 2px 4px rgba(31,122,110,0.2)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px',
-                              whiteSpace: 'nowrap',
-                              minWidth: 'fit-content'
-                            }}
-                            onMouseOver={(e) => {
-                              e.currentTarget.style.backgroundColor = '#17655C';
-                              e.currentTarget.style.boxShadow = '0 4px 8px rgba(31,122,110,0.3)';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                            }}
-                            onMouseOut={(e) => {
-                              e.currentTarget.style.backgroundColor = '#1F7A6E';
-                              e.currentTarget.style.boxShadow = '0 2px 4px rgba(31,122,110,0.2)';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                            }}
+                            className="pp-btn pp-btn--send"
                           >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '20px', height: '20px' }}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                               <polyline points="22,6 12,13 2,6" />
                             </svg>
@@ -1612,81 +1501,39 @@ const PatientProfile = () => {
 
               {/* Doctor Selection Modal */}
               {showDoctorModal && (
-                <div style={{
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  backgroundColor: 'rgba(0,0,0,0.5)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  zIndex: 1000
-                }} onClick={() => { setShowDoctorModal(false); setDoctorSearch(''); }}>
-                  <div style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    padding: '30px',
-                    maxWidth: '600px',
-                    width: '90%',
-                    maxHeight: '80vh',
-                    overflow: 'auto',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-                  }} onClick={(e) => e.stopPropagation()}>
-                    <h3 style={{
-                      fontSize: '22px',
-                      fontWeight: '700',
-                      color: '#1a202c',
-                      marginBottom: '20px',
-                      textAlign: 'center'
-                    }}>Select Doctor to Send Report</h3>
-                    
+                <div className="pp-modal-overlay" onClick={() => { setShowDoctorModal(false); setDoctorSearch(''); }}>
+                  <div className="pp-modal-panel" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="pp-modal-title">Select Doctor to Send Report</h3>
+
                     {/* Search Input */}
-                    <div style={{ marginBottom: '20px' }}>
+                    <div className="pp-modal-search">
                       <input
                         type="text"
                         placeholder="Search doctor by name..."
                         value={doctorSearch}
                         onChange={(e) => setDoctorSearch(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: '2px solid #e2e8f0',
-                          borderRadius: '8px',
-                          fontSize: '14px',
-                          outline: 'none',
-                          transition: 'border-color 0.3s',
-                          boxSizing: 'border-box'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#38B2AC'}
-                        onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                       />
                     </div>
-                    
-                    <div style={{ marginBottom: '20px', maxHeight: '400px', overflowY: 'auto' }}>
+
+                    <div className="pp-doctor-list">
                       {doctors
-                        .filter(doctor => 
+                        .filter(doctor =>
                           doctor.fullName.toLowerCase().includes(doctorSearch.toLowerCase()) ||
                           (doctor.specialization && doctor.specialization.toLowerCase().includes(doctorSearch.toLowerCase())) ||
                           doctor.pmdcNumber.toLowerCase().includes(doctorSearch.toLowerCase())
                         )
                         .length === 0 ? (
-                          <div style={{
-                            textAlign: 'center',
-                            padding: '40px 20px',
-                            color: '#718096'
-                          }}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '48px', height: '48px', margin: '0 auto 16px', color: '#cbd5e0' }}>
+                          <div className="pp-doctor-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <circle cx="11" cy="11" r="8" />
                               <path d="m21 21-4.35-4.35" />
                             </svg>
-                            <p style={{ fontSize: '16px', fontWeight: '500', marginBottom: '8px' }}>No doctors found</p>
-                            <p style={{ fontSize: '14px' }}>Try adjusting your search terms</p>
+                            <p className="pp-doctor-empty-title">No doctors found</p>
+                            <p className="pp-doctor-empty-sub">Try adjusting your search terms</p>
                           </div>
                         ) : (
                           doctors
-                            .filter(doctor => 
+                            .filter(doctor =>
                               doctor.fullName.toLowerCase().includes(doctorSearch.toLowerCase()) ||
                               (doctor.specialization && doctor.specialization.toLowerCase().includes(doctorSearch.toLowerCase())) ||
                               doctor.pmdcNumber.toLowerCase().includes(doctorSearch.toLowerCase())
@@ -1695,109 +1542,58 @@ const PatientProfile = () => {
                         <div
                           key={doctor.id}
                           onClick={() => setSelectedDoctor(doctor)}
-                          style={{
-                            padding: '15px',
-                            marginBottom: '10px',
-                            border: selectedDoctor?.id === doctor.id ? '2px solid #38B2AC' : '1px solid #e2e8f0',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            backgroundColor: selectedDoctor?.id === doctor.id ? '#f0fdfa' : 'white',
-                            transition: 'all 0.3s'
-                          }}
+                          className={`pp-doctor-card${selectedDoctor?.id === doctor.id ? ' pp-doctor-card--selected' : ''}`}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                            <div style={{
-                              width: 52, height: 52, borderRadius: '50%',
-                              background: '#e0f2f1', flexShrink: 0,
-                              overflow: 'hidden', display: 'flex',
-                              alignItems: 'center', justifyContent: 'center',
-                              border: '2px solid #38B2AC'
-                            }}>
+                          <div className="pp-doctor-card-top">
+                            <div className="pp-doctor-avatar">
                               {doctor.profilePhoto ? (
-                                <img src={doctor.profilePhoto} alt={doctor.fullName}
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={doctor.profilePhoto} alt={doctor.fullName} />
                               ) : (
-                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#38B2AC" strokeWidth="2">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                   <circle cx="12" cy="7" r="4"/>
                                 </svg>
                               )}
                             </div>
-                            <div style={{ flex: 1 }}>
-                              <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#1a202c', margin: 0 }}>
-                                Dr. {doctor.fullName}
-                              </h4>
+                            <div className="pp-doctor-info">
+                              <h4 className="pp-doctor-name">Dr. {doctor.fullName}</h4>
                               {doctor.education && (
-                                <p style={{ fontSize: '12px', color: '#718096', margin: '2px 0' }}>
-                                  {doctor.education}
-                                </p>
+                                <p className="pp-doctor-edu">{doctor.education}</p>
                               )}
                             </div>
                             {selectedDoctor?.id === doctor.id && (
-                              <span style={{ color: '#38B2AC', fontSize: '18px', flexShrink: 0 }}>✓</span>
+                              <span className="pp-doctor-check">&#10003;</span>
                             )}
                           </div>
                           {doctor.specialization && (
-                            <p style={{ fontSize: '13px', color: '#38B2AC', margin: '4px 0', fontWeight: 600 }}>
-                              {doctor.specialization}
-                            </p>
+                            <p className="pp-doctor-spec">{doctor.specialization}</p>
                           )}
                           {doctor.workplace && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
-                              <strong>Hospital:</strong> {doctor.workplace}
-                            </p>
+                            <p className="pp-doctor-meta"><strong>Hospital:</strong> {doctor.workplace}</p>
                           )}
                           {doctor.countryOfSpecialization && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
-                              <strong>Trained in:</strong> {doctor.countryOfSpecialization}
-                            </p>
+                            <p className="pp-doctor-meta"><strong>Trained in:</strong> {doctor.countryOfSpecialization}</p>
                           )}
                           {doctor.experience && (
-                            <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
-                              <strong>Experience:</strong> {doctor.experience}
-                            </p>
+                            <p className="pp-doctor-meta"><strong>Experience:</strong> {doctor.experience}</p>
                           )}
-                          <p style={{ fontSize: '13px', color: '#718096', margin: '3px 0' }}>
-                            <strong>PMDC:</strong> {doctor.pmdcNumber}
-                          </p>
+                          <p className="pp-doctor-meta"><strong>PMDC:</strong> {doctor.pmdcNumber}</p>
                         </div>
                       )))
                       }
                     </div>
 
-                    <div style={{
-                      display: 'flex',
-                      gap: '10px',
-                      justifyContent: 'flex-end'
-                    }}>
+                    <div className="pp-modal-footer">
                       <button
                         onClick={() => { setShowDoctorModal(false); setDoctorSearch(''); }}
-                        style={{
-                          padding: '10px 20px',
-                          backgroundColor: '#e2e8f0',
-                          color: '#4a5568',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
+                        className="pp-btn--cancel"
                       >
                         Cancel
                       </button>
                       <button
                         onClick={sendReportToDoctor}
                         disabled={!selectedDoctor || isSending}
-                        style={{
-                          padding: '10px 20px',
-                          backgroundColor: selectedDoctor ? '#38B2AC' : '#cbd5e0',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: selectedDoctor ? 'pointer' : 'not-allowed'
-                        }}
+                        className="pp-btn--confirm"
                       >
                         {isSending ? 'Sending...' : 'Send Report'}
                       </button>
@@ -1808,11 +1604,11 @@ const PatientProfile = () => {
 
               {/* Submit Button - Hidden when report is generated */}
               {!analysisResult && (
-                <div className="form-actions">
-                  <button type="submit" className="submit-btn" disabled={isAnalyzing}>
+                <div className="pp-form-actions">
+                  <button type="submit" className="pp-submit-btn" disabled={isAnalyzing}>
                     {isAnalyzing ? (
                       <>
-                        <svg className="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="pp-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
                           <path d="M12 2 A 10 10 0 0 1 22 12" strokeLinecap="round" />
                         </svg>
@@ -1836,23 +1632,23 @@ const PatientProfile = () => {
 
           {/* Upload Tip Modal */}
           {showUploadTip && (
-            <div className="upload-tip-overlay" onClick={() => setShowUploadTip(false)}>
-              <div className="upload-tip-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="tip-icon">
+            <div className="pp-tip-overlay" onClick={() => setShowUploadTip(false)}>
+              <div className="pp-tip-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="pp-tip-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" />
                     <path d="M12 16v-4" />
                     <path d="M12 8h.01" />
                   </svg>
                 </div>
-                <h3 className="tip-title">For a clear X-ray photo:</h3>
-                <ul className="tip-list">
+                <h3 className="pp-tip-title">For a clear X-ray photo:</h3>
+                <ul className="pp-tip-list">
                   <li>Hold it against a bright background (window or white screen).</li>
                   <li>Turn off flash to avoid glare.</li>
                   <li>Keep your phone steady and parallel to the X-ray.</li>
                   <li>Avoid reflections by tilting slightly.</li>
                 </ul>
-                <button className="got-it-btn" onClick={handleGotIt}>
+                <button className="pp-got-it-btn" onClick={handleGotIt}>
                   Got it!
                 </button>
               </div>
@@ -1861,15 +1657,15 @@ const PatientProfile = () => {
 
           {/* Success Popup */}
           {showSuccessPopup && (
-            <div className="success-popup">
-              <div className="success-popup-content">
-                <div className="success-icon">
+            <div className="pp-toast">
+              <div className="pp-toast-inner">
+                <div className="pp-toast-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                     <polyline points="22 4 12 14.01 9 11.01" />
                   </svg>
                 </div>
-                <p className="success-text">{successMessage}</p>
+                <p className="pp-toast-text">{successMessage}</p>
               </div>
             </div>
           )}

@@ -12,6 +12,7 @@ const DoctorRecommendation = () => {
   const [selectedPatientReport, setSelectedPatientReport] = useState(null);
   const [showPrescriptionModal, setShowPrescriptionModal] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [newCount, setNewCount] = useState(0);
 
   // Chat state
   const [chatTarget, setChatTarget] = useState(null); // { doctorId, doctorName }
@@ -44,7 +45,12 @@ const DoctorRecommendation = () => {
         const data = await response.json();
         // Filter only prescriptions that have been sent to patient
         const sentPrescriptions = data.prescriptions.filter(p => p.sent_to_patient);
+        // Sort newest-first
+        sentPrescriptions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         setPrescriptions(sentPrescriptions);
+        // Determine how many are "new" (not yet seen)
+        const viewedCount = parseInt(localStorage.getItem('viewedPrescriptionCount') || '0');
+        setNewCount(Math.max(0, sentPrescriptions.length - viewedCount));
       }
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
@@ -179,17 +185,35 @@ const DoctorRecommendation = () => {
             </div>
           ) : (
             <div className="prescriptions-grid">
-              {prescriptions.map((prescription, index) => (
-                <div key={prescription._id || index} className="prescription-card">
+              {prescriptions.map((prescription, index) => {
+                const isNew = index < newCount;
+                return (
+                <div key={prescription._id || index} className={`prescription-card${isNew ? ' prescription-card--new' : ''}`}>
+                  {isNew && <div className="prescription-new-badge">New</div>}
                   <div className="prescription-card-header">
-                    <h3>Dr. {prescription.doctor_name}</h3>
+                    <div className="prescription-header-left">
+                      <div className="prescription-doctor-avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <h3>Dr. {prescription.doctor_name}</h3>
+                        <span className="prescription-specialization">{prescription.doctor_specialization || 'General Physician'}</span>
+                      </div>
+                    </div>
                     <span className="prescription-date">{formatDate(prescription.created_at)}</span>
                   </div>
                   <div className="prescription-card-body">
                     <div className="prescription-info">
-                      <p><strong>Specialization:</strong> {prescription.doctor_specialization}</p>
-                      <p><strong>PMDC Number:</strong> {prescription.doctor_license}</p>
-                      <p><strong>Diagnosis:</strong> {prescription.doctor_diagnosis}</p>
+                      <div className="prescription-info-row">
+                        <span className="prescription-info-label">PMDC</span>
+                        <span className="prescription-info-value">{prescription.doctor_license}</span>
+                      </div>
+                      <div className="prescription-info-row">
+                        <span className="prescription-info-label">Diagnosis</span>
+                        <span className="prescription-info-value">{prescription.doctor_diagnosis || 'See prescription'}</span>
+                      </div>
                     </div>
                   </div>
                   <div className="prescription-card-footer">
@@ -197,11 +221,25 @@ const DoctorRecommendation = () => {
                       onClick={() => handleViewPrescription(prescription)}
                       className="view-prescription-btn"
                     >
-                      View Full Prescription
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                      </svg>
+                      View Prescription
+                    </button>
+                    <button
+                      onClick={() => handleOpenChat(prescription)}
+                      className="chat-doctor-btn"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      Chat
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

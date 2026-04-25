@@ -1049,12 +1049,32 @@ const DrAvatar = () => {
 
           {/* ── Doctor Avatar (left) ─────────────────────── */}
           <aside className="dra-avatar-panel">
+            <div className="dra-avatar-backdrop" aria-hidden="true" />
+
+            <div className="dra-side-card dra-side-card-top">
+              <h4>Session Snapshot</h4>
+              <div className="dra-side-pill-row">
+                <span className="dra-side-pill">Pneumonia AI</span>
+                <span className="dra-side-pill">Voice Assist</span>
+                <span className="dra-side-pill">24/7 Support</span>
+              </div>
+            </div>
+
             <AnimatedDoctorAvatar
               isSpeaking={isSpeaking}
               isListening={isListening}
               gesture={gesture}
               entranceState={entranceState}
             />
+
+            <div className="dra-side-card dra-side-card-bottom">
+              <h4>Try Asking</h4>
+              <ul className="dra-side-prompts">
+                <li>show hospitals near me</li>
+                <li>explain my X-ray report</li>
+                <li>what should I do next?</li>
+              </ul>
+            </div>
           </aside>
 
           {/* ── Chat Panel (right) ───────────────────────── */}

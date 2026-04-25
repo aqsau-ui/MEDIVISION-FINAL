@@ -1,452 +1,536 @@
-/* Color Variables */
-:root {
-  --teal: #38B2AC;
-  --dark-teal: #2C7A7B;
-  --very-dark-teal: #234E52;
-  --beige: #EBE4D6;
-}
+/* ═══════════════════════════════════════════════════════
+   DoctorRecommendation.css — Design-token-driven rewrite
+   ═══════════════════════════════════════════════════════ */
 
-/* Main Container */
+/* ── Page Shell ── */
 .doctor-recommendation-page {
   min-height: 100vh;
-  background-color: var(--beige);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--c-bg);
+  font-family: var(--font-body);
 }
 
-/* Navigation Bar */
+/* ── Page Content (inside PatientLayout) ── */
+.doctor-recommendation-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-8);
+  padding: var(--sp-10) var(--sp-8);
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  animation: ds-fade-up 0.45s var(--ease-out) both;
+}
+
+/* ── Header ── */
+.doctor-recommendation-header {
+  text-align: center;
+}
+
+.doctor-recommendation-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-black);
+  color: var(--c-primary);
+  margin: 0 0 var(--sp-2) 0;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+}
+
+.doctor-recommendation-subtitle {
+  font-size: var(--fs-base);
+  color: var(--c-text-secondary);
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+/* ── Content wrapper ── */
+.doctor-recommendation-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-6);
+  width: 100%;
+  align-items: center;
+}
+
+/* ── Prescriptions Grid ── */
+.prescriptions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-6);
+  width: 100%;
+}
+
+/* ── Prescription Card ── */
+.prescription-card {
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--c-border);
+  border-top: 3px solid var(--c-secondary);
+  box-shadow: var(--shadow-card);
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition:
+    box-shadow var(--dur-base) var(--ease),
+    transform  var(--dur-base) var(--ease),
+    border-color var(--dur-base) var(--ease);
+}
+
+.prescription-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-3px);
+}
+
+/* ── New-prescription blink animation ── */
+@keyframes rx-blink {
+  0%,100% { border-color: var(--c-error); box-shadow: 0 0 0 0 rgba(229,62,62,0); }
+  50%      { border-color: var(--c-error); box-shadow: 0 0 0 6px rgba(229,62,62,0.18); }
+}
+.prescription-card--new {
+  border-top-color: var(--c-error);
+  animation: rx-blink 1.6s ease-in-out 6; /* blinks 6 times then stops */
+}
+.prescription-card--new:hover { animation: none; }
+
+/* "New" pill badge */
+.prescription-new-badge {
+  position: absolute;
+  top: -10px; right: var(--sp-4);
+  background: var(--c-error); color: white;
+  font-size: 10px; font-weight: var(--fw-bold);
+  padding: 2px 8px; border-radius: var(--radius-full);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(229,62,62,0.40);
+  pointer-events: none;
+}
+
+/* Card Header — doctor avatar + name + date */
+.prescription-card-header {
+  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
+  color: var(--c-text-inverse);
+  padding: var(--sp-4) var(--sp-5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.prescription-header-left {
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+
+.prescription-doctor-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,0.18);
+  border: 1.5px solid rgba(255,255,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.prescription-doctor-avatar svg { width: 20px; height: 20px; color: white; }
+
+.prescription-card-header h3 {
+  margin: 0 0 2px;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+}
+
+.prescription-specialization {
+  font-size: var(--fs-xs);
+  opacity: 0.80;
+  font-style: italic;
+}
+
+.prescription-date {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  opacity: 0.80;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Card Body — info rows */
+.prescription-card-body {
+  padding: var(--sp-4) var(--sp-5);
+  flex: 1;
+}
+
+.prescription-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.prescription-info-row {
+  display: flex;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+}
+
+.prescription-info-label {
+  font-weight: var(--fw-semi);
+  color: var(--c-primary);
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.prescription-info-value {
+  color: var(--c-text-secondary);
+}
+
+/* Card Footer — two buttons */
+.prescription-card-footer {
+  padding: var(--sp-3) var(--sp-5);
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.view-prescription-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 9px var(--sp-4);
+  background: var(--c-secondary);
+  color: var(--c-text-inverse);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semi);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+  box-shadow: 0 2px 6px rgba(56, 178, 172, 0.25);
+}
+.view-prescription-btn:hover {
+  background: var(--c-primary);
+  transform: translateY(-1px);
+}
+.view-prescription-btn:active { transform: translateY(0); }
+
+.chat-doctor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: 9px var(--sp-4);
+  background: none;
+  color: var(--c-secondary);
+  border: 1.5px solid var(--c-secondary);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semi);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease);
+}
+.chat-doctor-btn:hover {
+  background: var(--c-secondary-pale);
+  transform: translateY(-1px);
+}
+
+/* ── Empty / Fallback Card ── */
+.doctor-recommendation-card {
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-card);
+  padding: var(--sp-10);
+  width: 100%;
+  max-width: 480px;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--c-text-secondary);
+}
+
+.empty-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--c-bg-alt);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--c-border-strong);
+}
+
+.empty-icon svg {
+  width: 32px;
+  height: 32px;
+  color: var(--c-text-muted);
+}
+
+.empty-state h3 {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semi);
+  color: var(--c-text);
+  margin: 0;
+}
+
+.empty-state p {
+  font-size: var(--fs-sm);
+  color: var(--c-text-secondary);
+  margin: 0;
+  line-height: var(--lh-normal);
+}
+
+/* ── Loading State ── */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: var(--sp-10);
+  color: var(--c-text-secondary);
+  font-size: var(--fs-base);
+}
+
+.loading-state::before {
+  content: '';
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 3px solid var(--c-border-strong);
+  border-top-color: var(--c-secondary);
+  animation: ds-spin 0.7s linear infinite;
+}
+
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+
+/* ── Prescription Modal ── */
+.prescription-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 58, 61, 0.60);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--sp-5);
+  animation: ds-backdrop-in var(--dur-base) var(--ease) both;
+}
+
+@keyframes ds-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+
+.prescription-modal-content {
+  background: var(--c-surface);
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 1000px;
+  max-height: 92vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-xl);
+  animation: ds-modal-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes ds-modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(-12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: var(--sp-5);
+  right: var(--sp-5);
+  background: var(--c-error);
+  color: #fff;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  font-size: 22px;
+  font-weight: var(--fw-bold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: all var(--dur-fast) var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+.modal-close-btn:hover {
+  background: #c53030;
+  transform: scale(1.08);
+}
+
+/* ── Navbar (legacy) ── */
 .dashboard-navbar {
-  background: var(--very-dark-teal);
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--c-primary);
+  padding: var(--sp-4) var(--sp-8);
+  box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
 .navbar-content {
-  max-width: 1400px;
+  max-width: var(--container);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.navbar-right {
-  position: relative;
-}
+.navbar-right { position: relative; }
 
 .user-profile {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.3s ease;
+  transition: background var(--dur-base) var(--ease);
 }
 
-.user-profile:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
+.user-profile:hover { background: rgba(255, 255, 255, 0.16); }
 
 .user-avatar {
   width: 36px;
   height: 36px;
-  background: var(--teal);
-  border-radius: 50%;
+  background: var(--c-secondary);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.user-avatar svg {
-  width: 20px;
-  height: 20px;
-  color: white;
-}
+.user-avatar svg { width: 20px; height: 20px; color: #fff; }
 
 .user-name {
-  color: white;
-  font-weight: 500;
-  font-size: 0.95rem;
+  color: var(--c-text-inverse);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-sm);
 }
 
-.dropdown-icon {
-  width: 16px;
-  height: 16px;
-  color: white;
-}
+.dropdown-icon { width: 16px; height: 16px; color: #fff; }
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + var(--sp-2));
   right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: var(--c-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-md);
   min-width: 180px;
   overflow: hidden;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn 0.18s var(--ease-out) both;
 }
 
 .dropdown-item {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: var(--sp-3) var(--sp-4);
   border: none;
   background: none;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--sp-3);
   cursor: pointer;
-  transition: background 0.2s ease;
-  font-size: 0.95rem;
-  color: #333;
+  transition: background var(--dur-fast) var(--ease);
+  font-size: var(--fs-sm);
+  color: var(--c-text);
 }
 
-.dropdown-item:hover {
-  background: #f5f5f5;
-}
+.dropdown-item:hover { background: var(--c-bg-alt); }
+.dropdown-item svg   { width: 18px; height: 18px; color: var(--c-secondary); }
 
-.dropdown-item svg {
-  width: 18px;
-  height: 18px;
-  color: var(--teal);
-}
-
-/* Dashboard Content */
+/* ── Sidebar (legacy) ── */
 .dashboard-content {
   display: flex;
-  max-width: 100%;
-  margin: 0;
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 64px);
 }
 
-/* Sidebar */
 .dashboard-sidebar {
-  width: 280px;
-  background: var(--very-dark-teal);
-  padding: 2rem 0;
+  width: 260px;
+  background: var(--c-primary);
+  padding: var(--sp-8) 0;
   position: sticky;
-  top: 80px;
-  height: calc(100vh - 80px);
+  top: 64px;
+  height: calc(100vh - 64px);
   overflow-y: auto;
-  order: -1;
+  flex-shrink: 0;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 1rem;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-4);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
-  color: rgba(255, 255, 255, 0.8);
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5);
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  font-size: 0.95rem;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  transition: all var(--dur-base) var(--ease);
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  transform: translateX(5px);
+  background: rgba(255, 255, 255, 0.10);
+  color: #fff;
+  transform: translateX(4px);
 }
 
 .nav-item.active {
-  background: var(--teal);
-  color: white;
+  background: var(--c-secondary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(56, 178, 172, 0.35);
 }
 
-.nav-item svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 2;
-  flex-shrink: 0;
-}
+.nav-item svg { width: 20px; height: 20px; flex-shrink: 0; }
 
-/* Main Content */
+/* ── Doctor Recommendation Main (legacy) ── */
 .doctor-recommendation-main {
   flex: 1;
-  padding: 5rem 3rem 3rem 3rem;
+  padding: var(--sp-10) var(--sp-8) var(--sp-8);
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.doctor-recommendation-header {
-  margin-bottom: 2rem;
-  text-align: center;
-  width: 100%;
-}
-
-.doctor-recommendation-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2rem;
-  font-weight: 700;
-  color: #2C7A7B;
-  margin: 0 0 0.5rem 0;
-  line-height: 1.3;
-  letter-spacing: -0.5px;
-}
-
-.doctor-recommendation-subtitle {
-  font-size: 1rem;
-  color: #4A5568;
-  margin: 0;
-}
-
-/* Prescriptions Grid */
-.prescriptions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 24px;
-  width: 100%;
-  max-width: 1200px;
-}
-
-/* Prescription Card */
-.prescription-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
-
-.prescription-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.prescription-card-header {
-  background: #2C7A7B;
-  color: white;
-  padding: 16px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.prescription-card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.prescription-date {
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-.prescription-card-body {
-  padding: 20px;
-}
-
-.prescription-info p {
-  margin: 10px 0;
-  font-size: 14px;
-  color: #2D3748;
-  line-height: 1.6;
-}
-
-.prescription-info strong {
-  color: #2C7A7B;
-  font-weight: 600;
-}
-
-.prescription-card-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #E2E8F0;
-  text-align: center;
-}
-
-.view-prescription-btn {
-  background: #38B2AC;
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 100%;
-}
-
-.view-prescription-btn:hover {
-  background: #2C7A7B;
-}
-
-/* Loading State */
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: #4A5568;
-  font-size: 16px;
-}
-
-/* Prescription Modal */
-.prescription-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-}
-
-.prescription-modal-content {
-  background: white;
-  border-radius: 8px;
-  max-width: 1100px;
-  max-height: 95vh;
-  width: 100%;
-  overflow: auto;
-  position: relative;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-}
-
-.modal-close-btn {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #EF4444;
-  color: white;
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  font-size: 24px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: all 0.3s ease;
-}
-
-.modal-close-btn:hover {
-  background: #DC2626;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .prescriptions-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .prescription-modal-content {
-    max-width: 100%;
-    max-height: 100vh;
-    border-radius: 0;
-  }
-}
-
-/* Doctor Recommendation Content */
-.doctor-recommendation-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  width: 100%;
-  align-items: center;
-}
-
-.doctor-recommendation-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  min-height: 250px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 500px;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  max-width: 400px;
-  color: #666;
-}
-
-.empty-icon {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 1rem;
-  background: #f5f5f5;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed #ddd;
-}
-
-.empty-icon svg {
-  width: 30px;
-  height: 30px;
-  color: #999;
-}
-
-.empty-state h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 0.5rem 0;
-}
-
-.empty-state p {
-  font-size: 1rem;
-  color: #666;
-  margin: 0;
-}
-
-/* Animations */
+/* ── Animations ── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Responsive Design */
+/* ── Responsive ── */
 @media (max-width: 1024px) {
-  .dashboard-sidebar {
-    width: 240px;
-  }
-
-  .doctor-recommendation-main {
-    padding: 2rem;
-  }
-
-  .doctor-recommendation-title {
-    font-size: 2.5rem;
-  }
+  .dashboard-sidebar { width: 220px; }
+  .doctor-recommendation-main { padding: var(--sp-8) var(--sp-6); }
+  .doctor-recommendation-title { font-size: var(--fs-xl); }
+  .prescriptions-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 }
 
 @media (max-width: 768px) {
-  .dashboard-content {
-    flex-direction: column;
-  }
+  .doctor-recommendation-page-content { padding: var(--sp-6) var(--sp-4); }
+  .dashboard-content { flex-direction: column; }
 
   .dashboard-sidebar {
     width: 100%;
@@ -457,22 +541,19 @@
   .sidebar-nav {
     flex-direction: row;
     overflow-x: auto;
-    padding: 1rem;
+    padding: var(--sp-3) var(--sp-4);
   }
 
-  .nav-item {
-    white-space: nowrap;
+  .nav-item { white-space: nowrap; }
+
+  .doctor-recommendation-main { padding: var(--sp-5) var(--sp-4); }
+  .doctor-recommendation-title { font-size: var(--fs-lg); }
+  .prescriptions-grid { grid-template-columns: 1fr; }
+
+  .prescription-modal-content {
+    max-height: 100dvh;
+    border-radius: 0;
   }
 
-  .doctor-recommendation-main {
-    padding: 1.5rem;
-  }
-
-  .doctor-recommendation-title {
-    font-size: 2rem;
-  }
-
-  .doctor-recommendation-card {
-    padding: 2rem;
-  }
+  .doctor-recommendation-card { padding: var(--sp-8); }
 }

@@ -1,3 +1,5 @@
+@import './design-system.css';
+
 * {
   margin: 0;
   padding: 0;
@@ -17,12 +19,11 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, var(--beige) 0%, #EDE9DC 50%, #E8E3D5 100%);
+  background: var(--c-bg);
+  color: var(--c-text);
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
@@ -64,14 +65,14 @@ html {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--light-grey);
+  background: var(--c-border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--teal);
-  border-radius: 4px;
+  background: var(--c-secondary);
+  border-radius: var(--radius-full);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--dark-teal);
+  background: var(--c-primary-light);
 }

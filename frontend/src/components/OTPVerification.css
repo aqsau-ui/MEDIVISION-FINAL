@@ -1,20 +1,24 @@
+/* ============================================================
+   OTPVerification.css — Modernized with Design Tokens
+   ============================================================ */
+
 .otp-verification-container {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+  padding: var(--sp-8);
 }
 
 .otp-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  padding: 3rem;
-  max-width: 500px;
+  background: var(--c-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  padding: var(--sp-10);
+  max-width: 440px;
   width: 100%;
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--dur-base) var(--ease-out);
 }
 
 @keyframes slideIn {
@@ -30,138 +34,137 @@
 
 .otp-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: var(--sp-10);
 }
 
 .otp-icon {
   width: 80px;
   height: 80px;
-  margin: 0 auto 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
+  margin: 0 auto var(--sp-6);
+  background: linear-gradient(135deg, var(--c-secondary) 0%, var(--c-primary) 100%);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: pulse 2s ease-in-out infinite;
+  animation: pulse 2s var(--ease) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
 }
 
 .otp-icon svg {
   width: 40px;
   height: 40px;
-  color: white;
+  color: var(--c-text-inverse);
 }
 
 .otp-header h2 {
-  color: #2d3748;
-  font-size: 1.8rem;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
+  color: var(--c-text);
+  font-size: var(--fs-xl);
+  margin-bottom: var(--sp-2);
+  font-weight: var(--fw-bold);
 }
 
 .otp-header p {
-  color: #718096;
-  font-size: 1rem;
-  margin: 0.25rem 0;
+  color: var(--c-text-secondary);
+  font-size: var(--fs-base);
+  margin: var(--sp-1) 0;
 }
 
 .otp-email {
-  color: #667eea !important;
-  font-weight: 600 !important;
-  font-size: 1.1rem !important;
+  color: var(--c-secondary) !important;
+  font-weight: var(--fw-semi) !important;
+  font-size: var(--fs-md) !important;
 }
 
 .otp-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--sp-6);
 }
 
 .otp-inputs {
   display: flex;
-  gap: 0.75rem;
+  gap: var(--sp-3);
   justify-content: center;
 }
 
 .otp-input {
-  width: 60px;
-  height: 60px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--c-border-strong);
+  border-radius: var(--radius-md);
   text-align: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2d3748;
-  transition: all 0.2s ease;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  color: var(--c-text);
+  background: var(--c-surface);
+  transition: all var(--dur-fast) var(--ease);
   outline: none;
+  font-family: var(--font-body);
 }
 
 .otp-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--c-secondary);
+  box-shadow: 0 0 0 3px rgba(56, 178, 172, 0.15);
   transform: scale(1.05);
 }
 
 .otp-input.error {
-  border-color: #f56565;
-  animation: shake 0.3s ease;
+  border-color: var(--c-error);
+  animation: shake var(--dur-base) var(--ease);
 }
 
 .otp-input.success {
-  border-color: #48bb78;
+  border-color: var(--c-success);
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
+  25%       { transform: translateX(-5px); }
+  75%       { transform: translateX(5px); }
 }
 
 .message {
-  padding: 0.75rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  padding: var(--sp-3);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   text-align: center;
 }
 
 .error-message {
-  background: #fff5f5;
-  color: #c53030;
-  border: 1px solid #feb2b2;
+  background: rgba(229, 62, 62, 0.08);
+  color: var(--c-error);
+  border: 1px solid rgba(229, 62, 62, 0.2);
 }
 
 .success-message {
-  background: #f0fff4;
-  color: #2f855a;
-  border: 1px solid #9ae6b4;
+  background: rgba(56, 161, 105, 0.08);
+  color: var(--c-success);
+  border: 1px solid rgba(56, 161, 105, 0.2);
 }
 
 .otp-submit-btn {
   width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: var(--sp-4);
+  background: linear-gradient(135deg, var(--c-secondary) 0%, var(--c-primary) 100%);
+  color: var(--c-text-inverse);
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semi);
+  font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all var(--dur-base) var(--ease);
+  box-shadow: 0 4px 15px rgba(56, 178, 172, 0.35);
 }
 
 .otp-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 6px 20px rgba(56, 178, 172, 0.45);
 }
 
 .otp-submit-btn:disabled {
@@ -172,107 +175,109 @@
 
 .otp-footer {
   text-align: center;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--c-border);
 }
 
 .otp-footer p {
-  color: #718096;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  color: var(--c-text-secondary);
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-sm);
 }
 
 .resend-btn {
   background: none;
   border: none;
-  color: #667eea;
-  font-weight: 600;
+  color: var(--c-secondary);
+  font-weight: var(--fw-semi);
   cursor: pointer;
-  font-size: 1rem;
-  padding: 0.5rem 1rem;
-  transition: all 0.2s ease;
+  font-size: var(--fs-base);
+  padding: var(--sp-2) var(--sp-4);
+  font-family: var(--font-body);
+  transition: all var(--dur-fast) var(--ease);
 }
 
 .resend-btn:hover:not(:disabled) {
-  color: #764ba2;
+  color: var(--c-primary);
   text-decoration: underline;
 }
 
 .resend-btn:disabled {
-  color: #a0aec0;
+  color: var(--c-text-muted);
   cursor: not-allowed;
 }
 
 .back-btn {
   width: 100%;
-  padding: 0.75rem;
+  padding: var(--sp-3);
   background: transparent;
-  color: #718096;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  color: var(--c-text-secondary);
+  border: 1.5px solid var(--c-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-semi);
+  font-family: var(--font-body);
   cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 0.5rem;
+  transition: all var(--dur-fast) var(--ease);
+  margin-top: var(--sp-2);
 }
 
 .back-btn:hover {
-  background: #f7fafc;
-  border-color: #cbd5e0;
-  color: #2d3748;
+  background: var(--c-bg-alt);
+  border-color: var(--c-border-strong);
+  color: var(--c-text);
 }
 
 .otp-help {
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e2e8f0;
+  margin-top: var(--sp-8);
+  padding-top: var(--sp-6);
+  border-top: 1px solid var(--c-border);
   text-align: center;
 }
 
 .otp-help p {
-  color: #a0aec0;
-  font-size: 0.85rem;
-  margin: 0.5rem 0;
+  color: var(--c-text-muted);
+  font-size: var(--fs-xs);
+  margin: var(--sp-2) 0;
 }
 
-/* Responsive Design */
+/* Responsive */
 @media (max-width: 768px) {
   .otp-card {
-    padding: 2rem 1.5rem;
+    padding: var(--sp-8) var(--sp-6);
   }
 
   .otp-input {
     width: 48px;
     height: 48px;
-    font-size: 1.25rem;
+    font-size: var(--fs-lg);
   }
 
   .otp-inputs {
-    gap: 0.5rem;
+    gap: var(--sp-2);
   }
 
   .otp-header h2 {
-    font-size: 1.5rem;
+    font-size: var(--fs-lg);
   }
 }
 
 @media (max-width: 480px) {
   .otp-verification-container {
-    padding: 1rem;
+    padding: var(--sp-4);
   }
 
   .otp-card {
-    padding: 1.5rem 1rem;
+    padding: var(--sp-6) var(--sp-4);
   }
 
   .otp-input {
     width: 42px;
     height: 42px;
-    font-size: 1.1rem;
+    font-size: var(--fs-md);
   }
 
   .otp-inputs {
-    gap: 0.4rem;
+    gap: var(--sp-1);
   }
 }

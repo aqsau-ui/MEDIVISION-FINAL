@@ -504,16 +504,8 @@ function downloadReport() {
     if (!active || !payload || !payload.length) return null;
     const point = payload[0].payload;
     return (
-      <div style={{
-        background: '#fff',
-        border: '1px solid #2C7A7B',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        fontSize: '0.82rem',
-        color: '#234E52',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-      }}>
-        <p style={{ fontWeight: 700, marginBottom: 4 }}>{new Date(point.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+      <div className="prd-chart-tooltip">
+        <p className="prd-tooltip-date">{new Date(point.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
         <p>Disease: <strong>{point.disease}</strong></p>
         <p>Probability: <strong>{typeof point.probability === 'number' ? point.probability.toFixed(1) : 'N/A'}%</strong></p>
         <p>Health Score: <strong>{point.health_score}/100</strong></p>
@@ -527,48 +519,15 @@ function downloadReport() {
       {showReport && (
         <div
           id="medivision-report-overlay"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            background: 'rgba(15,23,42,0.72)',
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            overflowY: 'auto',
-            padding: '32px 16px 48px',
-          }}
+          className="prd-report-overlay"
           onClick={(e) => { if (e.target === e.currentTarget) setShowReport(false); }}
         >
-          <div style={{
-            width: '100%',
-            maxWidth: '860px',
-            background: '#fff',
-            borderRadius: '10px',
-            overflow: 'hidden',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
-            position: 'relative',
-          }}>
-            {/* Close button outside iframe */}
+          <div className="prd-report-frame-wrap">
             <button
+              className="prd-report-close-btn"
               onClick={() => setShowReport(false)}
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 16,
-                zIndex: 10,
-                background: 'rgba(255,255,255,0.95)',
-                border: '1px solid #d1d5db',
-                borderRadius: '7px',
-                padding: '6px 14px',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: '#374151',
-                cursor: 'pointer',
-                fontFamily: 'Arial, sans-serif',
-              }}
             >
-              ✕ Close
+              X Close
             </button>
             <iframe
               srcDoc={reportHtml}
@@ -579,40 +538,33 @@ function downloadReport() {
           </div>
         </div>
       )}
-      <div className="progress-page-content">
-        <div className="progress-header">
-          <h1 className="progress-title">Track Your Respiratory Health</h1>
-          <p className="progress-subtitle">Longitudinal chest X-ray monitoring with AI-assisted disease detection & comparative analysis</p>
+      <div className="prd-page">
+        <div className="prd-header">
+          <h1 className="prd-title">Track Your Respiratory Health</h1>
+          <p className="prd-subtitle">Longitudinal chest X-ray monitoring with AI-assisted disease detection &amp; comparative analysis</p>
         </div>
 
-        <div className="progress-content">
+        <div className="prd-content">
           {/* Error Message */}
           {error && (
-            <div className="error-banner" style={{
-              backgroundColor: '#fee2e2',
-              border: '1px solid #ef4444',
-              borderRadius: '8px',
-              padding: '16px',
-              marginBottom: '20px',
-              color: '#991b1b'
-            }}>
+            <div className="prd-error-banner">
               <strong>Error:</strong> {error}
             </div>
           )}
 
           {/* Analysis Result Section */}
           {analysisResult && (
-            <div className="progress-card analysis-result-card">
+            <div className="prd-card prd-analysis-card">
               {/* ── Header row ── */}
-              <div className="analysis-header">
-                <div>
-                  <h2 className="card-title" style={{ marginBottom: 2 }}>Analysis Results</h2>
-                  <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
+              <div className="prd-analysis-header">
+                <div className="prd-analysis-header-left">
+                  <h2>Analysis Results</h2>
+                  <p className="prd-analysis-date">
                     {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </p>
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="report-gen-btn" onClick={handleGenerateReport}>
+                <div className="prd-analysis-actions">
+                  <button className="prd-report-btn" onClick={handleGenerateReport}>
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                       <polyline points="14 2 14 8 20 8"/>
@@ -621,41 +573,39 @@ function downloadReport() {
                     </svg>
                     Generate Report
                   </button>
-                  <button className="new-upload-btn" onClick={handleNewUpload}>
+                  <button className="prd-action-btn" onClick={handleNewUpload}>
                     New Analysis
                   </button>
                 </div>
               </div>
 
               {/* ── Two-column body ── */}
-              <div className="result-body">
+              <div className="prd-result-body">
 
                 {/* LEFT — X-ray images compact */}
-                <div className="result-images">
-                  <div className="xray-thumb-pair">
-                    <div className="xray-thumb-box">
-                      <p className="thumb-label">Current X-Ray</p>
-                      <img src={selectedImage} alt="Current X-ray" className="xray-thumb-img" />
-                    </div>
-                    {analysisResult.heatmap && (
-                      <div className="xray-thumb-box">
-                        <p className="thumb-label">Affected Regions</p>
-                        <img src={analysisResult.heatmap} alt="Heatmap" className="xray-thumb-img" />
-                      </div>
-                    )}
+                <div className="prd-xray-pair">
+                  <div className="prd-xray-thumb">
+                    <p className="prd-thumb-label">Current X-Ray</p>
+                    <img src={selectedImage} alt="Current X-ray" className="prd-thumb-img" />
                   </div>
+                  {analysisResult.heatmap && (
+                    <div className="prd-xray-thumb">
+                      <p className="prd-thumb-label">Affected Regions</p>
+                      <img src={analysisResult.heatmap} alt="Heatmap" className="prd-thumb-img" />
+                    </div>
+                  )}
                 </div>
 
                 {/* RIGHT — Clinical summary */}
-                <div className="result-summary">
+                <div className="prd-result-summary">
 
                   {/* Prediction pill */}
-                  <div className="prediction-pill" style={{ backgroundColor: getSeverityColor(analysisResult.prediction) }}>
+                  <div className="prd-prediction-pill" style={{ backgroundColor: getSeverityColor(analysisResult.prediction) }}>
                     {analysisResult.prediction}
                   </div>
 
                   {/* Key metrics row */}
-                  <p className="metrics-line">
+                  <p className="prd-metrics-line">
                     Probability: <strong>{analysisResult.probability?.toFixed(1)}%</strong>
                     &nbsp;|&nbsp;Severity: <strong>{analysisResult.severity}</strong>
                     &nbsp;|&nbsp;Respiratory Health Score: <strong>{analysisResult.health_score}/100</strong>
@@ -663,16 +613,16 @@ function downloadReport() {
 
                   {/* Comparison block — only when comparison exists */}
                   {analysisResult.comparison && (
-                    <div className="comparison-panel">
-                      <p className="comparison-title">Comparison with Previous X-Ray</p>
-                      <p className="comparison-line">
+                    <div className="prd-comparison-panel">
+                      <p className="prd-comparison-title">Comparison with Previous X-Ray</p>
+                      <p className="prd-comparison-line">
                         Prev. Health Score: <strong>{analysisResult.comparison.previous_health_score ?? 'N/A'}/100</strong>
                         &nbsp;|&nbsp;Current Health Score: <strong>{analysisResult.comparison.current_health_score ?? analysisResult.health_score}/100</strong>
                       </p>
-                      <p className="comparison-line">
-                        Pneumonia Probability: <strong>{analysisResult.comparison.previous_probability?.toFixed(1)}%</strong> → <strong>{analysisResult.comparison.current_probability?.toFixed(1)}%</strong>
+                      <p className="prd-comparison-line">
+                        Pneumonia Probability: <strong>{analysisResult.comparison.previous_probability?.toFixed(1)}%</strong> &rarr; <strong>{analysisResult.comparison.current_probability?.toFixed(1)}%</strong>
                       </p>
-                      <p className="comparison-line">
+                      <p className="prd-comparison-line">
                         SSIM Similarity:&nbsp;
                         <strong>{analysisResult.comparison.ssim_score !== null && analysisResult.comparison.ssim_score !== undefined
                           ? `${(analysisResult.comparison.ssim_score * 100).toFixed(2)}%`
@@ -690,14 +640,14 @@ function downloadReport() {
                   )}
 
                   {/* Progress summary */}
-                  <div className="progress-summary-line">
-                    <span className="summary-label">Progress Summary:</span>{' '}
+                  <div className="prd-progress-summary">
+                    <span className="prd-summary-label">Progress Summary:</span>{' '}
                     {analysisResult.summary || getStatusSummary(analysisResult?.comparison?.status)}
                   </div>
 
                   {/* Medical disclaimer */}
-                  <p className="result-disclaimer">
-                    ⚠️ AI-assisted analysis only. Consult a qualified healthcare professional for clinical interpretation.
+                  <p className="prd-result-disclaimer">
+                    AI-assisted analysis only. Consult a qualified healthcare professional for clinical interpretation.
                   </p>
                 </div>
               </div>
