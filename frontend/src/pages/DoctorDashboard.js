@@ -42,6 +42,9 @@ function DoctorDashboard() {
   const [hasPlayedSound, setHasPlayedSound] = useState(false);
   const previousCountRef = useRef(0);
   
+  // Theme toggle
+  const [isDark, setIsDark] = useState(true);
+
   // Prescription states
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showPrescriptionReport, setShowPrescriptionReport] = useState(false);
@@ -157,9 +160,7 @@ function DoctorDashboard() {
     if (diseaseFilter !== 'all') {
       filtered = filtered.filter(p => {
         const disease = p.disease?.toLowerCase();
-        if (diseaseFilter === 'tb') {
-          return disease === 'tuberculosis';
-        } else if (diseaseFilter === 'pneumonia') {
+        if (diseaseFilter === 'pneumonia') {
           return disease === 'pneumonia';
         } else if (diseaseFilter === 'normal') {
           return disease === 'normal';
@@ -528,11 +529,9 @@ function DoctorDashboard() {
   }
 
   // Calculate disease analytics from real patient data
-  const tbCount = patients.filter(p => p.disease?.toLowerCase() === 'tuberculosis').length;
   const pneumoniaCount = patients.filter(p => p.disease?.toLowerCase() === 'pneumonia').length;
   const normalCount = patients.filter(p => p.disease?.toLowerCase() === 'normal').length;
-  const totalDiseases = tbCount + pneumoniaCount + normalCount;
-  const tbPercentage = totalDiseases > 0 ? (tbCount / totalDiseases * 100).toFixed(1) : 0;
+  const totalDiseases = pneumoniaCount + normalCount;
   const pneumoniaPercentage = totalDiseases > 0 ? (pneumoniaCount / totalDiseases * 100).toFixed(1) : 0;
   const normalPercentage = totalDiseases > 0 ? (normalCount / totalDiseases * 100).toFixed(1) : 0;
 
@@ -563,7 +562,7 @@ function DoctorDashboard() {
   ];
 
   return (
-    <div className="dd-root">
+    <div className={`dd-root${isDark ? '' : ' dd-root--light'}`}>
       {/* Top Navbar */}
       <nav className="dd-navbar">
         <div className="dd-navbar-inner">
@@ -571,7 +570,29 @@ function DoctorDashboard() {
             <Logo />
           </div>
           <div className="dd-navbar-right">
-            <button className="dd-icon-btn" title="Patient Chat" onClick={() => { setShowChatInbox(true); setUnreadChatCount(0); }}>
+            {/* Theme Toggle */}
+            <button className="dd-icon-btn dd-theme-toggle" title={isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'} onClick={() => setIsDark(v => !v)}>
+              {isDark ? (
+                /* Sun icon for switching to light */
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+              ) : (
+                /* Moon icon for switching to dark */
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+              )}
+            </button>
+            <button className="dd-icon-btn" title="Patient Chat" onClick={() => setShowChatInbox(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
@@ -706,6 +727,18 @@ function DoctorDashboard() {
           <div className="dd-analytics-card">
             <h3 className="dd-chart-title">Disease Distribution</h3>
             <div className="dd-chart-container">
+              <div className="dd-chart-legend">
+                <div className="dd-legend-item">
+                  <span className="dd-legend-color dd-legend-color--pneumonia"></span>
+                  <span className="dd-legend-label">Pneumonia</span>
+                  <span className="dd-legend-value">{pneumoniaCount} ({pneumoniaPercentage}%)</span>
+                </div>
+                <div className="dd-legend-item">
+                  <span className="dd-legend-color dd-legend-color--normal"></span>
+                  <span className="dd-legend-label">Normal</span>
+                  <span className="dd-legend-value">{normalCount} ({normalPercentage}%)</span>
+                </div>
+              </div>
               <div className="dd-donut-chart">
                 <svg viewBox="0 0 200 200">
                   <circle
@@ -734,33 +767,6 @@ function DoctorDashboard() {
                   <div className="dd-total-cases">{totalDiseases}</div>
                   <div className="dd-total-label">Total Cases</div>
                 </div>
-              </div>
-              <div className="dd-chart-legend">
-<div className="dd-legend-item">
-                  <span className="dd-legend-color dd-legend-color--pneumonia"></span>
-                  <span className="dd-legend-label">Pneumonia</span>
-                  <span className="dd-legend-value">{pneumoniaCount} ({pneumoniaPercentage}%)</span>
-                </div>
-                <div className="dd-legend-item">
-                  <span className="dd-legend-color dd-legend-color--normal"></span>
-                  <span className="dd-legend-label">Normal</span>
-                  <span className="dd-legend-value">{normalCount} ({normalPercentage}%)</span>
-                </div>
-              </div>
-            </div>
-            {/* Mini stat row below chart */}
-            <div className="dd-analytics-stats">
-              <div className="dd-analytics-stat">
-                <span className="dd-analytics-stat-value">{totalDiseases}</span>
-                <span className="dd-analytics-stat-label">Total Patients</span>
-              </div>
-<div className="dd-analytics-stat">
-                <span className="dd-analytics-stat-value" style={{color:'var(--dd-orange)'}}>{pneumoniaCount}</span>
-                <span className="dd-analytics-stat-label">Pneumonia</span>
-              </div>
-              <div className="dd-analytics-stat">
-                <span className="dd-analytics-stat-value" style={{color:'var(--dd-green)'}}>{normalCount}</span>
-                <span className="dd-analytics-stat-label">Normal</span>
               </div>
             </div>
           </div>
@@ -1033,12 +1039,13 @@ function DoctorDashboard() {
                           type="button"
                           className="dd-sig-remove-btn"
                           onClick={handleRemoveSignature}
+                          aria-label="Remove signature"
+                          title="Remove signature"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                           </svg>
-                          Remove
                         </button>
                       </div>
                     )}
@@ -1055,7 +1062,7 @@ function DoctorDashboard() {
                         <polyline points="17 8 12 3 7 8"></polyline>
                         <line x1="12" y1="3" x2="12" y2="15"></line>
                       </svg>
-                      {signaturePreview ? 'Change Signature' : 'Upload Signature Image'}
+                      Upload Signature
                     </label>
                     <p className="dd-sig-hint">Upload a PNG or JPG image of your signature (max 2MB)</p>
                   </div>
@@ -1068,12 +1075,13 @@ function DoctorDashboard() {
                           type="button"
                           className="dd-sig-remove-btn"
                           onClick={handleRemoveSignature}
+                          aria-label="Remove signature and redraw"
+                          title="Remove signature and redraw"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                           </svg>
-                          Remove &amp; Redraw
                         </button>
                       </div>
                     ) : (
@@ -1148,8 +1156,13 @@ function DoctorDashboard() {
               <button
                 className="dd-modal-close--danger"
                 onClick={handleCloseReportModal}
+                aria-label="Close report"
+                title="Close"
               >
-                ×
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
               </button>
             </div>
 
