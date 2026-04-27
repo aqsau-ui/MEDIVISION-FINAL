@@ -8,6 +8,7 @@ import os
 
 from .config import mysql_db, mongodb, settings
 from .routers import auth, doctor_auth, patient_profile, xray_chat, doctors, reports, notifications, doctor_prescription, medical_reports, doctor_profile, chat_ws
+from .routers.progress_reports import progress_router  # progress report flow
 from .services.rag_service import rag_service
 
 try:
@@ -134,6 +135,7 @@ app.include_router(xray_chat.xray_router)
 app.include_router(xray_chat.chat_router)
 app.include_router(doctors.router)
 app.include_router(reports.router)
+app.include_router(progress_router)
 app.include_router(notifications.notification_router)
 app.include_router(doctor_prescription.router)
 app.include_router(medical_reports.router, prefix="/api/medical-reports", tags=["Medical Reports"])

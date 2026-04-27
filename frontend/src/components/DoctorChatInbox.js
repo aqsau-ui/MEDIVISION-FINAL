@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './ChatModule.css';
 
-const API     = 'http://localhost:8001/api/patient-chat';
-const WS_BASE = 'ws://localhost:8001/api/patient-chat/ws';
+const API     = 'http://localhost:8000/api/patient-chat';
+const WS_BASE = 'ws://localhost:8000/api/patient-chat/ws';
 
 const DAYS = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
@@ -328,9 +328,13 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
   // -- Render message content ------------------------------------------------
   const renderMsg = (msg) => {
     if (msg.message_type === 'voice') {
-      const src = msg.local_url || (msg.audio_base64 ? `data:audio/webm;base64,${msg.audio_base64}` : null);
+      const src = msg.local_url
+        || (msg.audio_base64 ? `data:audio/webm;base64,${msg.audio_base64}` : null)
+        || (msg.file_data    ? `data:audio/webm;base64,${msg.file_data}`    : null)
+        || (msg.content && msg.content.startsWith('data:audio') ? msg.content : null);
       return src
-        ? <audio controls src={src} style={{ maxWidth: 220, outline: 'none', display: 'block' }} />
+        ? <audio controls src={src} style={{ maxWidth: 240, width: 240, outline: 'none', display: 'block', borderRadius: 8 }}
+            preload="metadata" crossOrigin="anonymous" />
         : <span style={{ fontSize: 12, opacity: 0.8 }}>Voice note (processing…)</span>;
     }
     if (msg.message_type === 'image') {
@@ -421,7 +425,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                   <span style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusDot(s.status), border: '1.5px solid #0a1120' }} />
                 </div>
                 <div className="dci-session-info">
-                  <p className="dci-session-email">{s.patient_email}</p>
+                  <p className="dci-session-email">{s.patient_name || s.patient_email?.split('@')[0]}</p>
                   {s.last_message_text && (
                     <p style={{ margin: 0, fontSize: 11.5, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 140 }}>
                       {s.last_message_text}
@@ -452,7 +456,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                 {/* Topbar */}
                 <div className="dci-chat-topbar">
                   <div>
-                    <span className="dci-chat-patient">{activeSession?.patient_email || '—'}</span>
+                    <span className="dci-chat-patient">{activeSession?.patient_name || activeSession?.patient_email?.split('@')[0] || '—'}</span>
                     <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: statusDot(activeSession?.status) }}>
                       ● {activeSession?.status?.toUpperCase() || 'PENDING'}
                     </span>
@@ -666,7 +670,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#fff', borderRadius: 12, width: '100%', maxWidth: 960,
+              background: '#fff', borderRadius: 12, width: '100%', maxWidth: 700,
               maxHeight: '92vh', overflowY: 'auto',
               boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
               fontFamily: '"Times New Roman", Georgia, serif'
@@ -695,19 +699,25 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
 
             {/* AI Report content — uses correct nested field paths from MongoDB */}
             {reportModal === 'ai' && ai && (() => {
-              const pred   = ai.analysis?.prediction || ai.diagnosis || ai.predicted_disease || '';
-              const conf   = parseFloat(ai.analysis?.confidence ?? ai.confidence ?? 0);
+              const pred   = ai.analysis?.prediction || ai.diagnosis || ai.predicted_disease || ai.predictionResult || '';
+              const conf   = parseFloat(ai.analysis?.confidence ?? ai.analysis?.probability ?? ai.confidence ?? 0);
               const sev    = ai.analysis?.severity || ai.severity || '';
-              const expl   = ai.analysis?.heatmapExplanation || ai.medical_context || '';
-              const pName  = ai.patient?.name  || ai.patient_name  || '—';
-              const pAge   = ai.patient?.age   || ai.patient_age   || '—';
-              const pGend  = ai.patient?.gender|| ai.patient_gender|| '—';
-              const pSmoke = ai.patient?.smokingStatus || ai.smoking_status || '—';
-              const pCough = ai.patient?.hasCough || '—';
-              const symp   = ai.medicalInfo?.symptoms || ai.symptoms || '';
-              const hist   = ai.medicalInfo?.medicalHistory || ai.medical_history || '';
+              const expl   = ai.analysis?.heatmapExplanation || ai.analysis?.explanation || ai.medical_context || '';
+
+              // Patient fields — cover every possible MongoDB shape
+              const pName  = ai.patient?.name  || ai.patient_name  || ai.patientName  || ai.patientInfo?.name  || reportContext?.patient_name || '—';
+              const pAge   = ai.patient?.age   || ai.patient_age   || ai.patientAge   || ai.patientInfo?.age   || '—';
+              const pGend  = ai.patient?.gender || ai.patient_gender || ai.patientGender || ai.patientInfo?.gender || '—';
+              const pSmoke = ai.patient?.smokingStatus || ai.smokingStatus || ai.smoking_status || ai.patientInfo?.smokingStatus || '—';
+              const pCough = ai.patient?.hasCough || ai.hasCough || ai.patientInfo?.hasCough || '—';
+              const symp   = ai.medicalInfo?.symptoms  || ai.patient?.symptoms  || ai.symptoms  || '';
+              const hist   = ai.medicalInfo?.medicalHistory || ai.patient?.medicalHistory || ai.medical_history || '';
               const rDate  = ai.createdAt || ai.created_at || ai.timestamp;
               const isNorm = pred === 'Normal';
+
+              // Images — cover every possible MongoDB shape
+              const imgOriginal = ai.images?.original || ai.images?.xray || ai.xrayImage || ai.xray_image || ai.imageUrl || null;
+              const imgHeatmap  = ai.images?.heatmap  || ai.images?.heatmapImage || ai.heatmapImage || ai.heatmap_url || null;
               return (
                 <div style={{ padding: '24px 30px' }}>
                   {/* MEDIVISION header */}
@@ -719,7 +729,7 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                     <div style={{ fontSize: 12, color: '#4a5568', lineHeight: 2, textAlign: 'right' }}>
                       <div><strong>Report ID:</strong> {ai.reportId || ai.report_id || 'N/A'}</div>
                       <div><strong>Date:</strong> {rDate ? new Date(rDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}</div>
-                      <div><strong>Patient ID:</strong> {reportContext.patient_email?.split('@')[0].toUpperCase() || 'N/A'}</div>
+                      <div><strong>Patient:</strong> {pName !== '—' ? pName : (reportContext.patient_email?.split('@')[0] || 'N/A')}</div>
                     </div>
                   </div>
 
@@ -792,18 +802,24 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
                   </div>
 
                   {/* X-Ray Images */}
-                  {(ai.images?.original || ai.images?.heatmap) && (
+                  {(imgOriginal || imgHeatmap) && (
                     <div style={{ marginBottom: 18 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>Chest X-Ray Images</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                        {ai.images?.original && (<div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>Original X-Ray</div>
-                          <img src={ai.images.original} alt="X-Ray" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
-                        </div>)}
-                        {ai.images?.heatmap && (<div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>AI Heatmap Analysis</div>
-                          <img src={ai.images.heatmap} alt="Heatmap" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
-                        </div>)}
+                      <div style={{ display: 'grid', gridTemplateColumns: imgOriginal && imgHeatmap ? '1fr 1fr' : '1fr', gap: 16 }}>
+                        {imgOriginal && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 600 }}>Original X-Ray</div>
+                            <img src={imgOriginal} alt="X-Ray"
+                              style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0', display: 'block', background: 'transparent' }} />
+                          </div>
+                        )}
+                        {imgHeatmap && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: '#718096', marginBottom: 6, fontWeight: 600 }}>AI Heatmap Analysis</div>
+                            <img src={imgHeatmap} alt="Heatmap"
+                              style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0', display: 'block', background: 'transparent' }} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -818,81 +834,100 @@ export default function DoctorChatInbox({ doctorId, onClose }) {
 
             {/* Prescription content */}
             {reportModal === 'rx' && rx && (
-              <div style={{ padding: '24px 30px' }}>
+              <div style={{ padding: '32px 40px', fontFamily: 'Georgia, "Times New Roman", serif' }}>
                 {/* Doctor header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #2c5f6f', paddingBottom: 14, marginBottom: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #2c5f6f', paddingBottom: 18, marginBottom: 24 }}>
                   <div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#2c5f6f' }}>Dr. {rx.doctor_name || '—'}</div>
-                    <div style={{ fontSize: 13, color: '#4a5568', marginTop: 2 }}>{rx.doctor_qualifications || 'MBBS'}</div>
-                    <div style={{ fontSize: 13, color: '#718096', fontStyle: 'italic' }}>Specialist in {rx.doctor_specialization || 'General Medicine'}</div>
+                    <div style={{ fontSize: 26, fontWeight: 700, color: '#2c5f6f', marginBottom: 4 }}>Dr. {rx.doctor_name || '—'}</div>
+                    <div style={{ fontSize: 14, color: '#4a5568', marginBottom: 3, fontWeight: 600 }}>{rx.doctor_qualifications || 'MBBS'}</div>
+                    <div style={{ fontSize: 14, color: '#718096', fontStyle: 'italic' }}>Specialist in {rx.doctor_specialization || 'General Medicine'}</div>
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: 12, color: '#4a5568' }}>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#38B2AC' }}>+ MEDIVISION</div>
-                    <div style={{ marginTop: 4 }}>PMDC: {rx.doctor_license || '—'}</div>
-                    <div>{rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '—'}</div>
+                  <div style={{ textAlign: 'right', fontSize: 13, color: '#4a5568' }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: '#38B2AC', marginBottom: 4 }}>+ MEDIVISION</div>
+                    <div>PMDC: {rx.doctor_license || '—'}</div>
+                    <div style={{ marginTop: 2 }}>{rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '—'}</div>
                   </div>
                 </div>
 
                 {/* Patient row */}
-                <div style={{ display: 'flex', gap: 30, background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14 }}>
-                  <span><strong>Patient:</strong> {rx.patient_name || reportContext.patient_email}</span>
-                  {rx.patient_age && <span><strong>Age:</strong> {rx.patient_age}</span>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 32px', background: '#EEF6F6', border: '1px solid #B2DFDB', borderRadius: 8, padding: '12px 20px', marginBottom: 22 }}>
+                  <span style={{ fontSize: 15, color: '#1a202c', fontWeight: 700 }}>
+                    Patient: <span style={{ fontWeight: 500 }}>{rx.patient_name || reportContext.patient_email?.split('@')[0] || '—'}</span>
+                  </span>
+                  {rx.patient_age && <span style={{ fontSize: 14, color: '#2d3748' }}><strong>Age:</strong> {rx.patient_age} yrs</span>}
+                  {rx.patient_gender && rx.patient_gender !== 'Not specified' && <span style={{ fontSize: 14, color: '#2d3748' }}><strong>Gender:</strong> {rx.patient_gender}</span>}
                 </div>
 
                 {/* AI Diagnosis Verification */}
-                <div style={{ marginBottom: 14, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #38B2AC', borderRadius: 8 }}>
-                  <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#718096', marginBottom: 4, letterSpacing: 0.5 }}>AI Diagnosis Verification</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#166534' }}>
-                    {rx.diagnosis_confirmation === 'confirm' ? '✓ Confirmed — AI diagnosis verified' : rx.diagnosis_confirmation === 'modify' ? 'Modified — See doctor\'s diagnosis below' : 'Inconclusive — Further tests recommended'}
+                <div style={{ marginBottom: 20, padding: '14px 18px', background: '#f0fdf4', border: '1px solid #38B2AC', borderRadius: 8 }}>
+                  <div style={{ fontSize: 11, textTransform: 'uppercase', color: '#718096', marginBottom: 6, letterSpacing: 0.5 }}>AI Diagnosis Verification</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#166534' }}>
+                    {rx.diagnosis_confirmation === 'confirm' ? '✓ Confirmed — AI diagnosis verified' : rx.diagnosis_confirmation === 'modify' ? '✎ Modified — See doctor\'s diagnosis below' : '? Inconclusive — Further tests recommended'}
                   </div>
                 </div>
 
                 {/* Diagnosis */}
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Diagnosis</div>
-                  <div style={{ fontSize: 15, color: '#1a202c', lineHeight: 1.8 }}>{rx.doctor_diagnosis || '—'}</div>
+                <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#2c5f6f', letterSpacing: 0.5, marginBottom: 10 }}>Diagnosis</div>
+                  <div style={{ fontSize: 15, color: '#1a202c', lineHeight: 1.9, paddingLeft: 8 }}>{rx.doctor_diagnosis || '—'}</div>
                 </div>
 
                 {rx.medications && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Medications</div>
-                    {rx.medications.split('\n').map((m, i) => m.trim() && (
-                      <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '5px 0', borderBottom: '1px dashed #e2e8f0' }}>• {m}</div>
-                    ))}
+                  <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#2c5f6f', letterSpacing: 0.5, marginBottom: 12 }}>Medications</div>
+                    <div style={{ background: '#f7fafc', border: '2px solid #2c5f6f', borderRadius: 6, padding: '12px 16px' }}>
+                      {rx.medications.split('\n').map((m, i) => m.trim() && (
+                        <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '6px 0', borderBottom: i < rx.medications.split('\n').filter(x=>x.trim()).length - 1 ? '1px dashed #e2e8f0' : 'none', fontFamily: '"Courier New", monospace' }}>• {m}</div>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 {rx.diet_recommendations && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Dietary Recommendations</div>
+                  <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#2c5f6f', letterSpacing: 0.5, marginBottom: 10 }}>Dietary Recommendations</div>
                     {rx.diet_recommendations.split('\n').map((d, i) => d.trim() && (
-                      <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '3px 0' }}>• {d}</div>
+                      <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '5px 0 5px 8px', lineHeight: 1.7 }}>• {d}</div>
                     ))}
                   </div>
                 )}
 
                 {rx.precautions && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: '#2d3748', borderBottom: '1px solid #e2e8f0', paddingBottom: 5, marginBottom: 10 }}>Precautions</div>
+                  <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', color: '#2c5f6f', letterSpacing: 0.5, marginBottom: 10 }}>Precautions</div>
                     {rx.precautions.split('\n').map((p, i) => p.trim() && (
-                      <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '3px 0' }}>• {p}</div>
+                      <div key={i} style={{ fontSize: 14, color: '#2d3748', padding: '5px 0 5px 8px', lineHeight: 1.7 }}>• {p}</div>
                     ))}
                   </div>
                 )}
 
                 {rx.hospital_visit_required && (
-                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 16px', marginBottom: 16, color: '#b91c1c', fontWeight: 600, fontSize: 14 }}>
-                    ⚠ Patient is advised to visit a hospital for comprehensive physical examination and further diagnostic tests.
+                  <div style={{ background: '#fef2f2', border: '2px solid #ef4444', borderRadius: 8, padding: '14px 20px', marginBottom: 22, color: '#b91c1c', fontWeight: 600, fontSize: 14, lineHeight: 1.7 }}>
+                    ⚠ <strong>IMPORTANT:</strong> Patient is advised to visit a hospital for comprehensive physical examination and further diagnostic tests.
                   </div>
                 )}
 
                 {/* Signature */}
-                <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #e2e8f0', textAlign: 'right', fontSize: 13, color: '#4a5568' }}>
-                  {rx.doctor_signature && <img src={rx.doctor_signature} alt="Signature" style={{ height: 60, marginBottom: 6, display: 'inline-block' }} />}
-                  <div style={{ fontWeight: 700, fontSize: 15, color: '#2c5f6f' }}>Dr. {rx.doctor_name || '—'}</div>
-                  <div>{rx.doctor_license ? `PMDC: ${rx.doctor_license}` : ''}{rx.doctor_specialization ? ` | ${rx.doctor_specialization}` : ''}</div>
-                  <div style={{ fontStyle: 'italic', marginTop: 4 }}>{rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : ''}</div>
+                {(() => {
+                  const sig = rx.doctor_signature;
+                  const isValid = sig && typeof sig === 'string' && sig.length > 50 &&
+                    (sig.startsWith('data:image') || sig.startsWith('http') || sig.startsWith('/'));
+                  return (
+                <div style={{ marginTop: 40, paddingTop: 20, borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
+                  {isValid ? (
+                    <div style={{ display: 'inline-block', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 20px', marginBottom: 10 }}>
+                      <img src={sig} alt="Doctor Signature"
+                        style={{ height: 80, maxWidth: 220, objectFit: 'contain', display: 'block' }} />
+                    </div>
+                  ) : (
+                    <div style={{ width: 200, height: 2, background: '#2d3748', marginLeft: 'auto', marginBottom: 10 }} />
+                  )}
+                  <div style={{ fontWeight: 700, fontSize: 16, color: '#2c5f6f' }}>Dr. {rx.doctor_name || '—'}</div>
+                  <div style={{ fontSize: 13, color: '#718096', marginTop: 3 }}>{rx.doctor_license ? `PMDC: ${rx.doctor_license}` : ''}{rx.doctor_specialization ? ` | ${rx.doctor_specialization}` : ''}</div>
+                  <div style={{ fontStyle: 'italic', fontSize: 13, color: '#4a5568', marginTop: 4 }}>{rx.created_at ? new Date(rx.created_at).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : ''}</div>
                 </div>
+                  );
+                })()}
               </div>
             )}
           </div>

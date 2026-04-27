@@ -10,6 +10,8 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import './ProgressDetection.css';
+const XRAY_API_BASE = process.env.REACT_APP_XRAY_API_BASE || 'http://localhost:8000';
+const API_BASE = 'http://localhost:8000';
 
 const ProgressDetection = () => {
   const [showUploadTip, setShowUploadTip] = useState(false);
@@ -25,6 +27,27 @@ const ProgressDetection = () => {
   const [viewReportData, setViewReportData] = useState(null);
   const [showReport, setShowReport] = useState(false);
   const [reportHtml, setReportHtml] = useState('');
+
+  // ── Send to Doctor state ──
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
+  const [originalDoctor, setOriginalDoctor] = useState(null);   // priority doctor
+  const [allDoctors, setAllDoctors] = useState([]);
+  const [showAllDoctors, setShowAllDoctors] = useState(false);
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [isSendingToDoctor, setIsSendingToDoctor] = useState(false);
+  const [sendSuccess, setSendSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleReportMessage = (event) => {
+      if (!event?.data || event.data.type !== 'prd-send-doctor') return;
+      setShowReport(false);
+      handleOpenSendToDoctor();
+    };
+
+    window.addEventListener('message', handleReportMessage);
+    return () => window.removeEventListener('message', handleReportMessage);
+  }, []);
 
   const patientData = useMemo(() => {
     try {
@@ -42,9 +65,6 @@ const ProgressDetection = () => {
         return '#10b981';
       case 'pneumonia':
         return '#f59e0b';
-      case 'tuberculosis':
-      case 'tb':
-        return '#ef4444';
       case 'mild':
         return '#10b981';
       case 'moderate':
@@ -71,7 +91,7 @@ const ProgressDetection = () => {
       return;
     }
     try {
-      const response = await fetch(`http://localhost:8000/api/xray/progress/history/${encodeURIComponent(patientId)}`);
+      const response = await fetch(`${XRAY_API_BASE}/api/xray/progress/history/${encodeURIComponent(patientId)}`);
       const data = await response.json();
       if (!response.ok || !data.success) {
         // Don't surface history-load failures as a page-level error
@@ -115,19 +135,40 @@ const ProgressDetection = () => {
   };
 
   const handleGenerateReport = async () => {
-    let patientAge = 'N/A';
-    let patientGender = 'N/A';
+    let patientAge = patientData?.age || patientData?.patientAge || 'N/A';
+    let patientGender = patientData?.gender || patientData?.patientGender || 'N/A';
     let patientName = patientData?.fullName || patientData?.name || patientData?.username || 'Patient';
 
     try {
-      const profileRes = await fetch(`http://localhost:5000/api/patient/profile/${encodeURIComponent(patientId)}`);
-      if (profileRes.ok) {
+      const profileEndpoints = [
+        `http://localhost:8000/api/patient/profile/${encodeURIComponent(patientId)}`,
+        `http://localhost:5000/api/patient/profile/${encodeURIComponent(patientId)}`,
+      ];
+
+      for (const endpoint of profileEndpoints) {
+        const profileRes = await fetch(endpoint);
+        if (!profileRes.ok) continue;
+
         const profileData = await profileRes.json();
         const p = profileData.profile?.personalInfo || profileData.profile || {};
-        patientAge = p.age || profileData.profile?.age || 'N/A';
-        patientGender = p.gender || profileData.profile?.gender || 'N/A';
+        patientAge = patientAge !== 'N/A' ? patientAge : (p.age || profileData.profile?.age || 'N/A');
+        patientGender = patientGender !== 'N/A' ? patientGender : (p.gender || profileData.profile?.gender || 'N/A');
+
+        if (patientAge !== 'N/A' && patientGender !== 'N/A') break;
       }
     } catch (_) {}
+
+    if (patientAge === 'N/A' || patientGender === 'N/A') {
+      try {
+        const latestRes = await fetch(`${API_BASE}/api/reports/patient/${encodeURIComponent(patientId)}/latest`);
+        if (latestRes.ok) {
+          const latestData = await latestRes.json();
+          const latest = latestData?.report || {};
+          patientAge = patientAge !== 'N/A' ? patientAge : (latest?.patient?.age ?? latest?.patientAge ?? 'N/A');
+          patientGender = patientGender !== 'N/A' ? patientGender : (latest?.patient?.gender ?? latest?.patientGender ?? 'N/A');
+        }
+      } catch (_) {}
+    }
 
     const sortedHistory = [...historyRecords].sort(
       (a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0)
@@ -280,11 +321,11 @@ const ProgressDetection = () => {
   .td-label { color: #4b5563; width: 220px; }
   .td-val { font-weight: 600; color: #1a1a1a; }
   /* Imaging */
-  .imaging-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .imaging-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .img-card { text-align: center; }
   .img-label { font-size: 10px; color: #6b7280; margin-bottom: 6px; font-family: Arial, sans-serif; line-height: 1.4; }
   .img-date { font-size: 9px; color: #9ca3af; font-style: italic; }
-  .report-img { width: 100%; height: 150px; object-fit: cover; border-radius: 5px; border: 1px solid #d1d5db; background: #111; display: block; }
+  .report-img { width: 100%; height: 120px; object-fit: contain; border-radius: 5px; border: 1px solid #d1d5db; background: #111; display: block; }
   /* Interpretation */
   .interp-text { font-size: 13px; color: #1f2937; line-height: 1.85; text-align: justify; }
   /* Recommendations */
@@ -296,9 +337,12 @@ const ProgressDetection = () => {
   .disclaimer { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 12px 16px; font-size: 10.5px; color: #6b7280; line-height: 1.7; font-family: Arial, sans-serif; }
   .disclaimer strong { color: #374151; }
   /* Action bar */
-  .action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 28px; }
+  .action-bar { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+  .action-bar-group { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn-download { padding: 9px 20px; background: #1d4e50; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: Arial, sans-serif; }
   .btn-download:hover { background: #163a3c; }
+  .btn-send-doctor { padding: 9px 20px; background: #38B2AC; color: #fff; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: Arial, sans-serif; }
+  .btn-send-doctor:hover { background: #2C7A7B; }
   @media print {
     .action-bar { display: none !important; }
     body { background: #fff; }
@@ -308,11 +352,6 @@ const ProgressDetection = () => {
 </head>
 <body>
 <div class="report-wrap">
-
-  <!-- Action Bar -->
-  <div class="action-bar">
-    <button class="btn-download" onclick="downloadReport()">&#11015; Download Report</button>
-  </div>
 
   <!-- Header -->
   <div class="report-header">
@@ -324,7 +363,6 @@ const ProgressDetection = () => {
     <div class="header-right">
       <p><strong>Report Date:</strong> ${reportDate}</p>
       <p><strong>Report ID:</strong> ${reportId}</p>
-      <p><strong>Modality:</strong> Chest X-Ray (CXR — PA View)</p>
     </div>
   </div>
 
@@ -364,6 +402,13 @@ const ProgressDetection = () => {
     <strong>Disclaimer:</strong> This report was generated by the MEDIVISION AI diagnostic system (DenseNet121-ResNet50 Feature Fusion with CBAM Attention, binary classification: Normal vs. Pneumonia). It is intended solely as a clinical decision-support tool and does not constitute a formal radiological or medical diagnosis. All findings must be interpreted by a qualified and licensed clinician or radiologist in the context of the patient's complete clinical history, examination, and ancillary investigations. MEDIVISION and its AI systems assume no medico-legal liability for clinical decisions made on the basis of this report.
   </div>
 
+  <div class="action-bar">
+    <div class="action-bar-group">
+      <button class="btn-download" onclick="downloadReport()">&#11015; Download Report</button>
+      <button class="btn-send-doctor" onclick="sendToDoctor()">&#9993; Send to Doctor</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -382,6 +427,10 @@ function downloadReport() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+function sendToDoctor() {
+  window.parent.postMessage({ type: 'prd-send-doctor' }, '*');
 }
 </script>
 </body>
@@ -405,7 +454,7 @@ function downloadReport() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/xray/progress/eligibility?patient_id=${encodeURIComponent(patientId)}`);
+      const response = await fetch(`${XRAY_API_BASE}/api/xray/progress/eligibility?patient_id=${encodeURIComponent(patientId)}`);
       const data = await response.json();
 
       if (data.success && data.has_prior_record === false) {
@@ -446,21 +495,20 @@ function downloadReport() {
       try {
         const validFormData = new FormData();
         validFormData.append('file', file);
-        const validRes = await fetch('http://localhost:8000/api/xray/validate-xray', {
+        const validRes = await fetch(`${XRAY_API_BASE}/api/xray/validate-xray`, {
           method: 'POST',
           body: validFormData
         });
         const validData = await validRes.json();
         if (validRes.ok && validData.isChestXray === false) {
           throw new Error(
-            'The uploaded image does not meet the criteria for a valid chest radiograph. ' +
-            'Please upload a standard posterior-anterior (PA) chest X-ray in JPEG or PNG format. ' +
-            'Other types of images, photographs, or non-chest radiographs cannot be accepted.'
+            '⚠️ Not a valid chest X-ray. ' +
+            (validData.message || 'Please upload a standard posterior-anterior (PA) chest radiograph. Selfies, photos, and non-radiograph images are not accepted.')
           );
         }
       } catch (validErr) {
         // If the error is our own validation rejection, re-throw it
-        if (validErr.message.includes('does not meet the criteria')) throw validErr;
+        if (validErr.message.includes('Not a valid chest X-ray')) throw validErr;
         // Otherwise (network error etc.) allow upload to proceed
         console.warn('X-ray pre-validation unavailable, proceeding:', validErr.message);
       }
@@ -471,7 +519,7 @@ function downloadReport() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`http://localhost:8000/api/xray/progress/analyze?patient_id=${encodeURIComponent(patientId)}`, {
+      const response = await fetch(`${XRAY_API_BASE}/api/xray/progress/analyze?patient_id=${encodeURIComponent(patientId)}`, {
         method: 'POST',
         body: formData
       });
@@ -500,6 +548,108 @@ function downloadReport() {
     document.getElementById('xray-upload').click();
   };
 
+  // ── Open doctor selection modal ──
+  const handleOpenSendToDoctor = async () => {
+    setSendSuccess(false);
+    setSelectedDoctor(null);
+    setShowAllDoctors(false);
+    setDoctorSearch('');
+    setShowDoctorModal(true);
+
+    // Fetch original doctor (priority)
+    try {
+      const res = await fetch(`${API_BASE}/api/progress-reports/original-doctor/${encodeURIComponent(patientId)}`);
+      const data = await res.json();
+      if (data.success && data.doctor) setOriginalDoctor(data.doctor);
+      else setOriginalDoctor(null);
+    } catch { setOriginalDoctor(null); }
+
+    // Fetch all registered doctors
+    try {
+      const res2 = await fetch(`${API_BASE}/api/doctors/list`);
+      const data2 = await res2.json();
+      if (data2.success) setAllDoctors(data2.doctors || []);
+    } catch {}
+  };
+
+  const handleConfirmSend = async () => {
+    if (!selectedDoctor || !analysisResult) return;
+    setIsSendingToDoctor(true);
+    try {
+      const pd = JSON.parse(localStorage.getItem('patientData') || '{}');
+      const doctorId = Number(selectedDoctor.id);
+      const sortedHistory = [...historyRecords].sort(
+        (a, b) => new Date(b.date || b.timestamp || b.createdAt || 0) - new Date(a.date || a.timestamp || a.createdAt || 0)
+      );
+      const previousRecord = sortedHistory.length > 1 ? sortedHistory[1] : null;
+      if (!doctorId || isNaN(doctorId)) {
+        alert('Invalid doctor selected. Please try again.');
+        setIsSendingToDoctor(false);
+        return;
+      }
+
+      let resolvedAge = Number(pd.age) || 0;
+      let resolvedGender = pd.gender || pd.patientGender || '';
+
+      if (!resolvedAge || !resolvedGender) {
+        try {
+          const profileEndpoints = [
+            `${API_BASE}/api/patient/profile/${encodeURIComponent(patientId)}`,
+            `http://localhost:5000/api/patient/profile/${encodeURIComponent(patientId)}`,
+          ];
+
+          for (const endpoint of profileEndpoints) {
+            const profileRes = await fetch(endpoint);
+            if (!profileRes.ok) continue;
+            const profileData = await profileRes.json();
+            const p = profileData.profile?.personalInfo || profileData.profile || {};
+            resolvedAge = resolvedAge || Number(p.age || profileData.profile?.age || 0);
+            resolvedGender = resolvedGender || p.gender || profileData.profile?.gender || '';
+            if (resolvedAge && resolvedGender) break;
+          }
+        } catch (_) {}
+      }
+
+      const payload = {
+        doctorId,
+        patientId,
+        patientName: pd.fullName || pd.name || 'Patient',
+        patientEmail: pd.email || patientId,
+        patientAge: resolvedAge || 0,
+        patientGender: resolvedGender || 'Not specified',
+        prediction: analysisResult.prediction || '',
+        confidence: analysisResult.confidence || 0,
+        severity: analysisResult.severity || '',
+        healthScore: analysisResult.health_score || null,
+        probability: analysisResult.probability || null,
+        comparison: analysisResult.comparison || null,
+        summary: analysisResult.summary || getStatusSummary(analysisResult.comparison?.status),
+        currentXray: selectedImage || '',
+        heatmap: analysisResult.heatmap || '',
+        previousXray: previousRecord?.xray_image || previousRecord?.xrayImage || '',
+        previousHeatmap: previousRecord?.heatmap || '',
+      };
+      const res = await fetch(`${API_BASE}/api/progress-reports/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      let data = {};
+      try { data = await res.json(); } catch (_) {}
+      if (res.ok && data.success) {
+        setSendSuccess(true);
+        setTimeout(() => { setShowDoctorModal(false); setSendSuccess(false); }, 2500);
+      } else {
+        const msg = data.detail || `Server error (${res.status}). Please restart the backend and try again.`;
+        alert(msg);
+      }
+    } catch (e) {
+      alert('Network error. Please check your connection and ensure the backend is running.');
+    } finally {
+      setIsSendingToDoctor(false);
+    }
+  };
+
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
     const point = payload[0].payload;
@@ -523,16 +673,30 @@ function downloadReport() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowReport(false); }}
         >
           <div className="prd-report-frame-wrap">
-            <button
-              className="prd-report-close-btn"
-              onClick={() => setShowReport(false)}
-            >
-              X Close
-            </button>
+            {/* ── Report toolbar: close + Download + Send to Doctor ── */}
+            <div className="prd-report-toolbar">
+              <div className="prd-report-toolbar-left">
+                <span className="prd-report-toolbar-title">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  Progress Report
+                </span>
+              </div>
+              <div className="prd-report-toolbar-actions">
+                <button
+                  className="prd-report-close-btn"
+                  onClick={() => setShowReport(false)}
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
             <iframe
               srcDoc={reportHtml}
               title="MEDIVISION Radiological Report"
-              style={{ width: '100%', height: '90vh', border: 'none', display: 'block' }}
+              style={{ width: '100%', height: 'calc(100vh - 56px)', border: 'none', display: 'block' }}
               sandbox="allow-scripts allow-same-origin allow-downloads"
             />
           </div>
@@ -691,8 +855,8 @@ function downloadReport() {
               </div>
               <div className="card-content">
                 <h2 className="card-title">Upload Chest X-Ray</h2>
-                <p className="card-description">
-                  Upload a chest X-ray image for AI-powered disease detection (TB, Pneumonia, Normal)
+                  <p className="card-description">
+                  Upload a chest X-ray image for AI-powered disease detection (Pneumonia, Normal)
                 </p>
                 
                 {uploading || analyzing ? (
@@ -956,6 +1120,163 @@ function downloadReport() {
               <strong>⚠️ Medical Disclaimer:</strong> This AI-generated report is intended to assist clinical decision-making and does not constitute a definitive medical diagnosis. Results must be interpreted by a qualified healthcare professional in the context of the patient's full clinical history.
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ══ Send to Doctor Modal ══ */}
+      {showDoctorModal && (
+        <div className="prd-modal-overlay" onClick={() => setShowDoctorModal(false)}>
+          <div className="prd-doctor-modal" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="prd-dm-header">
+              <div className="prd-dm-header-left">
+                <div className="prd-dm-header-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="prd-dm-title">Send Progress Report to Doctor</h3>
+                  <p className="prd-dm-subtitle">Your doctor will review the AI analysis and provide clinical comments</p>
+                </div>
+              </div>
+              <button className="prd-dm-close" onClick={() => setShowDoctorModal(false)}>✕</button>
+            </div>
+
+            {sendSuccess ? (
+              <div className="prd-dm-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#276749" strokeWidth="2.5" width="48" height="48">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h4>Report Sent Successfully!</h4>
+                <p>Dr. {selectedDoctor?.fullName} has been notified and will review your progress report shortly.</p>
+              </div>
+            ) : (
+              <div className="prd-dm-body">
+
+                {/* Priority Doctor Banner */}
+                {originalDoctor && !showAllDoctors && (
+                  <div className="prd-dm-priority-banner">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
+                    </svg>
+                    <span>We recommend sending to your <strong>original doctor</strong> — they already know your medical history.</span>
+                  </div>
+                )}
+
+                {/* Original Doctor Card */}
+                {originalDoctor && !showAllDoctors && (
+                  <div
+                    className={`prd-dm-doctor-card prd-dm-doctor-card--priority${selectedDoctor?.id === originalDoctor.id ? ' selected' : ''}`}
+                    onClick={() => setSelectedDoctor(originalDoctor)}
+                  >
+                    <div className="prd-dm-doctor-avatar">
+                      {originalDoctor.profilePhoto
+                        ? <img src={originalDoctor.profilePhoto} alt="" />
+                        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="28" height="28"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      }
+                    </div>
+                    <div className="prd-dm-doctor-info">
+                      <div className="prd-dm-doctor-name">Dr. {originalDoctor.fullName}
+                        <span className="prd-dm-priority-tag">Your Doctor</span>
+                      </div>
+                      <div className="prd-dm-doctor-meta">
+                        {originalDoctor.specialization && <span>{originalDoctor.specialization}</span>}
+                        {originalDoctor.pmdcNumber && <span>PMDC: {originalDoctor.pmdcNumber}</span>}
+                        {originalDoctor.city && <span>📍 {originalDoctor.city}</span>}
+                      </div>
+                      <div className="prd-dm-knows-you">✓ Has reviewed your previous X-ray reports</div>
+                    </div>
+                    <div className={`prd-dm-radio${selectedDoctor?.id === originalDoctor.id ? ' checked' : ''}`}/>
+                  </div>
+                )}
+
+                {/* Other Doctors toggle */}
+                {!showAllDoctors && (
+                  <button className="prd-dm-other-btn" onClick={() => { setShowAllDoctors(true); setSelectedDoctor(null); }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Choose a different doctor
+                  </button>
+                )}
+
+                {/* All Doctors List */}
+                {showAllDoctors && (
+                  <>
+                    <div className="prd-dm-search-row">
+                      <button className="prd-dm-back-btn" onClick={() => { setShowAllDoctors(false); setSelectedDoctor(null); }}>
+                        ← Back
+                      </button>
+                      <input
+                        className="prd-dm-search"
+                        placeholder="Search by name or specialization…"
+                        value={doctorSearch}
+                        onChange={e => setDoctorSearch(e.target.value)}
+                      />
+                    </div>
+                    <div className="prd-dm-doctors-list">
+                      {allDoctors
+                        .filter(d => !doctorSearch || d.fullName?.toLowerCase().includes(doctorSearch.toLowerCase()) || d.specialization?.toLowerCase().includes(doctorSearch.toLowerCase()))
+                        .map(d => (
+                          <div
+                            key={d.id}
+                            className={`prd-dm-doctor-card${selectedDoctor?.id === d.id ? ' selected' : ''}${d.id === originalDoctor?.id ? ' prd-dm-doctor-card--priority' : ''}`}
+                            onClick={() => setSelectedDoctor(d)}
+                          >
+                            <div className="prd-dm-doctor-avatar">
+                              {d.profilePhoto
+                                ? <img src={d.profilePhoto} alt="" />
+                                : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="24" height="24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                              }
+                            </div>
+                            <div className="prd-dm-doctor-info">
+                              <div className="prd-dm-doctor-name">
+                                Dr. {d.fullName}
+                                {d.id === originalDoctor?.id && <span className="prd-dm-priority-tag">Your Doctor</span>}
+                              </div>
+                              <div className="prd-dm-doctor-meta">
+                                {d.specialization && <span>{d.specialization}</span>}
+                                {d.pmdcNumber && <span>PMDC: {d.pmdcNumber}</span>}
+                                {d.city && <span>📍 {d.city}</span>}
+                              </div>
+                            </div>
+                            <div className={`prd-dm-radio${selectedDoctor?.id === d.id ? ' checked' : ''}`}/>
+                          </div>
+                        ))
+                      }
+                      {allDoctors.filter(d => !doctorSearch || d.fullName?.toLowerCase().includes(doctorSearch.toLowerCase()) || d.specialization?.toLowerCase().includes(doctorSearch.toLowerCase())).length === 0 && (
+                        <p className="prd-dm-empty">No doctors found matching "{doctorSearch}"</p>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Footer */}
+                <div className="prd-dm-footer">
+                  <button className="prd-dm-cancel" onClick={() => setShowDoctorModal(false)}>Cancel</button>
+                  <button
+                    className="prd-dm-send-btn"
+                    disabled={!selectedDoctor || isSendingToDoctor}
+                    onClick={handleConfirmSend}
+                  >
+                    {isSendingToDoctor ? (
+                      <><span className="prd-dm-spinner"/>&nbsp;Sending…</>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                          <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+                        </svg>
+                        Send to {selectedDoctor ? `Dr. ${selectedDoctor.fullName}` : 'Doctor'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

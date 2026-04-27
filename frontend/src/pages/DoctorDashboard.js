@@ -45,6 +45,17 @@ function DoctorDashboard() {
   // Theme toggle
   const [isDark, setIsDark] = useState(true);
 
+  // Progress report states
+  const [progressReports, setProgressReports] = useState([]);
+  const [showProgressPanel, setShowProgressPanel] = useState(false);
+  const [selectedProgressReport, setSelectedProgressReport] = useState(null);
+  const [progressCommentForm, setProgressCommentForm] = useState({
+    clinical_impression: '', recommendations: '', medications: '', follow_up: '', additional_notes: '', hospital_visit_required: false,
+  });
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentSuccess, setCommentSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState('cases'); // 'cases' | 'progress'
+
   // Prescription states
   const [showReviewPanel, setShowReviewPanel] = useState(false);
   const [showPrescriptionReport, setShowPrescriptionReport] = useState(false);
@@ -112,15 +123,18 @@ function DoctorDashboard() {
           console.log(`Received ${data.count} reports:`, data.reports);
           setPatientReports(data.reports);
           
-          // Transform reports to match existing patients structure
-          const transformedPatients = data.reports.map(report => ({
-            id: report.reportId,
-            name: report.patient.name,
-            date: report.sentAt,
-            status: report.status,
-            disease: report.analysis.prediction,
-            reportData: report
-          }));
+          // Transform only AI diagnostic reports for "Recent Patient Cases".
+          // Progress reports have a different shape and are shown in the Progress tab.
+          const transformedPatients = (data.reports || [])
+            .filter(report => report.reportType !== 'progress')
+            .map(report => ({
+              id: report.reportId,
+              name: report.patient?.name || report.patientName || 'Unknown',
+              date: report.sentAt || report.createdAt,
+              status: report.status,
+              disease: report.analysis?.prediction || 'Unknown',
+              reportData: report
+            }));
           
           console.log('Transformed patients:', transformedPatients);
           setPatients(transformedPatients);
@@ -135,7 +149,74 @@ function DoctorDashboard() {
     };
 
     fetchPatientReports();
+    const iv = setInterval(fetchPatientReports, 12000);
+    return () => clearInterval(iv);
   }, [doctor]);
+
+  // Fetch progress reports sent to this doctor
+  useEffect(() => {
+    const fetchProgressReports = async () => {
+      if (!doctor) return;
+      try {
+        const res = await fetch(`http://localhost:8000/api/progress-reports/for-doctor/${doctor.id}`);
+        const data = await res.json();
+        if (data.success) setProgressReports(data.reports || []);
+      } catch (e) { console.warn('Progress reports fetch failed:', e.message); }
+    };
+    fetchProgressReports();
+    const iv = setInterval(fetchProgressReports, 12000);
+    return () => clearInterval(iv);
+  }, [doctor]);
+
+  const handleOpenProgressReport = async (report) => {
+    // Fetch full detail (with images)
+    try {
+      const res = await fetch(`http://localhost:8000/api/progress-reports/detail/${report.reportId}`);
+      const data = await res.json();
+      if (data.success) {
+        setSelectedProgressReport(data.report);
+        setProgressCommentForm({ clinical_impression: '', recommendations: '', medications: '', follow_up: '', additional_notes: '', hospital_visit_required: false });
+        setCommentSuccess(false);
+        setShowProgressPanel(true);
+      }
+    } catch { alert('Failed to load report details.'); }
+  };
+
+  const handleSubmitProgressComment = async () => {
+    if (!selectedProgressReport || !doctor) return;
+    if (!progressCommentForm.clinical_impression.trim() || !progressCommentForm.recommendations.trim()) {
+      alert('Please fill in Clinical Impression and Recommendations before sending.');
+      return;
+    }
+    setSubmittingComment(true);
+    try {
+      const savedProfile = JSON.parse(localStorage.getItem(`doctorProfile_${doctor.id}`) || '{}');
+      const payload = {
+        progress_report_id: selectedProgressReport.reportId,
+        doctor_id: String(doctor.id),
+        doctor_name: doctor.fullName || doctor.full_name || doctor.name || 'Doctor',
+        doctor_license: doctor.pmdc_number || doctor.pmdcNumber || '',
+        doctor_specialization: savedProfile.specializations?.[0] || '',
+        doctor_qualifications: (savedProfile.medicalDegrees || []).join(', ') || 'MBBS',
+        doctor_signature: signaturePreview || null,
+        ...progressCommentForm,
+      };
+      const res = await fetch('http://localhost:8000/api/progress-reports/doctor-comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCommentSuccess(true);
+        // Refresh progress reports list
+        const res2 = await fetch(`http://localhost:8000/api/progress-reports/for-doctor/${doctor.id}`);
+        const data2 = await res2.json();
+        if (data2.success) setProgressReports(data2.reports || []);
+      } else { alert(data.detail || 'Failed to submit comments.'); }
+    } catch { alert('Network error. Please try again.'); }
+    finally { setSubmittingComment(false); }
+  };
 
   // Auto-apply filters when any filter value changes
   useEffect(() => {
@@ -183,7 +264,7 @@ function DoctorDashboard() {
   useEffect(() => {
     if (!doctor?.id) return;
     const fetchUnread = () => {
-      fetch(`http://localhost:8001/api/patient-chat/sessions/doctor/${doctor.id}`)
+      fetch(`http://localhost:8000/api/patient-chat/sessions/doctor/${doctor.id}`)
         .then(r => r.json())
         .then(d => {
           if (d.success) {
@@ -464,45 +545,51 @@ function DoctorDashboard() {
       });
 
       if (response.ok) {
-        // Update patient report status to completed
-        const statusResponse = await fetch(`http://localhost:8000/api/reports/update-status/${prescription.report_id}?status=completed`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+        // Try to update report status to completed — non-critical, don't throw on failure
+        try {
+          await fetch(`http://localhost:8000/api/reports/update-status/${prescription.report_id}?status=completed`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+          });
+        } catch (_) { /* status update is best-effort */ }
 
-        if (statusResponse.ok) {
-          setSuccessMessage('✅ Prescription sent to patient successfully!');
-          setShowSuccessMessage(true);
-          
-          // Refetch patient reports to update the list
+        setSuccessMessage('✅ Prescription sent to patient successfully!');
+        setShowSuccessMessage(true);
+
+        // Reflect completion immediately in local state
+        const updateStatusToCompleted = (list) =>
+          list.map((patient) => {
+            const patientReportId = String(patient.reportData?.reportId || patient.id || '');
+            const prescriptionReportId = String(prescription.report_id || '');
+            if (!patientReportId || !prescriptionReportId || patientReportId !== prescriptionReportId) return patient;
+            return { ...patient, status: 'completed', reportData: { ...patient.reportData, status: 'completed' } };
+          });
+
+        setPatients((prev) => updateStatusToCompleted(prev));
+        setFilteredPatients((prev) => updateStatusToCompleted(prev));
+
+        // Refetch to sync server state
+        try {
           const reportsResponse = await fetch(`http://localhost:8000/api/reports/doctor/${doctor.id}`);
           const data = await reportsResponse.json();
-          
           if (data.success) {
-            const transformedPatients = data.reports.map(report => ({
-              id: report.reportId,
-              name: report.patient.name,
-              date: report.sentAt,
-              status: report.status,
-              disease: report.analysis.prediction,
-              reportData: report
-            }));
-            
-            setPatients(transformedPatients);
-            setFilteredPatients(transformedPatients);
+            const transformed = (data.reports || [])
+              .filter(r => r.reportType !== 'progress')
+              .map(report => ({
+                id: report.reportId,
+                name: report.patient?.name || report.patientName || 'Unknown',
+                date: report.sentAt || report.createdAt,
+                status: report.status,
+                disease: report.analysis?.prediction || 'Unknown',
+                reportData: report
+              }));
+            setPatients(transformed);
+            setFilteredPatients(transformed);
           }
-          
-          handleCloseReportModal();
-          
-          setTimeout(() => {
-            setShowSuccessMessage(false);
-            setSuccessMessage('');
-          }, 3000);
-        } else {
-          throw new Error('Failed to update patient status');
-        }
+        } catch (_) { /* refetch is best-effort */ }
+
+        handleCloseReportModal();
+        setTimeout(() => { setShowSuccessMessage(false); setSuccessMessage(''); }, 3000);
       } else {
         const error = await response.json();
         setSuccessMessage('❌ Failed: ' + (error.detail || 'Unknown error'));
@@ -560,6 +647,45 @@ function DoctorDashboard() {
     'Ukraine','United Arab Emirates','United Kingdom','United States','Uzbekistan',
     'Venezuela','Vietnam','Yemen','Zimbabwe',
   ];
+
+  const pendingPatients = filteredPatients.filter((patient) => {
+    const normalizedStatus = String(patient.status || '').toLowerCase();
+    return normalizedStatus !== 'completed';
+  });
+
+  const completedPatients = filteredPatients.filter((patient) => {
+    const normalizedStatus = String(patient.status || '').toLowerCase();
+    return normalizedStatus === 'completed';
+  });
+
+  const displayedPatients =
+    statusFilter === 'completed'
+      ? completedPatients
+      : statusFilter === 'pending'
+        ? pendingPatients
+        : filteredPatients;
+
+  const filteredProgressReports = progressReports.filter((r) => {
+    const patientName = (r.patientName || '').toLowerCase();
+    const prediction = (r.analysis?.prediction || '').toLowerCase();
+    const progressStatus = String(r.status || '').toLowerCase();
+
+    const matchesSearch = !searchTerm || patientName.includes(searchTerm.toLowerCase());
+
+    let matchesStatus = true;
+    if (statusFilter === 'pending') {
+      matchesStatus = progressStatus === 'progress';
+    } else if (statusFilter === 'completed') {
+      matchesStatus = progressStatus === 'commented';
+    }
+
+    const matchesDisease = diseaseFilter === 'all' || prediction === diseaseFilter;
+
+    return matchesSearch && matchesStatus && matchesDisease;
+  });
+
+  const casesTitle = statusFilter === 'completed' ? 'Completed Cases' : 'Recent Patient Cases';
+  const emptyCasesMessage = statusFilter === 'completed' ? 'No completed cases found.' : 'No patients found.';
 
   return (
     <div className={`dd-root${isDark ? '' : ' dd-root--light'}`}>
@@ -725,7 +851,12 @@ function DoctorDashboard() {
 
           {/* Right: Disease Analytics Chart */}
           <div className="dd-analytics-card">
-            <h3 className="dd-chart-title">Disease Distribution</h3>
+            <div className="dd-analytics-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+              </svg>
+              <h3 className="dd-chart-title">Disease Distribution</h3>
+            </div>
             <div className="dd-chart-container">
               <div className="dd-chart-legend">
                 <div className="dd-legend-item">
@@ -813,57 +944,306 @@ function DoctorDashboard() {
             </div>
           </div>
 
-          {/* Right: Recent Patient Cases Table */}
+          {/* Right: Patient Cases + Progress Reports Tabs */}
           <div className="dd-patients-card">
-            <h3>Recent Patient Cases</h3>
-            <div className="dd-table-wrap">
-              <table className="dd-table">
-                <thead>
-                  <tr>
-                    <th>Patient Name</th>
-                    <th>Date</th>
-                    <th>Prediction</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPatients.map(patient => (
-                    <tr key={patient.id}>
-                      <td>{patient.name}</td>
-                      <td>{new Date(patient.date).toLocaleDateString()}</td>
-                      <td>
-                        <span className={`dd-pill ${
-                          patient.disease === 'Normal' ? 'dd-pill--normal' :
-                          patient.disease === 'Pneumonia' ? 'dd-pill--pneumonia' :
-                          'dd-pill--other'
-                        }`}>
-                          {patient.disease}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className="dd-view-btn"
-                          onClick={() => {
-                            setSelectedReport(patient.reportData);
-                            setShowReportModal(true);
-                          }}
-                        >
-                          View Case
-                        </button>
-                      </td>
+            {/* Tab bar */}
+            <div className="dd-tab-bar">
+              <button className={`dd-tab${activeTab === 'cases' ? ' active' : ''}`} onClick={() => setActiveTab('cases')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                {casesTitle}
+              </button>
+              <button className={`dd-tab${activeTab === 'progress' ? ' active' : ''}`} onClick={() => setActiveTab('progress')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Progress Reports
+                {progressReports.filter(r => r.status === 'progress').length > 0 && (
+                  <span className="dd-tab-badge">{progressReports.filter(r => r.status === 'progress').length}</span>
+                )}
+              </button>
+            </div>
+
+            {/* ── AI Diagnostic Cases Tab ── */}
+            {activeTab === 'cases' && (
+              <div className="dd-table-wrap">
+                <table className="dd-table">
+                  <thead>
+                    <tr>
+                      <th>Patient Name</th>
+                      <th>Date</th>
+                      <th>Prediction</th>
+                      <th>Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              {filteredPatients.length === 0 && (
-                <div className="dd-empty">
-                  <p>No patients found.</p>
+                  </thead>
+                  <tbody>
+                    {displayedPatients.map(patient => (
+                      <tr key={patient.id}>
+                        <td>{patient.name}</td>
+                        <td>{new Date(patient.date).toLocaleDateString()}</td>
+                        <td>
+                          <span className={`dd-pill ${
+                            patient.disease === 'Normal' ? 'dd-pill--normal' :
+                            patient.disease === 'Pneumonia' ? 'dd-pill--pneumonia' :
+                            'dd-pill--other'
+                          }`}>
+                            {patient.disease}
+                          </span>
+                        </td>
+                        <td>
+                          <button className="dd-view-btn" onClick={() => { setSelectedReport(patient.reportData); setShowReportModal(true); }}>
+                            View Case
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {displayedPatients.length === 0 && (
+                  <div className="dd-empty"><p>{emptyCasesMessage}</p></div>
+                )}
+              </div>
+            )}
+
+            {/* ── Progress Reports Tab ── */}
+            {activeTab === 'progress' && (
+              <div className="dd-table-wrap">
+                {filteredProgressReports.length === 0 ? (
+                  <div className="dd-empty"><p>No progress reports received yet.</p></div>
+                ) : (
+                  <table className="dd-table">
+                    <thead>
+                      <tr>
+                        <th>Patient</th>
+                        <th>Date</th>
+                        <th>AI Prediction</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredProgressReports.map(r => (
+                        <tr key={r.reportId}>
+                          <td><span className="dd-patient-name">{r.patientName}</span></td>
+                          <td>{new Date(r.sentAt).toLocaleDateString()}</td>
+                          <td>
+                            <span className={`dd-pill ${
+                              r.analysis?.prediction === 'Normal' ? 'dd-pill--normal' :
+                              r.analysis?.prediction === 'Pneumonia' ? 'dd-pill--pneumonia' :
+                              'dd-pill--other'
+                            }`}>{r.analysis?.prediction || 'N/A'}</span>
+                          </td>
+                          <td>
+                            <span className={`dd-status-pill ${r.status === 'commented' ? 'dd-status-pill--done' : 'dd-status-pill--pending'}`}>
+                              {r.status === 'commented' ? '✓ Commented' : '⏳ Awaiting Review'}
+                            </span>
+                          </td>
+                          <td>
+                            <button className="dd-view-btn dd-view-btn--progress" onClick={() => handleOpenProgressReport(r)}>
+                              {r.status === 'commented' ? 'View' : 'Open & Comment'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ══ Progress Report Review Panel ══ */}
+      {showProgressPanel && selectedProgressReport && (
+        <div className="dd-modal-overlay" onClick={() => setShowProgressPanel(false)}>
+          <div className="dd-modal dd-progress-modal" onClick={e => e.stopPropagation()}>
+            <div className="dd-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--dd-teal)" strokeWidth="2" width="20" height="20"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <div>
+                  <h2 className="dd-modal-title">Progress Report — {selectedProgressReport.patientName}</h2>
+                  <p style={{ fontSize: 'var(--fs-xs)', color: 'var(--dd-text-3)', margin: 0 }}>
+                    Submitted {new Date(selectedProgressReport.sentAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                </div>
+              </div>
+              <button className="dd-modal-close" onClick={() => setShowProgressPanel(false)}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div className="dd-modal-body dd-progress-body">
+              {/* ── AI Analysis Summary ── */}
+              <div className="dd-prog-section">
+                <h4 className="dd-prog-section-title">AI Analysis Summary</h4>
+                <div className="dd-prog-metrics">
+                  <div className="dd-prog-metric">
+                    <span className="dd-prog-metric-label">Prediction</span>
+                    <span className={`dd-pill ${selectedProgressReport.analysis?.prediction === 'Normal' ? 'dd-pill--normal' : 'dd-pill--pneumonia'}`}>
+                      {selectedProgressReport.analysis?.prediction || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="dd-prog-metric">
+                    <span className="dd-prog-metric-label">Confidence</span>
+                    <span className="dd-prog-metric-value">{selectedProgressReport.analysis?.confidence ? (selectedProgressReport.analysis.confidence * 100).toFixed(1) + '%' : 'N/A'}</span>
+                  </div>
+                  <div className="dd-prog-metric">
+                    <span className="dd-prog-metric-label">Severity</span>
+                    <span className="dd-prog-metric-value">{selectedProgressReport.analysis?.severity || 'N/A'}</span>
+                  </div>
+                  <div className="dd-prog-metric">
+                    <span className="dd-prog-metric-label">Health Score</span>
+                    <span className="dd-prog-metric-value">{selectedProgressReport.analysis?.healthScore != null ? `${selectedProgressReport.analysis.healthScore}/100` : 'N/A'}</span>
+                  </div>
+                </div>
+                {selectedProgressReport.analysis?.comparison && (
+                  <div className="dd-prog-comparison">
+                    <p className="dd-prog-comp-title">Comparison with Previous X-Ray</p>
+                    <div className="dd-prog-comp-row">
+                      <span>Prev. Disease Prob: <strong>{selectedProgressReport.analysis.comparison.previous_probability?.toFixed(1)}%</strong></span>
+                      <span>→</span>
+                      <span>Current: <strong>{selectedProgressReport.analysis.comparison.current_probability?.toFixed(1)}%</strong></span>
+                      <span className={`dd-prog-status-tag ${selectedProgressReport.analysis.comparison.status === 'Improved' ? 'dd-prog-status-tag--better' : selectedProgressReport.analysis.comparison.status === 'Worsened' ? 'dd-prog-status-tag--worse' : 'dd-prog-status-tag--same'}`}>
+                        {selectedProgressReport.analysis.comparison.status}
+                      </span>
+                    </div>
+                    <div className="dd-prog-comp-row">
+                      <span>Prev. Health Score: <strong>{selectedProgressReport.analysis.comparison.previous_health_score ?? 'N/A'}/100</strong></span>
+                      <span>→</span>
+                      <span>Current: <strong>{selectedProgressReport.analysis.comparison.current_health_score ?? selectedProgressReport.analysis?.healthScore ?? 'N/A'}/100</strong></span>
+                    </div>
+                    <div className="dd-prog-comp-row">
+                      <span>SSIM Similarity</span>
+                      <span>:</span>
+                      <span><strong>{selectedProgressReport.analysis.comparison.ssim_score != null ? `${(selectedProgressReport.analysis.comparison.ssim_score * 100).toFixed(2)}%` : 'N/A'}</strong></span>
+                    </div>
+                    {selectedProgressReport.analysis.summary && (
+                      <p className="dd-prog-summary-text">{selectedProgressReport.analysis.summary}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── X-Ray Images ── */}
+              {selectedProgressReport.images && (
+                <div className="dd-prog-section">
+                  <h4 className="dd-prog-section-title">Radiographic Images</h4>
+                  <div className="dd-prog-images">
+                    {selectedProgressReport.images.currentXray && (
+                      <div className="dd-prog-img-card">
+                        <p className="dd-prog-img-label">Current X-Ray</p>
+                        <img src={selectedProgressReport.images.currentXray} alt="Current X-ray" className="dd-prog-img" />
+                      </div>
+                    )}
+                    {selectedProgressReport.images.heatmap && (
+                      <div className="dd-prog-img-card">
+                        <p className="dd-prog-img-label">Affected Regions (Heatmap)</p>
+                        <img src={selectedProgressReport.images.heatmap} alt="Heatmap" className="dd-prog-img" />
+                      </div>
+                    )}
+                    {selectedProgressReport.images.previousXray && (
+                      <div className="dd-prog-img-card">
+                        <p className="dd-prog-img-label">Previous X-Ray</p>
+                        <img src={selectedProgressReport.images.previousXray} alt="Previous X-ray" className="dd-prog-img" />
+                      </div>
+                    )}
+                    {selectedProgressReport.images.previousHeatmap && (
+                      <div className="dd-prog-img-card">
+                        <p className="dd-prog-img-label">Previous Heatmap</p>
+                        <img src={selectedProgressReport.images.previousHeatmap} alt="Previous heatmap" className="dd-prog-img" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Doctor Comments Form / Already Commented ── */}
+              {commentSuccess || selectedProgressReport.status === 'commented' ? (
+                <div className="dd-prog-commented-banner">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="#276749" strokeWidth="2.5" width="22" height="22"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <div>
+                    <strong>Comments submitted and sent to patient.</strong>
+                    <p>The patient can now view your clinical feedback in the Doctor Recommendations page.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="dd-prog-section">
+                  <h4 className="dd-prog-section-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    Give Clinical Comments
+                  </h4>
+                  <p className="dd-prog-form-note">Your comments will be sent directly to the patient and appear in their Doctor Recommendations as a progress report result.</p>
+
+                  <div className="dd-prog-form">
+                    <div className="dd-form-group">
+                      <label className="dd-form-label">Clinical Impression <span style={{color:'var(--dd-red)'}}>*</span></label>
+                      <textarea
+                        className="dd-form-textarea"
+                        rows={3}
+                        placeholder="e.g. Compared to the previous scan, there is mild improvement in the right lower lobe infiltration…"
+                        value={progressCommentForm.clinical_impression}
+                        onChange={e => setProgressCommentForm(f => ({ ...f, clinical_impression: e.target.value }))}
+                      />
+                    </div>
+                    <div className="dd-form-group">
+                      <label className="dd-form-label">Recommendations <span style={{color:'var(--dd-red)'}}>*</span></label>
+                      <textarea
+                        className="dd-form-textarea"
+                        rows={3}
+                        placeholder="e.g. Continue prescribed antibiotics, rest, avoid strenuous activity. Follow up in 2 weeks…"
+                        value={progressCommentForm.recommendations}
+                        onChange={e => setProgressCommentForm(f => ({ ...f, recommendations: e.target.value }))}
+                      />
+                    </div>
+                    <div className="dd-prog-form-row">
+                      <div className="dd-form-group">
+                        <label className="dd-form-label">Medications (if any)</label>
+                        <input
+                          className="dd-form-input"
+                          placeholder="e.g. Amoxicillin 500mg, continue previous"
+                          value={progressCommentForm.medications}
+                          onChange={e => setProgressCommentForm(f => ({ ...f, medications: e.target.value }))}
+                        />
+                      </div>
+                      <div className="dd-form-group">
+                        <label className="dd-form-label">Follow-Up</label>
+                        <input
+                          className="dd-form-input"
+                          placeholder="e.g. Repeat X-ray in 3 weeks"
+                          value={progressCommentForm.follow_up}
+                          onChange={e => setProgressCommentForm(f => ({ ...f, follow_up: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="dd-form-group">
+                      <label className="dd-form-label">Additional Notes</label>
+                      <textarea
+                        className="dd-form-textarea"
+                        rows={2}
+                        placeholder="Any other observations or advice…"
+                        value={progressCommentForm.additional_notes}
+                        onChange={e => setProgressCommentForm(f => ({ ...f, additional_notes: e.target.value }))}
+                      />
+                    </div>
+                    <label className="dd-prog-checkbox-row">
+                      <input type="checkbox" checked={progressCommentForm.hospital_visit_required} onChange={e => setProgressCommentForm(f => ({ ...f, hospital_visit_required: e.target.checked }))} />
+                      Hospital / Clinic Visit Required
+                    </label>
+                  </div>
+
+                  <div className="dd-prog-form-footer">
+                    <button className="dd-btn-action" onClick={() => setShowProgressPanel(false)}>Cancel</button>
+                    <button className="dd-btn-primary" disabled={submittingComment} onClick={handleSubmitProgressComment}>
+                      {submittingComment
+                        ? <><span className="dd-spinner-sm"/>Sending…</>
+                        : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg> Send Comments to Patient</>
+                      }
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Edit Profile Modal */}
       {showEditModal && (
@@ -1279,17 +1659,8 @@ function DoctorDashboard() {
                   }}
                   doctor={doctor}
                   onDownloadPDF={handleDownloadPDF}
+                  onSendToPatient={() => handleSendToPatient(currentPrescription)}
                 />
-
-                {/* Send to Patient Button */}
-                <div className="dd-action-row--border">
-                  <button
-                    className="dd-btn-action"
-                    onClick={() => handleSendToPatient(currentPrescription)}
-                  >
-                    Send to Patient
-                  </button>
-                </div>
               </div>
             )}
             

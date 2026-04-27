@@ -1,8 +1,8 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './ChatModule.css';
 
-const API     = 'http://localhost:8001/api/patient-chat';
-const WS_BASE = 'ws://localhost:8001/api/patient-chat/ws';
+const API     = 'http://localhost:8000/api/patient-chat';
+const WS_BASE = 'ws://localhost:8000/api/patient-chat/ws';
 const DAYS    = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
 // -- Professional inline SVG icons --------------------------------------------
@@ -25,8 +25,7 @@ const Ic = {
 };
 
 const STARTER_MESSAGE =
-  'Hello Doctor, I would like to consult regarding my recent X-ray results and AI diagnostic report. ' +
-  'Please review my case at your earliest convenience. Thank you.';
+  'Hello Doctor, I want to get a consultation about my recent X-ray results. Please review my case when you are available.';
 
 function isWithinHours(hours) {
   if (!hours) return false;
@@ -58,6 +57,14 @@ function formatHoursDisplay(hours) {
   });
 }
 
+function toStableEmail(raw) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (value.includes('@')) return value;
+  const safe = value.toLowerCase().replace(/[^a-z0-9._-]/g, '-');
+  return `${safe}@medivision.local`;
+}
+
 // -----------------------------------------------------------------------------
 export default function PatientChatPanel({ doctorId, doctorName, reportData, onClose }) {
   const [expanded,      setExpanded]      = useState(true);
@@ -84,11 +91,12 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
   const sessionRef  = useRef(null); // always up-to-date sessionId for async closures
 
   const patientData  = JSON.parse(localStorage.getItem('patientData') || '{}');
-  const patientEmail = patientData.email || patientData.Email || '';
+  const patientIdentityRaw = patientData.email || patientData.Email || patientData.id || patientData.patientId || patientData.name || 'patient';
+  const patientEmail = toStableEmail(patientIdentityRaw);
   const doctorIdNum  = parseInt(doctorId, 10) || doctorId;
 
   const isOnline = isWithinHours(consultHours);
-  const canChat  = sessionStatus === 'open' || isOnline;
+  const canChat  = sessionStatus !== 'closed';
 
   // Keep ref in sync
   useEffect(() => { sessionRef.current = sessionId; }, [sessionId]);
@@ -110,7 +118,11 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
         const res  = await fetch(`${API}/sessions`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patient_email: patientEmail, doctor_id: doctorIdNum }),
+          body: JSON.stringify({
+            patient_email: patientEmail,
+            doctor_id: doctorIdNum,
+            patient_name: patientData.fullName || patientData.name || patientData.full_name || 'Patient'
+          }),
         });
         const data = await res.json();
         if (data.success) {
@@ -207,7 +219,11 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
     const res  = await fetch(`${API}/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patient_email: patientEmail, doctor_id: doctorIdNum }),
+      body: JSON.stringify({
+        patient_email: patientEmail,
+        doctor_id: doctorIdNum,
+        patient_name: patientData.fullName || patientData.name || patientData.full_name || 'Patient'
+      }),
     });
     const data = await res.json();
     if (data.success) {
@@ -224,6 +240,8 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
   const sendText = async (overrideText) => {
     const text = (overrideText !== undefined ? overrideText : inputText).trim();
     if (!text) return;
+    // Block free-form messages unless session is open; starter message is always allowed
+    if (overrideText === undefined && sessionStatus !== 'open') return;
 
     let sid;
     try { sid = await ensureSession(); } catch (e) { return; }
@@ -439,10 +457,6 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
         </div>
         <div className="cp-header-right" onClick={e => e.stopPropagation()}>
           {connecting && <span className="cp-connecting" title="Connecting…">●</span>}
-          <button className="cp-header-btn" title="AI Diagnostic Report"
-            onClick={() => openReport('ai')}>{Ic.report}</button>
-          <button className="cp-header-btn" title="Prescription"
-            onClick={() => openReport('rx')}>{Ic.pill}</button>
           <button className="cp-header-btn" title="Consultation Hours"
             onClick={() => setShowHours(v => !v)}>{Ic.clock}</button>
           <button className="cp-header-btn" title={maximized ? 'Restore' : 'Expand'}
@@ -479,8 +493,8 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
             {sessionStatus === 'open'
               ? 'Live consultation active — the doctor is connected'
               : isOnline
-              ? `Consultation hours active — you may send messages`
-              : `Consultation hours: ${todayLabel || 'Not set'}. Messages are saved for doctor review.`
+              ? 'Consultation hours active — you may send messages'
+              : `Consultation hours: ${todayLabel || 'Not set'}. You can still send messages; they are saved for doctor review.`
             }
           </div>
 
@@ -509,11 +523,8 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
           </div>
 
           {/* Input */}
-          {sessionStatus === 'closed' ? (
-            <div className="cp-locked-bar">
-              <span style={{ marginRight: 6 }}>{Ic.lock}</span>Session closed by doctor
-            </div>
-          ) : canChat ? (
+          {sessionStatus === 'open' ? (
+            /* ── Session is OPEN: full input bar ── */
             <div className="cp-input-bar">
               <input type="file" ref={fileInputRef} accept="image/*,application/pdf,.doc,.docx"
                 style={{ display: 'none' }} onChange={handleFileSelect} />
@@ -536,16 +547,36 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
               >{Ic.mic}</button>
               <button className="cp-send-btn" onClick={() => sendText()}>{Ic.send}</button>
             </div>
+          ) : sessionStatus === 'closed' ? (
+            /* ── Session CLOSED by doctor ── */
+            <div className="cp-locked-bar">
+              <span style={{ marginRight: 6 }}>{Ic.lock}</span>Session closed by doctor
+            </div>
+          ) : canChat ? (
+            /* ── Session PENDING but within hours: only starter allowed ── */
+            <div style={{ padding: '10px 10px 0' }}>
+              {!starterSent ? (
+                <button onClick={sendStarter} className="cp-starter-btn">
+                  <span style={{ display: 'block', fontWeight: 700, fontSize: 13 }}>Send Consultation Request</span>
+                  <span style={{ display: 'block', fontWeight: 400, opacity: 0.8, marginTop: 2, fontSize: 11.5 }}>
+                    "I want to get consultation about my recent X-ray results."
+                  </span>
+                </button>
+              ) : (
+                <div className="cp-locked-bar">
+                  <span style={{ marginRight: 6 }}>{Ic.clock}</span>Request sent — waiting for the doctor to open the session
+                </div>
+              )}
+            </div>
           ) : (
+            /* ── Outside consultation hours ── */
             <div style={{ padding: '10px' }}>
               <div className="cp-locked-bar" style={{ marginBottom: 8, borderRadius: 8 }}>
                 <span style={{ marginRight: 6 }}>{Ic.lock}</span>Messaging is available during consultation hours only
               </div>
               {!starterSent && (
                 <button onClick={sendStarter} className="cp-starter-btn">
-                  <span style={{ display: 'block', fontWeight: 700, fontSize: 13 }}>
-                    Send Consultation Request
-                  </span>
+                  <span style={{ display: 'block', fontWeight: 700, fontSize: 13 }}>Send Consultation Request</span>
                   <span style={{ display: 'block', fontWeight: 400, opacity: 0.8, marginTop: 2, fontSize: 11.5 }}>
                     "I would like to consult regarding my recent X-ray results…"
                   </span>
@@ -632,7 +663,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
                     <div style={{ fontSize: 12, color: '#4a5568', lineHeight: 2, textAlign: 'right' }}>
                       <div><strong>Report ID:</strong> {aiR.reportId || aiR.report_id || 'N/A'}</div>
                       <div><strong>Date:</strong> {rDate ? new Date(rDate).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : 'N/A'}</div>
-                      <div><strong>Patient ID:</strong> {(aiR.patient?.email || patientEmail)?.split('@')[0].toUpperCase() || 'N/A'}</div>
+                      <div><strong>Patient:</strong> {pName !== '—' ? pName : (aiR.patient?.email || patientEmail)?.split('@')[0] || 'N/A'}</div>
                     </div>
                   </div>
                   {/* Patient Info */}
@@ -699,14 +730,22 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
                     <div style={{ marginBottom: 18 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#2d3748', textTransform: 'uppercase', letterSpacing: 1, borderBottom: '1px solid #38B2AC', paddingBottom: 5, marginBottom: 12 }}>Chest X-Ray Images</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                        {aiR.images?.original && (<div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>Original X-Ray</div>
-                          <img src={aiR.images.original} alt="X-Ray" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
-                        </div>)}
-                        {aiR.images?.heatmap && (<div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>AI Heatmap Analysis</div>
-                          <img src={aiR.images.heatmap} alt="Heatmap" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e2e8f0' }} />
-                        </div>)}
+                        {aiR.images?.original && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>Original X-Ray</div>
+                            <div style={{ width: '100%', height: 260, background: '#000', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <img src={aiR.images.original} alt="X-Ray" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                            </div>
+                          </div>
+                        )}
+                        {aiR.images?.heatmap && (
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 11, color: '#718096', marginBottom: 6 }}>AI Heatmap Analysis</div>
+                            <div style={{ width: '100%', height: 260, background: '#000', borderRadius: 8, border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <img src={aiR.images.heatmap} alt="Heatmap" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -735,7 +774,7 @@ export default function PatientChatPanel({ doctorId, doctorName, reportData, onC
                 </div>
                 {/* Patient row */}
                 <div style={{ display: 'flex', gap: 30, background: '#f7fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14 }}>
-                  <span><strong>Patient:</strong> {rxR.patient_name || patientEmail}</span>
+                  <span><strong>Patient:</strong> {rxR.patient_name || patientEmail?.split('@')[0] || 'Patient'}</span>
                   {rxR.patient_age && <span><strong>Age:</strong> {rxR.patient_age}</span>}
                 </div>
                 {/* AI Diagnosis Verification */}

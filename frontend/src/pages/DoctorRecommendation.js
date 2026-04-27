@@ -23,10 +23,14 @@ const DoctorRecommendation = () => {
       doctorId,
       doctorName: `Dr. ${prescription.doctor_name}`,
     });
+    setShowPrescriptionModal(false);
   };
 
   useEffect(() => {
     fetchPrescriptions();
+    // Poll every 12 seconds so new prescriptions appear without a manual reload
+    const interval = setInterval(fetchPrescriptions, 12000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchPrescriptions = async () => {
@@ -51,6 +55,7 @@ const DoctorRecommendation = () => {
         // Determine how many are "new" (not yet seen)
         const viewedCount = parseInt(localStorage.getItem('viewedPrescriptionCount') || '0');
         setNewCount(Math.max(0, sentPrescriptions.length - viewedCount));
+        localStorage.setItem('viewedPrescriptionCount', String(sentPrescriptions.length));
       }
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
@@ -187,55 +192,92 @@ const DoctorRecommendation = () => {
             <div className="prescriptions-grid">
               {prescriptions.map((prescription, index) => {
                 const isNew = index < newCount;
+                const isProgress = prescription.report_type === 'progress';
                 return (
-                <div key={prescription._id || index} className={`prescription-card${isNew ? ' prescription-card--new' : ''}`}>
+                <div
+                  key={prescription._id || index}
+                  className={`prescription-card${isNew ? ' prescription-card--new' : ''}${isProgress ? ' prescription-card--progress' : ''}`}
+                >
                   {isNew && <div className="prescription-new-badge">New</div>}
+                  {isProgress && (
+                    <div className="prescription-progress-ribbon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                      </svg>
+                      Progress Report Result
+                    </div>
+                  )}
                   <div className="prescription-card-header">
                     <div className="prescription-header-left">
-                      <div className="prescription-doctor-avatar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                        </svg>
+                      <div className={`prescription-doctor-avatar${isProgress ? ' prescription-doctor-avatar--progress' : ''}`}>
+                        {isProgress ? (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                          </svg>
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                          </svg>
+                        )}
                       </div>
                       <div>
                         <h3>Dr. {prescription.doctor_name}</h3>
-                        <span className="prescription-specialization">{prescription.doctor_specialization || 'General Physician'}</span>
+                        <span className="prescription-specialization">
+                          {isProgress ? 'Progress Tracking Review' : (prescription.doctor_specialization || 'General Physician')}
+                        </span>
                       </div>
                     </div>
                     <span className="prescription-date">{formatDate(prescription.created_at)}</span>
                   </div>
                   <div className="prescription-card-body">
                     <div className="prescription-info">
-                      <div className="prescription-info-row">
-                        <span className="prescription-info-label">PMDC</span>
-                        <span className="prescription-info-value">{prescription.doctor_license}</span>
-                      </div>
-                      <div className="prescription-info-row">
-                        <span className="prescription-info-label">Diagnosis</span>
-                        <span className="prescription-info-value">{prescription.doctor_diagnosis || 'See prescription'}</span>
-                      </div>
+                      {isProgress ? (
+                        <>
+                          <div className="prescription-info-row">
+                            <span className="prescription-info-label">Type</span>
+                            <span className="prescription-info-value prescription-info-value--progress">Progress Tracking Feedback</span>
+                          </div>
+                          <div className="prescription-info-row">
+                            <span className="prescription-info-label">Clinical Impression</span>
+                            <span className="prescription-info-value">{prescription.clinical_impression || prescription.doctor_diagnosis || 'See full report'}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="prescription-info-row">
+                            <span className="prescription-info-label">PMDC</span>
+                            <span className="prescription-info-value">{prescription.doctor_license}</span>
+                          </div>
+                          <div className="prescription-info-row">
+                            <span className="prescription-info-label">Diagnosis</span>
+                            <span className="prescription-info-value">{prescription.doctor_diagnosis || 'See prescription'}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="prescription-card-footer">
                     <button
                       onClick={() => handleViewPrescription(prescription)}
-                      className="view-prescription-btn"
+                      className={`view-prescription-btn${isProgress ? ' view-prescription-btn--progress' : ''}`}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                       </svg>
-                      View Prescription
+                      {isProgress ? 'View Progress Report' : 'View Prescription'}
                     </button>
-                    <button
-                      onClick={() => handleOpenChat(prescription)}
-                      className="chat-doctor-btn"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                      </svg>
-                      Chat
-                    </button>
+                    {!isProgress && (
+                      <button
+                        onClick={() => handleOpenChat(prescription)}
+                        className="chat-doctor-btn"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Chat
+                      </button>
+                    )}
                   </div>
                 </div>
                 );
@@ -246,8 +288,8 @@ const DoctorRecommendation = () => {
 
         {/* Prescription Modal */}
         {showPrescriptionModal && selectedPrescription && (
-          <div className="prescription-modal-overlay" onClick={() => setShowPrescriptionModal(false)}>
-            <div className="prescription-modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="prescription-modal-overlay" onMouseDown={() => setShowPrescriptionModal(false)}>
+            <div className="prescription-modal-content" onMouseDown={(e) => e.stopPropagation()}>
               <button
                 className="modal-close-btn"
                 onClick={() => setShowPrescriptionModal(false)}
@@ -260,29 +302,38 @@ const DoctorRecommendation = () => {
                 </div>
               ) : (
                 <DoctorPrescriptionReport
+                  compact={true}
                   prescription={selectedPrescription}
                   patientReport={selectedPatientReport ? {
                     patient: {
-                      age: selectedPatientReport.patient?.age || selectedPrescription.patient_age || 'N/A',
+                        age: selectedPatientReport.patient?.age || selectedPatientReport.patientAge || selectedPatientReport.patientInfo?.age || selectedPrescription.patient_age || 'N/A',
                       dateOfBirth: null,
-                      gender: selectedPatientReport.patient?.gender || 'Not specified',
-                      smokingStatus: selectedPatientReport.patient?.smokingStatus || 'Unknown',
-                      symptoms: selectedPatientReport.medicalInfo?.symptoms || 'Not recorded',
-                      hasCough: selectedPatientReport.patient?.hasCough || 'No',
-                      coughDuration: selectedPatientReport.patient?.coughDuration || 'N/A',
-                      coughType: selectedPatientReport.patient?.coughType || 'N/A',
-                      medicalHistory: selectedPatientReport.medicalInfo?.medicalHistory || 'Not recorded'
+                        gender: selectedPatientReport.patient?.gender || selectedPatientReport.patientGender || selectedPatientReport.patientInfo?.gender || selectedPrescription.patient_gender || selectedPrescription.patientGender || 'Not specified',
+                        smokingStatus: selectedPatientReport.patient?.smokingStatus || 'Unknown',
+                        symptoms: selectedPatientReport.medicalInfo?.symptoms || 'Not recorded',
+                        hasCough: selectedPatientReport.patient?.hasCough || 'No',
+                        coughDuration: selectedPatientReport.patient?.coughDuration || 'N/A',
+                        coughType: selectedPatientReport.patient?.coughType || 'N/A',
+                        medicalHistory: selectedPatientReport.medicalInfo?.medicalHistory || 'Not recorded'
                     },
                     analysis: {
                       prediction: selectedPatientReport.analysis?.prediction || selectedPrescription.diagnosis_confirmation || 'N/A',
                       confidence: selectedPatientReport.analysis?.confidence || 0,
-                      severity: selectedPatientReport.analysis?.severity || ''
-                    }
+                        severity: selectedPatientReport.analysis?.severity || '',
+                        comparison: selectedPatientReport.analysis?.comparison || null
+                      },
+                      patientAge: selectedPatientReport.patientAge || selectedPatientReport.patient?.age || selectedPatientReport.patientInfo?.age || selectedPrescription.patient_age || null,
+                      patientGender: selectedPatientReport.patientGender || selectedPatientReport.patient?.gender || selectedPatientReport.patientInfo?.gender || selectedPrescription.patient_gender || selectedPrescription.patientGender || null,
+                      progressImages: {
+                        previousXray: selectedPatientReport.images?.previousXray || selectedPatientReport.images?.previous_xray || '',
+                        currentXray: selectedPatientReport.images?.currentXray || selectedPatientReport.images?.current_xray || selectedPatientReport.images?.original || ''
+                      },
+                      progressComparison: selectedPatientReport.analysis?.comparison || null
                   } : {
                     patient: {
                       age: selectedPrescription.patient_age || 'N/A',
                       dateOfBirth: null,
-                      gender: 'Not specified',
+                        gender: selectedPrescription.patient_gender || selectedPrescription.patientGender || 'Not specified',
                       smokingStatus: 'Unknown',
                       symptoms: 'Not recorded',
                       hasCough: 'Not recorded',
@@ -291,8 +342,16 @@ const DoctorRecommendation = () => {
                     analysis: {
                       prediction: selectedPrescription.diagnosis_confirmation || 'N/A',
                       confidence: 0,
-                      severity: ''
-                    }
+                        severity: '',
+                        comparison: null
+                      },
+                      patientAge: selectedPrescription.patient_age || null,
+                    patientGender: selectedPrescription.patient_gender || selectedPrescription.patientGender || null,
+                      progressImages: selectedPrescription.report_type === 'progress' ? {
+                        previousXray: selectedPrescription.previous_xray || '',
+                      currentXray: selectedPrescription.current_xray || ''
+                      } : null,
+                      progressComparison: selectedPrescription.report_type === 'progress' ? selectedPrescription.progress_analysis?.comparison || null : null
                   }}
                   doctor={{
                     fullName: selectedPrescription.doctor_name,
